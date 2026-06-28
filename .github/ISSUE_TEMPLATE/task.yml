@@ -1,0 +1,27 @@
+name: "🛠️ Task"
+description: "리팩토링, 설정, 문서 등 기타 작업"
+title: "[task] "
+labels: ["🛠️ task"]
+body:
+  - type: textarea
+    attributes:
+      label: 📄 설명
+      description: 어떤 작업인지 설명해 주세요.
+      placeholder: 무엇을, 왜 하는지 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 작업할 내용
+      description: 할 일을 체크박스 형태로 작성해주세요.
+      placeholder: |
+        - [ ] 작업 1
+        - [ ] 작업 2
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 🙋🏻 참고 자료
+      description: 참고 자료가 있다면 작성해 주세요. (없으면 비워두셔도 됩니다)
+    validations:
+      required: false

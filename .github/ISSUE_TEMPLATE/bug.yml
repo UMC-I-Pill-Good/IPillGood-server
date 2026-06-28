@@ -1,0 +1,27 @@
+name: "🐞 Bug"
+description: "버그 리포트"
+title: "[bug] "
+labels: ["🐞 bug"]
+body:
+  - type: textarea
+    attributes:
+      label: 🐞 버그 설명
+      description: 어떤 문제가 발생했는지 설명해 주세요.
+      placeholder: 무엇이 잘못 동작하나요?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✅ 작업할 내용
+      description: 할 일을 체크박스 형태로 작성해주세요.
+      placeholder: |
+        - [ ] 작업 1
+        - [ ] 작업 2
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 🙋🏻 참고 자료
+      description: 참고 자료가 있다면 작성해 주세요. (없으면 비워두셔도 됩니다)
+    validations:
+      required: false

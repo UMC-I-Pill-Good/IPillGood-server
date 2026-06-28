@@ -1,0 +1,43 @@
+name: Discord - PR Approved
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  notify:
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          REVIEWER: ${{ github.event.review.user.login }}
+          REVIEWER_AVATAR: ${{ github.event.review.user.avatar_url }}
+          REVIEW_URL: ${{ github.event.review.html_url }}
+        run: |
+          payload=$(jq -n \
+            --arg title "✅ PR이 승인됐어요" \
+            --arg name "#${PR_NUMBER} ${PR_TITLE}" \
+            --arg value "🙋 리뷰어: **${REVIEWER}**  |  👤 작성자: **${PR_AUTHOR}**  |  🎯 대상: \`${PR_BASE}\`\n🔗 ${PR_URL}" \
+            --arg reviewer "$REVIEWER" \
+            --arg avatar "$REVIEWER_AVATAR" \
+            --arg url "$REVIEW_URL" \
+            '{
+              username: "GitHub PR Bot",
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: 5763719,
+                author: { name: $reviewer, icon_url: $avatar },
+                fields: [
+                  { name: $name, value: $value, inline: false }
+                ]
+              }]
+            }')
+          curl -sSf -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL"

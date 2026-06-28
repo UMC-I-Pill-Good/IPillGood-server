@@ -1,0 +1,58 @@
+name: Discord - PR Review Reminder
+
+on:
+  schedule:
+    - cron: '0 15 * * *'  # 00:00 KST
+    - cron: '0 3 * * *'   # 12:00 KST
+    - cron: '0 9 * * *'   # 18:00 KST
+    - cron: '0 12 * * *'  # 21:00 KST
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find PRs without reviews and notify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          pr_data=$(gh pr list \
+            --state open \
+            --limit 100 \
+            --json number,title,url,author,baseRefName,isDraft,reviews,createdAt \
+            --jq '[.[]
+              | select(.isDraft == false)
+              | select(.baseRefName == "develop" or .baseRefName == "main")
+              | select([.reviews[] | select(.state != "COMMENTED")] | length == 0)
+              | {number, title, url, author: .author.login, base: .baseRefName, createdAt}
+            ]')
+
+          pr_count=$(echo "$pr_data" | jq 'length')
+
+          if [ "$pr_count" -eq 0 ]; then
+            echo "리뷰 안 달린 PR 없음. 알림 스킵."
+            exit 0
+          fi
+
+          fields=$(echo "$pr_data" | jq '[.[] | {
+            name: "#\(.number) \(.title)",
+            value: "👤 작성자: **\(.author)**  |  🎯 대상: `\(.base)`\n🔗 \(.url)",
+            inline: false
+          }]')
+
+          payload=$(jq -n \
+            --argjson fields "$fields" \
+            --argjson count "$pr_count" \
+            '{
+              username: "GitHub PR Bot",
+              embeds: [{
+                title: "🔔 리뷰 대기 중인 PR이 \($count)개 있어요",
+                description: "확인 부탁드려요!",
+                color: 15844367,
+                fields: $fields
+              }]
+            }')
+
+          curl -sSf -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL"
