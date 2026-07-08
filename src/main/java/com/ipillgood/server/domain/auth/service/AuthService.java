@@ -59,4 +59,18 @@ public class AuthService {
                 .email(savedMember.getEmail())
                 .build();
     }
+
+    // 아이디 중복확인
+    public void checkUsernameDuplicate(String username) {
+        if (memberRepository.existsByUsername(username)) {
+            throw new AuthException(AuthErrorCode.DUPLICATE_USERNAME);
+        }
+    }
+
+    // 이메일 중복확인
+    public void checkEmailDuplicate(String email) {
+        if (memberRepository.existsByEmail(email)) {
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
+    }
 }

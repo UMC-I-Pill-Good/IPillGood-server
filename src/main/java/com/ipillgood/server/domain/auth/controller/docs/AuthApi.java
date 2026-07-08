@@ -5,11 +5,26 @@ import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 @Tag(name = "Auth API", description = "인증(회원가입/로그인) 관련 API")
 public interface AuthApi {
 
     @Operation(summary = "로컬 회원가입",
             description = "닉네임/아이디/이메일/비밀번호를 입력받아 회원가입을 진행합니다.")
-    ApiResponse<AuthResponse.SignUp> signUp(AuthRequest.SignUp request);
+    ApiResponse<AuthResponse.SignUp> signUp(@Valid AuthRequest.SignUp request);
+
+    @Operation(summary = "아이디 중복확인", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
+    ApiResponse<Void> checkUsername(
+            @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "2~10자 이내로 입력해주세요.")
+            String username);
+
+    @Operation(summary = "이메일 중복확인", description = "입력한 이메일이 이미 사용 중인지 확인합니다.")
+    ApiResponse<Void> checkEmail(
+            @NotBlank(message = "올바른 이메일 형식이 아닙니다.")
+            @Email(message = "올바른 이메일 형식이 아닙니다.")
+            String email);
 }
