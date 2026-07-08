@@ -9,6 +9,27 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum AuthErrorCode implements BaseErrorCode {
 
+    // 400 BAD_REQUEST - 유효성 검사
+    INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_1", "1~10자 이내로 입력해주세요."),
+    INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_2", "올바른 이메일 형식이 아닙니다."),
+    USERNAME_CHECK_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH400_3", "아이디 중복 확인을 해주세요."),
+    INVALID_USERNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_4", "2~10자 이내로 입력해주세요."),
+    INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_5", "8~16자의 영문, 숫자를 조합해 주세요."),
+    PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH400_6", "비밀번호가 일치하지 않습니다."),
+    KAKAO_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_7", "카카오 로그인에 실패했습니다. 다시 시도해주세요."),
+    NAVER_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_8", "네이버 로그인에 실패했습니다. 다시 시도해주세요."),
+    REQUIRED_TERMS_NOT_AGREED(HttpStatus.BAD_REQUEST, "AUTH400_9", "필수 항목에 동의해주세요."),
+
+    // 401 UNAUTHORIZED - 인증 실패
+    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_2", "이메일 또는 비밀번호를 확인해주세요."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_3", "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_4", "만료된 토큰입니다."),
+
+    // 409 CONFLICT - 중복/계정 충돌
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH409_1", "이미 사용 중인 이메일입니다. 해당 이메일로 로그인해 주세요."),
+    SOCIAL_ACCOUNT_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH409_2", "이미 해당 이메일로 [카카오/네이버] 계정이 존재해요. 해당 소셜 계정으로 로그인해 주세요."),
+    ACCOUNT_LINK_REQUIRED(HttpStatus.CONFLICT, "AUTH409_3", "이미 해당 이메일로 가입된 계정이 있어요. 기존 계정에 [카카오/네이버] 로그인을 연동하시겠어요?"),
+    DUPLICATE_USERNAME(HttpStatus.CONFLICT, "AUTH409_4", "이미 사용 중인 아이디입니다."),
     ;
 
     private final HttpStatus status;
