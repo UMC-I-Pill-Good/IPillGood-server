@@ -38,7 +38,7 @@ public class SecurityConfig {
                 // URL별 권한 설정
                 .authorizeHttpRequests(auth -> auth
                         // swagger 관련 URL
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // 접근 허용 API
                         .requestMatchers(allowUris).permitAll()
                         // 나머지 모든 경로는 인증 필요
