@@ -17,7 +17,9 @@ public class SecurityConfig {
     // 인증 없이 접근 허용 API
     private final String[] allowUris = {
             "/api/v1/auth/signup",
-            "/api/v1/auth/login"
+            "/api/v1/auth/login",
+            "/api/v1/auth/check-username",
+            "/api/v1/auth/check-email"
     };
 
     @Bean
