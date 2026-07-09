@@ -7,6 +7,7 @@ import com.ipillgood.server.domain.member.entity.Role;
 
 public class AuthConverter {
 
+    // 회원가입 - 멤버 엔티티 생성
     public static Member toMember(AuthRequest.SignUp request, String encodedPassword) {
         return Member.builder()
                 .nickname(request.nickname())
@@ -17,8 +18,19 @@ public class AuthConverter {
                 .build();
     }
 
+    // 회원가입 - 멤버 엔티티 -> DTO 변환
     public static AuthResponse.SignUp toSignUpResponse(Member member) {
         return AuthResponse.SignUp.builder()
+                .id(member.getId())
+                .nickname(member.getNickname())
+                .username(member.getUsername())
+                .email(member.getEmail())
+                .build();
+    }
+
+    // 로그인 - 멤버 엔티티 -> DTO 변환
+    public static AuthResponse.Login toLoginResponse(Member member) {
+        return AuthResponse.Login.builder()
                 .id(member.getId())
                 .nickname(member.getNickname())
                 .username(member.getUsername())

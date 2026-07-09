@@ -24,12 +24,20 @@ public class AuthController implements AuthApi {
 
     private final AuthService authService;
 
-    // 회원가입
+    // 로컬 회원가입
     @Override
     @PostMapping("/signup")
     public ApiResponse<AuthResponse.SignUp> signUp(@Valid @RequestBody AuthRequest.SignUp request) {
         AuthResponse.SignUp response = authService.signUp(request);
         return ApiResponse.onSuccess(AuthSuccessCode.SIGNUP_SUCCESS, response);
+    }
+
+    // 로컬 로그인
+    @Override
+    @PostMapping("/login")
+    public ApiResponse<AuthResponse.Login> login(@Valid @RequestBody AuthRequest.Login request) {
+        AuthResponse.Login response = authService.login(request);
+        return ApiResponse.onSuccess(AuthSuccessCode.LOGIN_SUCCESS, response);
     }
 
     // 아이디 중복확인
