@@ -1,11 +1,11 @@
 package com.ipillgood.server.domain.auth.service;
 
 import com.ipillgood.server.domain.auth.code.AuthErrorCode;
+import com.ipillgood.server.domain.auth.converter.AuthConverter;
 import com.ipillgood.server.domain.auth.dto.AuthRequest;
 import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.member.entity.Member;
-import com.ipillgood.server.domain.member.entity.Role;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,24 +40,16 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
+        // 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(request.password());
+
         // Member 엔티티 생성
-        Member member = Member.builder()
-                .nickname(request.nickname())
-                .username(request.username())
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .role(Role.USER)
-                .build();
+        Member member = AuthConverter.toMember(request, encodedPassword);
 
         // DB 저장
         Member savedMember = memberRepository.save(member);
 
-        return AuthResponse.SignUp.builder()
-                .id(savedMember.getId())
-                .nickname(savedMember.getNickname())
-                .username(savedMember.getUsername())
-                .email(savedMember.getEmail())
-                .build();
+        return AuthConverter.toSignUpResponse(savedMember);
     }
 
     // 아이디 중복확인
