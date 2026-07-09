@@ -6,8 +6,8 @@ import jakarta.validation.constraints.Pattern;
 
 public class AuthRequest {
 
+    // 회원가입 요청
     public record SignUp(
-
             // 공백 입력
             @NotBlank(message = "1~10자 이내로 입력해주세요.")
             @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "1~10자 이내로 입력해주세요.")
@@ -28,6 +28,16 @@ public class AuthRequest {
 
             @NotBlank(message = "비밀번호 확인을 입력해주세요.")
             String passwordConfirm
+    ) {
+    }
+
+    // 로그인 요청
+    public record Login(
+            @NotBlank(message = "2~10자 이내로 입력해주세요.")
+            String username,
+
+            @NotBlank(message = "8~16자의 영문, 숫자를 조합해 주세요.")
+            String password
     ) {
     }
 }

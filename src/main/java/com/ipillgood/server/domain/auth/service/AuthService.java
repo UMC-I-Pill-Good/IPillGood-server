@@ -20,7 +20,7 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // 회원가입
+    // 로컬 회원가입
     @Transactional
     public AuthResponse.SignUp signUp(AuthRequest.SignUp request) {
 
@@ -50,6 +50,20 @@ public class AuthService {
         Member savedMember = memberRepository.save(member);
 
         return AuthConverter.toSignUpResponse(savedMember);
+    }
+
+    // 로컬 로그인
+    public AuthResponse.Login login(AuthRequest.Login request) {
+        // 1. 아이디로 회원 조회
+        Member member = memberRepository.findByUsername(request.username())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.LOGIN_FAILED));
+
+        // 2. 비밀번호 검증
+        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
+            throw new AuthException(AuthErrorCode.LOGIN_FAILED);
+        }
+
+        return AuthConverter.toLoginResponse(member);
     }
 
     // 아이디 중복확인

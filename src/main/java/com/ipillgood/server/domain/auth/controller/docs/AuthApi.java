@@ -10,12 +10,20 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+/**
+ * 인증 관련 API 문서
+ * 회원가입, 로그인, 아이디/이메일 중복검사
+ */
 @Tag(name = "Auth API", description = "인증(회원가입/로그인) 관련 API")
 public interface AuthApi {
 
     @Operation(summary = "로컬 회원가입",
             description = "닉네임/아이디/이메일/비밀번호를 입력받아 회원가입을 진행합니다.")
     ApiResponse<AuthResponse.SignUp> signUp(@Valid AuthRequest.SignUp request);
+
+    @Operation(summary = "로컬 로그인",
+            description = "아이디와 비밀번호를 입력받아 로그인을 진행합니다.")
+    ApiResponse<AuthResponse.Login> login(@Valid AuthRequest.Login request);
 
     @Operation(summary = "아이디 중복확인", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
     ApiResponse<Void> checkUsername(
