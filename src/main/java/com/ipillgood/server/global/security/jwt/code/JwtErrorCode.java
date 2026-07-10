@@ -1,4 +1,4 @@
-package com.ipillgood.server.global.security.jwt;
+package com.ipillgood.server.global.security.jwt.code;
 
 import com.ipillgood.server.global.apiPayload.code.BaseErrorCode;
 import lombok.AllArgsConstructor;
