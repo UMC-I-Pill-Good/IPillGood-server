@@ -1,5 +1,6 @@
 package com.ipillgood.server.global.security.jwt;
 
+import com.ipillgood.server.global.security.jwt.code.JwtErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -53,6 +54,7 @@ public class JwtProvider {
         try {
             // base64로 인코딩된 secret을 원래의 바이트 값으로 되돌린 뒤 secretKey 객체로 변환
             secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+
         } catch (DecodingException | WeakKeyException e) {
             // base64 형식이 아니거나(DecodingException) 최소 길이 불만족(WeakKeyException) => SecretKey 생성 실패
             // 단, 요청 인증 문제가 아니라 서버 설정 오류이므로 IllegalStateException 사용
