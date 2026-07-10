@@ -6,6 +6,8 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
 import io.jsonwebtoken.security.WeakKeyException;
@@ -14,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
@@ -50,12 +51,13 @@ public class JwtProvider {
     @PostConstruct
     public void init() {
         try {
-            // secret(문자열)-> secretKey 객체 변환
-            secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        } catch (WeakKeyException e) {
-            // JWT에서 요구하는 최소 길이를 만족하지 못하면 SecretKey 생성 실패
+            // base64로 인코딩된 secret을 원래의 바이트 값으로 되돌린 뒤 secretKey 객체로 변환
+            secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        } catch (DecodingException | WeakKeyException e) {
+            // base64 형식이 아니거나(DecodingException) 최소 길이 불만족(WeakKeyException) => SecretKey 생성 실패
             // 단, 요청 인증 문제가 아니라 서버 설정 오류이므로 IllegalStateException 사용
-            throw new IllegalStateException(JwtErrorCode.SECRET_KEY_INVALID.getMessage());
+            // 실제 실패 원인 e를 cause로 넘겨 로그에 남긴다.
+            throw new IllegalStateException(JwtErrorCode.SECRET_KEY_INVALID.getMessage(), e);
         }
     }
 
@@ -92,9 +94,19 @@ public class JwtProvider {
                 .compact();
     }
 
+    // 인증에 사용할 액세스 파싱
+    // 리프레시 토큰은 서명이 유효해도 인증 수단으로 쓸 수 없음 -> 토큰 타입 검증 필요
+    public Claims parseAccessToken(String token) {
+        Claims claims = parseClaims(token);
+        if (!TYPE_ACCESS.equals(claims.get(CLAIM_TYPE, String.class))) {
+            throw new JwtAuthenticationException(JwtErrorCode.TOKEN_INVALID_TYPE);
+        }
+        return claims;
+    }
+
     // 파싱 성공 = 유효한 토큰
     // 파싱 실패 시 JwtAuthenticationException을 던지고, JwtAuthFilter는 이 예외 하나만 처리하면 됨
-    public Claims parseClaims(String token) {
+    private Claims parseClaims(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(secretKey)          // 서명 검증
