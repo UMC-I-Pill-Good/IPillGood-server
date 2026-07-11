@@ -7,6 +7,7 @@ import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
+import com.ipillgood.server.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
     // 로컬 회원가입
     @Transactional
@@ -63,7 +65,12 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.LOGIN_FAILED);
         }
 
-        return AuthConverter.toLoginResponse(member);
+        // 3. 액세스/리프레시 토큰 발급
+        String role = member.getRole().name();
+        String accessToken = jwtProvider.createAccessToken(member.getId(), role);
+        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role);
+
+        return AuthConverter.toLoginResponse(accessToken, refreshToken);
     }
 
     // 아이디 중복확인
