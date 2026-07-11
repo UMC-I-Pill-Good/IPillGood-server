@@ -1,6 +1,5 @@
 package com.ipillgood.server.global.security.jwt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import com.ipillgood.server.global.apiPayload.code.BaseErrorCode;
 import com.ipillgood.server.global.security.jwt.code.JwtErrorCode;
@@ -11,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

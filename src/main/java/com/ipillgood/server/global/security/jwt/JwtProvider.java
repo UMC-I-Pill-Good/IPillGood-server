@@ -33,7 +33,7 @@ public class JwtProvider {
     private static final String TYPE_ACCESS = "access";
     private static final String TYPE_REFRESH = "refresh";
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret-key}")
     private String secret;
 
     // Access Token 유효 시간(ms)
