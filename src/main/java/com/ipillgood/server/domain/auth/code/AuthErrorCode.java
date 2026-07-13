@@ -21,9 +21,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     REQUIRED_TERMS_NOT_AGREED(HttpStatus.BAD_REQUEST, "AUTH400_9", "필수 항목에 동의해주세요."),
 
     // 401 UNAUTHORIZED - 인증 실패
-    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_2", "이메일 또는 비밀번호를 확인해주세요."),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_3", "유효하지 않은 토큰입니다."),
-    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_4", "만료된 토큰입니다."),
+    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_1", "아이디 또는 비밀번호를 확인해주세요."),
 
     // 409 CONFLICT - 중복/계정 충돌
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH409_1", "이미 사용 중인 이메일입니다. 해당 이메일로 로그인해 주세요."),

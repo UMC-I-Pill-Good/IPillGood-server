@@ -17,10 +17,8 @@ public class AuthResponse {
     // 로그인 응답
     @Builder
     public record Login(
-            Long id,
-            String nickname,
-            String username,
-            String email
+            String accessToken,
+            String refreshToken
     ) {
     }
 }

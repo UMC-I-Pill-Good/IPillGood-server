@@ -1,5 +1,9 @@
 package com.ipillgood.server.global.config;
 
+import com.ipillgood.server.global.security.jwt.JwtAuthFilter;
+import com.ipillgood.server.global.security.jwt.JwtAuthenticationEntryPoint;
+import com.ipillgood.server.global.security.jwt.JwtProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,10 +13,15 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtProvider jwtProvider;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     // 인증 없이 접근 허용 API
     private final String[] allowUris = {
@@ -45,7 +54,15 @@ public class SecurityConfig {
                         .requestMatchers(allowUris).permitAll()
                         // 나머지 모든 경로는 인증 필요
                         .anyRequest().authenticated()
-                );
+                )
+
+                // 인증 실패 시 401 응답 처리
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+
+                // JWT 인증 후 인가 검사(AuthorizationFilter) 진행
+                .addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -28,13 +28,11 @@ public class AuthConverter {
                 .build();
     }
 
-    // 로그인 - 멤버 엔티티 -> DTO 변환
-    public static AuthResponse.Login toLoginResponse(Member member) {
+    // 로그인 - 발급된 토큰 -> DTO 변환
+    public static AuthResponse.Login toLoginResponse(String accessToken, String refreshToken) {
         return AuthResponse.Login.builder()
-                .id(member.getId())
-                .nickname(member.getNickname())
-                .username(member.getUsername())
-                .email(member.getEmail())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 }

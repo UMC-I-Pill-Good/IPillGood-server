@@ -1,0 +1,28 @@
+package com.ipillgood.server.global.security.jwt.code;
+
+import com.ipillgood.server.global.apiPayload.code.BaseErrorCode;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@AllArgsConstructor
+public enum JwtErrorCode implements BaseErrorCode {
+
+    // 401 UNAUTHORIZED - 토큰 검증 실패
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "JWT401_1", "토큰이 만료되었습니다."),
+    TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "JWT401_2", "유효하지 않은 토큰입니다."),
+    TOKEN_MALFORMED(HttpStatus.UNAUTHORIZED, "JWT401_3", "잘못된 토큰 형식입니다."),
+    TOKEN_EMPTY(HttpStatus.UNAUTHORIZED, "JWT401_4", "토큰이 없습니다."),
+    TOKEN_UNSUPPORTED(HttpStatus.UNAUTHORIZED, "JWT401_5", "지원하지 않는 토큰입니다."),
+    TOKEN_INVALID_TYPE(HttpStatus.UNAUTHORIZED, "JWT401_6", "토큰 타입이 올바르지 않습니다."),
+
+    // 500 INTERNAL_SERVER_ERROR - 서버 설정 오류
+    SECRET_KEY_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "JWT500_1", "JWT 시크릿 키 설정이 올바르지 않습니다. " +
+            "base64로 인코딩된 32바이트(256비트) 이상의 값이어야 합니다."),
+    ;
+
+    private final HttpStatus status;
+    private final String code;
+    private final String message;
+}
