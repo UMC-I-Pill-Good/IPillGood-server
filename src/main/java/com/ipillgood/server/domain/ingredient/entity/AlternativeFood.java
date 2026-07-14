@@ -6,8 +6,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -26,5 +24,5 @@ public class AlternativeFood extends BaseEntity {
     private String name;
 
     @Column(name = "content_per_100g", nullable = false)
-    private BigDecimal contentPer100g;
+    private String contentPer100g;
 }
