@@ -9,7 +9,13 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "contraindication_ingredient")
+@Table(
+        name = "contraindication_ingredient",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_contraindication_ingredient",
+                columnNames = {"contraindication_id", "ingredient_id"}
+        )
+)
 public class ContraindicationIngredient extends BaseEntity {
 
     @Id
