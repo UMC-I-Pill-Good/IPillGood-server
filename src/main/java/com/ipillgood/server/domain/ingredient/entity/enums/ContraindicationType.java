@@ -10,8 +10,7 @@ public enum ContraindicationType {
     PREGNANCY("임신"),
     SMOKING("흡연"),
     UNDERLYING_DISEASE("기저질환"),
-    ALLERGY("알러지"),
-    ETC("기타");
+    ALLERGY("알러지");
 
     private final String label;
 }
