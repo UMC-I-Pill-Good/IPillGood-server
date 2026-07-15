@@ -1,6 +1,5 @@
 package com.ipillgood.server.domain.ingredient.entity;
 
-import com.ipillgood.server.domain.ingredient.entity.enums.TargetAgeGroup;
 import com.ipillgood.server.domain.ingredient.entity.enums.TargetGender;
 import com.ipillgood.server.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -33,10 +32,6 @@ public class Ingredient extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "recommended_gender", nullable = false)
     private TargetGender recommendedGender;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "recommended_age_group", nullable = false)
-    private TargetAgeGroup recommendedAgeGroup;
 
     @Column(name = "image_key", nullable = false)
     private String imageKey;

@@ -6,9 +6,12 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum TargetAgeGroup {
-    ALL("전연령"),
-    AGE_20_UP("20대 이상"),
-    AGE_40_UP("40대 이상");
+    TEENS("10대"),
+    TWENTIES("20대"),
+    THIRTIES("30대"),
+    FORTIES("40대"),
+    FIFTIES_PLUS("50대 이상"),
+    ALL("전체");
 
     private final String label;
 }
