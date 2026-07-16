@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-// member_active_product 테이블 매핑
-// 활성 섭취 기준 partial unique는 DB migration 관리
+// 섭취 중인 상품
+// 중단되지 않은 섭취 상품만 중복 방지
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

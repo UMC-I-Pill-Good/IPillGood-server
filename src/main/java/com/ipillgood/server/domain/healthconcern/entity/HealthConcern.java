@@ -8,7 +8,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// health_concern 테이블 매핑
+// 건강 고민 마스터
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

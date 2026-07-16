@@ -15,7 +15,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// product_review_helpful 테이블 매핑
+// 후기 도움됨 이력
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

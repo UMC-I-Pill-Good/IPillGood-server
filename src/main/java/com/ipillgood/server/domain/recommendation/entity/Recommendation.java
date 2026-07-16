@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// recommendation 테이블 매핑
+// 추천 실행 단위
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

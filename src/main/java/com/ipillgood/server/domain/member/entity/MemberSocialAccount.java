@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// member_social_account 테이블 매핑
+// 소셜 로그인 계정
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

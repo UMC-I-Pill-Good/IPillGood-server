@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// ingredient_combination 테이블 매핑
+// 성분 궁합
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

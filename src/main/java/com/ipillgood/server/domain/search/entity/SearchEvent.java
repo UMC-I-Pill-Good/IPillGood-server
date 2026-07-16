@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// search_event 테이블 매핑
+// 검색 이벤트
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

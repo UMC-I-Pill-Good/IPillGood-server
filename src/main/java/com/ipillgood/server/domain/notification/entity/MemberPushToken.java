@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// member_push_token 테이블 매핑
+// 회원 푸시 토큰
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

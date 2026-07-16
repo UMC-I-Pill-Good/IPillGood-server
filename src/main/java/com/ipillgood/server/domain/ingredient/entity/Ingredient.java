@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// ingredient 테이블 매핑
+// 영양성분 마스터
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

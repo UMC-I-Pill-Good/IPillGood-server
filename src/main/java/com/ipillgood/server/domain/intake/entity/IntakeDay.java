@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// intake_day 테이블 매핑
+// 일자별 복용 묶음
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

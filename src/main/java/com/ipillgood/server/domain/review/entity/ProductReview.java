@@ -20,8 +20,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// product_review 테이블 매핑
-// 활성 후기 기준 partial unique는 DB migration 관리
+// 상품 후기
+// 삭제되지 않은 후기만 중복 방지
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

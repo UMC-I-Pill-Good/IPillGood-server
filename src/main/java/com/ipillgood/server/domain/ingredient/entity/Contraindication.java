@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// contraindication 테이블 매핑
+// 금기 조건 마스터
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

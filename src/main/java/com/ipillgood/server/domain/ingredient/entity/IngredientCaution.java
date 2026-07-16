@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// ingredient_caution 테이블 매핑
+// 성분 주의사항
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

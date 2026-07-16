@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// recommendation_feedback_cycle 테이블 매핑
+// 추천 피드백 주기
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

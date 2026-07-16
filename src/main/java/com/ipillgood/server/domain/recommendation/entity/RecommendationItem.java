@@ -16,7 +16,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// recommendation_item 테이블 매핑
+// 추천 성분 항목
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

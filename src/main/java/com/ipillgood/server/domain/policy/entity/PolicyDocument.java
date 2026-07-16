@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// policy_document 테이블 매핑
+// 약관/정책 문서
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

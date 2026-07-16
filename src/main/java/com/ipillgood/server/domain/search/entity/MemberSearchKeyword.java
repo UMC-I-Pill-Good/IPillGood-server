@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// member_search_keyword 테이블 매핑
+// 회원 최근 검색어
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

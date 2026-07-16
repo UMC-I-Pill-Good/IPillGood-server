@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// ingredient_effect 테이블 매핑
+// 성분 효능
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

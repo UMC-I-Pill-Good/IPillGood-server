@@ -14,7 +14,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// faq 테이블 매핑
+// FAQ 콘텐츠
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

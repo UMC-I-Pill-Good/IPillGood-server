@@ -18,7 +18,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// survey_onboarding_concern_selection 테이블 매핑
+// 온보딩 건강 고민 선택
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

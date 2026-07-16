@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// notification_delivery_log 테이블 매핑
+// 푸시 발송 이력
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

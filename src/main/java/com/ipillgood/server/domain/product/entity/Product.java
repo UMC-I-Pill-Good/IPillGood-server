@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// product 테이블 매핑
+// 영양제 상품
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

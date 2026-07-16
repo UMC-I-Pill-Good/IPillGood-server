@@ -18,8 +18,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// member_product 테이블 매핑
-// 활성 보유 기준 partial unique는 DB migration 관리
+// 캐비닛에 담은 상품
+// 삭제되지 않은 캐비닛 상품만 중복 방지
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// member_policy_agreement 테이블 매핑
+// 회원 약관 동의 이력
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

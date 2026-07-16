@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// alternative_food 테이블 매핑
+// 대체 음식
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

@@ -15,7 +15,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// survey_contraindication_selection 테이블 매핑
+// 설문 금기 조건 선택
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

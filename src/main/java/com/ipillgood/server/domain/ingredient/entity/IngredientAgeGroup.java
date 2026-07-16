@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// ingredient_age_group 테이블 매핑
+// 성분 추천 연령대
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

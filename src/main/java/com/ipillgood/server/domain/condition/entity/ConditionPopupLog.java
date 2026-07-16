@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// condition_popup_log 테이블 매핑
+// 컨디션 체크 팝업 이력
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

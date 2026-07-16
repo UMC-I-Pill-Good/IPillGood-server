@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// intake_record 테이블 매핑
+// 상품별 복용 기록
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

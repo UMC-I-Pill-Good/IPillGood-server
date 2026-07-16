@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// survey_response 테이블 매핑
+// 설문 기본 응답
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// effect_keyword 테이블 매핑
+// 효능 키워드
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

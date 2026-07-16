@@ -14,7 +14,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// survey_current_ingredient_selection 테이블 매핑
+// 현재 복용 성분 선택
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

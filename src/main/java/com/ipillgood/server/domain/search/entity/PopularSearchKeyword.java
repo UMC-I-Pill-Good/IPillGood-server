@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// popular_search_keyword 테이블 매핑
+// 인기 검색어 집계
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

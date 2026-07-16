@@ -14,7 +14,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// member_notification_setting 테이블 매핑
+// 회원 알림 설정
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

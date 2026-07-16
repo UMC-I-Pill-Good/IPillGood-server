@@ -17,14 +17,14 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// member 테이블 매핑
+// 회원 기본 정보
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "member")
 public class Member extends BaseEntity {
 
-    // 프로필 이미지 배정 전 기본 키
+    // 기본 프로필 이미지 키
     private static final String DEFAULT_PROFILE_IMAGE_KEY = "mascot-default";
 
     @Id

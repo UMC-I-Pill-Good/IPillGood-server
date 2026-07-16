@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-// condition_weekly_record 테이블 매핑
+// 주간 컨디션 기록
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

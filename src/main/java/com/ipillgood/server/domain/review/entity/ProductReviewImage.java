@@ -15,7 +15,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// product_review_image 테이블 매핑
+// 후기 첨부 이미지
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
