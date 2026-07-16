@@ -1,11 +1,11 @@
-package com.ipillgood.server.domain.ingredient.entity.enums;
+package com.ipillgood.server.global.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum TargetAgeGroup {
+public enum AgeGroup {
     TEENS("10대"),
     TWENTIES("20대"),
     THIRTIES("30대"),

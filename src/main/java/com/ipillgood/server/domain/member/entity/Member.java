@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.member.entity;
 
+import com.ipillgood.server.domain.member.entity.enums.MemberStatus;
 import com.ipillgood.server.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,11 +15,17 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
+// member 테이블 매핑
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "member")
 public class Member extends BaseEntity {
+
+    // 프로필 이미지 배정 전 기본 키
+    private static final String DEFAULT_PROFILE_IMAGE_KEY = "mascot-default";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,27 +34,41 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 10)
     private String nickname;
 
-    // 회원가입 시 '아이디' 필드
-    @Column(nullable = false, unique = true, length = 10)
+    @Column(unique = true, length = 10)
     private String username;
 
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, length = 60)  // BCrypt 고정 60자 해시 문자열
+    @Column(length = 60)
     private String password;
 
-    // 관리자 권한 부여 로직은 추후 구현
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MemberStatus status;
+
+    @Column(name = "profile_image_key", nullable = false)
+    private String profileImageKey;
+
+    @Column(name = "onboarding_completed_at")
+    private LocalDateTime onboardingCompletedAt;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
     @Builder
-    public Member(String nickname, String username, String email, String password, Role role) {
+    public Member(String nickname, String username, String email, String password, Role role, MemberStatus status,
+                  String profileImageKey) {
         this.nickname = nickname;
         this.username = username;
         this.email = email;
         this.password = password;
-        this.role = role;
+        this.role = role == null ? Role.USER : role;
+        this.status = status == null ? MemberStatus.ACTIVE : status;
+        this.profileImageKey = profileImageKey == null ? DEFAULT_PROFILE_IMAGE_KEY : profileImageKey;
     }
 }

@@ -7,22 +7,27 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// ingredient_combination 테이블 매핑
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "ingredient_combination")
+@Table(
+        name = "ingredient_combination",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_ingredient_combination",
+                columnNames = {"ingredient_a_id", "ingredient_b_id", "type"}
+        )
+)
 public class IngredientCombination extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 성분 A
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ingredient_a_id", nullable = false)
     private Ingredient ingredientA;
 
-    // 성분 B
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ingredient_b_id", nullable = false)
     private Ingredient ingredientB;
@@ -31,7 +36,6 @@ public class IngredientCombination extends BaseEntity {
     @Column(name = "type", nullable = false)
     private CombinationType type;
 
-    // 조합 유형 BAD일 경우에만 이유 저장
-    @Column(name = "reason", columnDefinition = "TEXT", nullable = true)
+    @Column(name = "reason", columnDefinition = "TEXT")
     private String reason;
 }

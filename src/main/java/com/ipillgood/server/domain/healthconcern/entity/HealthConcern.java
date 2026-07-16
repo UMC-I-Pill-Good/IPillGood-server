@@ -8,10 +8,17 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// health_concern 테이블 매핑
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "health_concern")
+@Table(
+        name = "health_concern",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_health_concern",
+                columnNames = {"major_category", "minor_category"}
+        )
+)
 public class HealthConcern extends BaseEntity {
 
     @Id
@@ -28,5 +35,4 @@ public class HealthConcern extends BaseEntity {
 
     @Column(name = "decline_cause", nullable = false, columnDefinition = "TEXT")
     private String declineCause;
-
 }

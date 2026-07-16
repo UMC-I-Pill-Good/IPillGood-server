@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// contraindication_ingredient 테이블 매핑
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

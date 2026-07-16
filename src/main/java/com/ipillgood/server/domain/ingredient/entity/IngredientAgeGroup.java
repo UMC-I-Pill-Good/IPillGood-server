@@ -1,12 +1,13 @@
 package com.ipillgood.server.domain.ingredient.entity;
 
-import com.ipillgood.server.domain.ingredient.entity.enums.TargetAgeGroup;
 import com.ipillgood.server.global.entity.BaseEntity;
+import com.ipillgood.server.global.enums.AgeGroup;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// ingredient_age_group 테이블 매핑
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -29,5 +30,5 @@ public class IngredientAgeGroup extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "age_group", nullable = false)
-    private TargetAgeGroup ageGroup;
+    private AgeGroup ageGroup;
 }
