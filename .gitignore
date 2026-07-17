@@ -63,3 +63,5 @@ bin/
 
 .env
 .DS_Store
+/docs
+AGENTS.md

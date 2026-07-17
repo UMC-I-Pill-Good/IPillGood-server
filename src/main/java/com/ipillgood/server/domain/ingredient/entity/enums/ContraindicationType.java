@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ContraindicationType {
     MEDICATION("복용약"),
+    DRINKING("음주"),
     PREGNANCY("임신"),
     SMOKING("흡연"),
     UNDERLYING_DISEASE("기저질환"),

@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 영양제 상품
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -19,16 +20,13 @@ public class Product extends BaseSoftDeleteEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "brand", nullable = false)
+    @Column(name = "brand", nullable = false, length = 100)
     private String brand;
-
-    @Column(name = "image_key", nullable = false)
-    private String imageKey;
 
     @Column(columnDefinition = "TEXT", name = "description", nullable = false)
     private String description;
 
-    @Column(name = "purchase_url", nullable = false)
+    @Column(name = "purchase_url", nullable = false, columnDefinition = "TEXT")
     private String purchaseUrl;
 
     @Column(name = "mfds_certified", nullable = false)

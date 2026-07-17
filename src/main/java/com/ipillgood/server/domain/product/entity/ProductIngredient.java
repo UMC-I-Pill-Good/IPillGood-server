@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 상품 포함 성분
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

@@ -7,10 +7,17 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 금기 조건 마스터
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "contraindication")
+@Table(
+        name = "contraindication",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_contraindication",
+                columnNames = {"type", "condition_name"}
+        )
+)
 public class Contraindication extends BaseEntity {
 
     @Id
@@ -21,7 +28,6 @@ public class Contraindication extends BaseEntity {
     @Column(name = "type", nullable = false)
     private ContraindicationType type;
 
-    @Column(name = "condition_name", nullable = false)
+    @Column(name = "condition_name", nullable = false, length = 100)
     private String conditionName;
-
 }

@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 금기 조건별 주의 성분
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

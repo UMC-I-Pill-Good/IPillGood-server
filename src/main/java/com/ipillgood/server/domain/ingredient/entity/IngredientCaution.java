@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 성분 주의사항
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

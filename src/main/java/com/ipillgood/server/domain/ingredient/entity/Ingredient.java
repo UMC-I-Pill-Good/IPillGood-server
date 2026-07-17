@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 영양성분 마스터
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -17,16 +18,16 @@ public class Ingredient extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "description", nullable = false)
+    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "recommended_intake", nullable = false)
+    @Column(name = "recommended_intake", length = 100)
     private String recommendedIntake;
 
-    @Column(name = "recommended_intake_time", nullable = false)
+    @Column(name = "recommended_intake_time")
     private String recommendedIntakeTime;
 
     @Enumerated(EnumType.STRING)
@@ -35,4 +36,7 @@ public class Ingredient extends BaseEntity {
 
     @Column(name = "image_key", nullable = false)
     private String imageKey;
+
+    @Column(name = "ad_claim_risk", nullable = false)
+    private boolean adClaimRisk = false;
 }
