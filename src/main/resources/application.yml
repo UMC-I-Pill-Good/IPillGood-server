@@ -21,6 +21,11 @@ spring:
       hibernate:
         format_sql: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
 jwt:
   secret-key: ${JWT_SECRET_KEY}
   access-token-validity: 3600000
