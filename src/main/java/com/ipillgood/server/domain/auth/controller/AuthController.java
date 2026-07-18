@@ -8,6 +8,7 @@ import com.ipillgood.server.domain.auth.service.AuthService;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +39,22 @@ public class AuthController implements AuthApi {
     public ApiResponse<AuthResponse.Login> login(@Valid @RequestBody AuthRequest.Login request) {
         AuthResponse.Login response = authService.login(request);
         return ApiResponse.onSuccess(AuthSuccessCode.LOGIN_SUCCESS, response);
+    }
+
+    // 토큰 재발급
+    @Override
+    @PostMapping("/reissue")
+    public ApiResponse<AuthResponse.Login> reissue(@Valid @RequestBody AuthRequest.Reissue request) {
+        AuthResponse.Login response = authService.reissue(request);
+        return ApiResponse.onSuccess(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, response);
+    }
+
+    // 로그아웃
+    @Override
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@AuthenticationPrincipal Long memberId) {
+        authService.logout(memberId);
+        return ApiResponse.onSuccess(AuthSuccessCode.LOGOUT_SUCCESS, null);
     }
 
     // 아이디 중복확인

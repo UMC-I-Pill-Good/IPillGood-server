@@ -8,6 +8,8 @@ import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
+import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenStore refreshTokenStore;
 
     // 로컬 회원가입
     @Transactional
@@ -70,7 +73,46 @@ public class AuthService {
         String accessToken = jwtProvider.createAccessToken(member.getId(), role);
         String refreshToken = jwtProvider.createRefreshToken(member.getId(), role);
 
+        // 4. 리프레시 토큰 저장 (재발급 검증용)
+        refreshTokenStore.save(member.getId(), refreshToken, jwtProvider.getRefreshTokenValidity());
+
         return AuthConverter.toLoginResponse(accessToken, refreshToken);
+    }
+
+    // 토큰 재발급 (Refresh Token Rotation)
+    public AuthResponse.Login reissue(AuthRequest.Reissue request) {
+
+        // 1. 리프레시 토큰 검증
+        // memberId = 토큰 주인(회원) 식별용으로 사용
+        Claims claims = jwtProvider.parseRefreshToken(request.refreshToken());
+        Long memberId = jwtProvider.getMemberId(claims);
+
+        // 2. 저장된 리프레시 토큰 조회 (없으면 로그아웃/만료 상태)
+        String storedToken = refreshTokenStore.find(memberId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID));
+
+        // 3. 재사용 감지: 저장값과 다르면 탈취 의심 토큰 -> 저장분 폐기 후 차단
+        if (!storedToken.equals(request.refreshToken())) {
+            refreshTokenStore.delete(memberId);
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID);
+        }
+
+        // 4. 회원 재조회 (현재 role 반영, 탈퇴한 회원 방어)
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID));
+
+        // 5. 새 액세스 토큰 발급 + 리프레시 토큰 Rotation 진행
+        String role = member.getRole().name();
+        String newAccessToken = jwtProvider.createAccessToken(member.getId(), role);
+        String newRefreshToken = jwtProvider.createRefreshToken(member.getId(), role);
+        refreshTokenStore.save(member.getId(), newRefreshToken, jwtProvider.getRefreshTokenValidity());
+
+        return AuthConverter.toLoginResponse(newAccessToken, newRefreshToken);
+    }
+
+    // 로그아웃 (저장된 리프레시 토큰 폐기)
+    public void logout(Long memberId) {
+        refreshTokenStore.delete(memberId);
     }
 
     // 아이디 중복확인
