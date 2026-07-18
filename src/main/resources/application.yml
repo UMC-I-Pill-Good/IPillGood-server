@@ -30,3 +30,7 @@ jwt:
   secret-key: ${JWT_SECRET_KEY}
   access-token-validity: 3600000
   refresh-token-validity: 1209600000
+
+springdoc:
+  # 중첩 record가 짧은 이름(예: Request/Response의 Login)으로 충돌해 스키마가 덮어써지는 문제 방지
+  use-fqn: true
