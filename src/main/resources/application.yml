@@ -31,6 +31,10 @@ jwt:
   access-token-validity: 3600000
   refresh-token-validity: 1209600000
 
+app:
+  storage:
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}
+
 springdoc:
   # 중첩 record가 짧은 이름(예: Request/Response의 Login)으로 충돌해 스키마가 덮어써지는 문제 방지
   use-fqn: true

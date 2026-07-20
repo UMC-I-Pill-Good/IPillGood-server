@@ -10,10 +10,4 @@ import java.util.List;
 public interface ContraindicationRepository extends JpaRepository<Contraindication, Long> {
 
     List<Contraindication> findByTypeInOrderByIdAsc(Collection<ContraindicationType> types);
-
-    List<Contraindication> findByTypeInAndConditionNameContainingOrderByIdAsc(
-            Collection<ContraindicationType> types,
-            String conditionName
-    );
 }
-
