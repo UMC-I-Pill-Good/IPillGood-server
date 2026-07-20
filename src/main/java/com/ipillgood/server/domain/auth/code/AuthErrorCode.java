@@ -22,6 +22,7 @@ public enum AuthErrorCode implements BaseErrorCode {
 
     // 401 UNAUTHORIZED - 인증 실패
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_1", "아이디 또는 비밀번호를 확인해주세요."),
+    REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "AUTH401_2", "다시 로그인해 주세요."),
 
     // 409 CONFLICT - 중복/계정 충돌
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH409_1", "이미 사용 중인 이메일입니다. 해당 이메일로 로그인해 주세요."),

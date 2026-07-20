@@ -40,4 +40,11 @@ public class AuthRequest {
             String password
     ) {
     }
+
+    // 액세스 토큰 재발급 요청
+    public record Reissue(
+            @NotBlank(message = "리프레시 토큰이 필요합니다.")
+            String refreshToken
+    ) {
+    }
 }

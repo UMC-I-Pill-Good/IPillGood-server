@@ -17,7 +17,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Duration;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtProvider {
@@ -87,6 +89,7 @@ public class JwtProvider {
         Date expiration = new Date(now.getTime() + validity);
 
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())       // JWT 고유 식별자(jti). 모든 토큰을 고유하게 식별
                 .subject(String.valueOf(memberId))      // 토큰 주체(PK 저장)
                 .claim(CLAIM_ROLE, role)                // 권한(USER/ADMIN)
                 .claim(CLAIM_TYPE, type)                // access / refresh 구분
@@ -96,11 +99,21 @@ public class JwtProvider {
                 .compact();
     }
 
-    // 인증에 사용할 액세스 파싱
+    // 인증에 사용할 액세스 토큰 파싱
     // 리프레시 토큰은 서명이 유효해도 인증 수단으로 쓸 수 없음 -> 토큰 타입 검증 필요
     public Claims parseAccessToken(String token) {
         Claims claims = parseClaims(token);
         if (!TYPE_ACCESS.equals(claims.get(CLAIM_TYPE, String.class))) {
+            throw new JwtAuthenticationException(JwtErrorCode.TOKEN_INVALID_TYPE);
+        }
+        return claims;
+    }
+
+    // 재발급에 사용할 리프레시 토큰 파싱
+    // 액세스 토큰은 서명이 유효해도 재발급 수단으로 쓸 수 없음 -> 토큰 타입 검증 필요
+    public Claims parseRefreshToken(String token) {
+        Claims claims = parseClaims(token);
+        if (!TYPE_REFRESH.equals(claims.get(CLAIM_TYPE, String.class))) {
             throw new JwtAuthenticationException(JwtErrorCode.TOKEN_INVALID_TYPE);
         }
         return claims;
@@ -138,5 +151,10 @@ public class JwtProvider {
     // JWT role 클레임 추출
     public String getRole(Claims claims) {
         return claims.get(CLAIM_ROLE, String.class);
+    }
+
+    // 리프레시 토큰 유효기간 (Redis 저장 TTL로 사용)
+    public Duration getRefreshTokenValidity() {
+        return Duration.ofMillis(refreshTokenValidity);
     }
 }

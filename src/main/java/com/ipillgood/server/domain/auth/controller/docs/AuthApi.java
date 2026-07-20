@@ -25,6 +25,14 @@ public interface AuthApi {
             description = "아이디와 비밀번호를 입력받아 로그인을 진행합니다.")
     ApiResponse<AuthResponse.Login> login(@Valid AuthRequest.Login request);
 
+    @Operation(summary = "토큰 재발급",
+            description = "리프레시 토큰으로 액세스/리프레시 토큰을 재발급합니다. 재발급 시 리프레시 토큰은 회전(RTR)됩니다.")
+    ApiResponse<AuthResponse.Login> reissue(@Valid AuthRequest.Reissue request);
+
+    @Operation(summary = "로그아웃",
+            description = "저장된 리프레시 토큰을 폐기합니다. (액세스 토큰은 만료 시점까지 유효)")
+    ApiResponse<Void> logout(Long memberId);
+
     @Operation(summary = "아이디 중복확인", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
     ApiResponse<Void> checkUsername(
             @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "2~10자 이내로 입력해주세요.")
