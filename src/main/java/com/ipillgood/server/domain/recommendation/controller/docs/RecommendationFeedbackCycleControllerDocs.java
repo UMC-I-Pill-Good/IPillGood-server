@@ -185,20 +185,33 @@ public interface RecommendationFeedbackCycleControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409",
-                    description = "이미 응답한 피드백 사이클입니다.",
+                    description = "이미 응답했거나 아직 응답할 수 없는 피드백 사이클입니다.",
                     content = @Content(
                             mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "이미 응답한 사이클",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "RECOMMENDATION409_2",
-                                              "message": "이미 응답한 피드백 사이클입니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "이미 응답한 사이클",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "RECOMMENDATION409_2",
+                                                      "message": "이미 응답한 피드백 사이클입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "아직 응답 시점이 아닌 사이클",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "RECOMMENDATION409_3",
+                                                      "message": "아직 응답할 수 없는 피드백 사이클입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(

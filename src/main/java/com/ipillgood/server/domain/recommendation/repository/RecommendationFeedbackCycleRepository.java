@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RecommendationFeedbackCycleRepository extends JpaRepository<RecommendationFeedbackCycle, Long> {
 
-    // 아직 응답하지 않았고 예정일이 도래한 피드백 사이클 중 가장 먼저 도래한 것
-    Optional<RecommendationFeedbackCycle> findFirstByMember_IdAndRespondedAtIsNullAndCycleDueOnLessThanEqualOrderByCycleDueOnAsc(
-            Long memberId, LocalDate today);
+    // 특정 추천에 대해 아직 응답하지 않았고 예정일이 도래한 피드백 사이클 중 가장 먼저 도래한 것
+    Optional<RecommendationFeedbackCycle> findFirstByRecommendation_IdAndRespondedAtIsNullAndCycleDueOnLessThanEqualOrderByCycleDueOnAsc(
+            Long recommendationId, LocalDate today);
 }
