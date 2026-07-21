@@ -29,7 +29,8 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/api/v1/auth/reissue",
             "/api/v1/auth/check-username",
-            "/api/v1/auth/check-email"
+            "/api/v1/auth/check-email",
+            "/api/v1/policy-documents/**"
     };
 
     @Bean

@@ -2,15 +2,20 @@ package com.ipillgood.server.domain.auth.dto;
 
 import lombok.Builder;
 
+import java.time.LocalDateTime;
+
 public class AuthResponse {
 
     // 회원가입 응답
     @Builder
     public record SignUp(
-            Long id,
+            Long memberId,
             String nickname,
             String username,
-            String email
+            String email,
+            String profileImageKey,
+            Boolean onboardingCompleted,
+            LocalDateTime createdAt
     ) {
     }
 
