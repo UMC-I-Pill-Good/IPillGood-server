@@ -9,11 +9,14 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum IngredientErrorCode implements BaseErrorCode {
 
-    INVALID_CONTRAINDICATION_TYPE(HttpStatus.BAD_REQUEST, "COMMON400_2", "요청값 검증에 실패했습니다."),
+    // 400 BAD_REQUEST - 영양성분 요청 값 검증
+    INVALID_INGREDIENT_ID(HttpStatus.BAD_REQUEST, "INGREDIENT400_1", "영양성분 ID가 올바르지 않습니다."),
+
+    // 404 NOT_FOUND - 영양성분 리소스 조회 실패
+    INGREDIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "INGREDIENT404_1", "영양성분을 찾을 수 없습니다."),
     ;
 
     private final HttpStatus status;
     private final String code;
     private final String message;
 }
-
