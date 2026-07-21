@@ -43,6 +43,37 @@ public class CabinetResponse {
     ) {
     }
 
+    @Schema(description = "캐비닛 영양제 복수 삭제 응답")
+    @Builder
+    public record DeleteProducts(
+            @Schema(description = "삭제 처리된 캐비닛 보유 영양제 수", example = "2")
+            Integer deletedCount,
+
+            @Schema(description = "삭제 처리된 영양제 목록")
+            List<DeletedProduct> deletedProducts
+    ) {
+    }
+
+    @Schema(description = "삭제 처리된 영양제 항목")
+    @Builder
+    public record DeletedProduct(
+            @Schema(description = "삭제된 회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "삭제 전 섭취 중 영양제였는지 여부", example = "true")
+            Boolean wasActiveIntake,
+
+            @Schema(description = "중단 처리된 활성 섭취 중 상품 ID", nullable = true, example = "7")
+            Long stoppedActiveProductId
+    ) {
+    }
+
     @Schema(description = "캐비닛 보유 영양제 목록 조회 응답")
     @Builder
     public record ProductList(

@@ -12,4 +12,8 @@ public abstract class BaseSoftDeleteEntity extends BaseEntity {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    public void markDeleted(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
 }

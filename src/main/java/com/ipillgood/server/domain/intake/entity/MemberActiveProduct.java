@@ -63,4 +63,8 @@ public class MemberActiveProduct extends BaseEntity {
 
     @Column(name = "notification_enabled", nullable = false)
     private boolean notificationEnabled = true;
+
+    public void markStopped(LocalDate stoppedOn) {
+        this.stoppedOn = stoppedOn;
+    }
 }

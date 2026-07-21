@@ -15,9 +15,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
+
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -120,6 +123,20 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("인증 없이 캐비닛 영양제를 삭제하면 401을 반환한다")
+    void deleteProducts_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "memberProductIds": [1]
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
     @DisplayName("인증 없이 캐비닛 개별 영양제를 조회하면 401을 반환한다")
     void getProduct_withoutToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCTS_URL + "/1"))
@@ -147,6 +164,23 @@ class CabinetControllerTest {
                         .content("""
                                 {
                                   "productIds": [102]
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 영양제를 삭제할 수 없다")
+    void deleteProducts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "memberProductIds": [1]
                                 }
                                 """))
                 .andExpect(status().isForbidden())
@@ -296,6 +330,93 @@ class CabinetControllerTest {
         assertEquals(2, countMemberProducts(MEMBER_ID, 102L));
         assertEquals(1, countActiveMemberProducts(MEMBER_ID, 102L));
         assertEquals(1, countActiveMemberProducts(MEMBER_ID, 104L));
+    }
+
+    @Test
+    @DisplayName("캐비닛 영양제를 복수 삭제하고 활성 섭취 상품을 중단한다")
+    void deleteProducts_withValidMemberProducts_returnsOk() throws Exception {
+        insertIntakeDay(1L, MEMBER_ID, "2026-07-20");
+        insertIntakeRecord(1L, 1L, 10L, 100L);
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "memberProductIds": [1, 2]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.deletedCount").value(2))
+                .andExpect(jsonPath("$.result.deletedProducts.length()").value(2))
+                .andExpect(jsonPath("$.result.deletedProducts[*].memberProductId", contains(1, 2)))
+                .andExpect(jsonPath("$.result.deletedProducts[*].productId", contains(100, 101)))
+                .andExpect(jsonPath("$.result.deletedProducts[0].productName").value("비타민 D 제품"))
+                .andExpect(jsonPath("$.result.deletedProducts[0].wasActiveIntake").value(true))
+                .andExpect(jsonPath("$.result.deletedProducts[0].stoppedActiveProductId").value(10))
+                .andExpect(jsonPath("$.result.deletedProducts[1].productName").value("멀티비타민 제품"))
+                .andExpect(jsonPath("$.result.deletedProducts[1].wasActiveIntake").value(false))
+                .andExpect(jsonPath("$.result.deletedProducts[1].stoppedActiveProductId").doesNotExist());
+
+        assertEquals(1, countDeletedMemberProduct(1L));
+        assertEquals(1, countDeletedMemberProduct(2L));
+        assertEquals(0, countActiveMemberProducts(MEMBER_ID, 100L));
+        assertEquals(0, countActiveMemberProducts(MEMBER_ID, 101L));
+        assertEquals(LocalDate.now(), findStoppedOn(10L));
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}",
+            "{\"memberProductIds\":null}",
+            "{\"memberProductIds\":[]}",
+            "{\"memberProductIds\":[1,1]}",
+            "{\"memberProductIds\":[null]}",
+            "{\"memberProductIds\":[0]}",
+            "{\"memberProductIds\":[-1]}"
+    })
+    @DisplayName("캐비닛 삭제 상품 ID 목록이 올바르지 않으면 400을 반환하고 삭제하지 않는다")
+    void deleteProducts_withInvalidMemberProductIds_returnsBadRequest(String requestBody) throws Exception {
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET400_3"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(0, countDeletedMemberProduct(1L));
+        assertEquals(0, countStoppedActiveProduct(10L));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"memberProductIds\":[1,999]}",
+            "{\"memberProductIds\":[1,3]}",
+            "{\"memberProductIds\":[1,4]}",
+            "{\"memberProductIds\":[1,5]}"
+    })
+    @DisplayName("삭제할 수 없는 캐비닛 상품이 포함되면 404를 반환하고 일부만 삭제하지 않는다")
+    void deleteProducts_withUnavailableMemberProduct_returnsNotFound(String requestBody) throws Exception {
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET404_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(0, countDeletedMemberProduct(1L));
+        assertEquals(0, countStoppedActiveProduct(10L));
     }
 
     @ParameterizedTest
@@ -594,6 +715,50 @@ class CabinetControllerTest {
         );
     }
 
+    private void insertIntakeDay(Long id, Long memberId, String intakeOn) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_day (
+                            id,
+                            member_id,
+                            intake_on,
+                            auto_popup_shown_at,
+                            all_completed,
+                            completed_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, NULL, true, '2026-07-20 09:10:00',
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                intakeOn
+        );
+    }
+
+    private void insertIntakeRecord(Long id, Long intakeDayId, Long memberActiveProductId, Long productId) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_record (
+                            id,
+                            intake_day_id,
+                            member_active_product_id,
+                            product_id,
+                            scheduled,
+                            taken,
+                            taken_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, true, true, '2026-07-20 09:10:00',
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                intakeDayId,
+                memberActiveProductId,
+                productId
+        );
+    }
+
     private void insertProductReview(Long id, Long productId, Long memberId) {
         jdbcTemplate.update("""
                         INSERT INTO product_review (
@@ -649,6 +814,53 @@ class CabinetControllerTest {
                 memberId,
                 productId
         );
+        return count == null ? 0 : count;
+    }
+
+    private int countDeletedMemberProduct(Long memberProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_product
+                        WHERE id = ?
+                          AND deleted_at IS NOT NULL
+                        """,
+                Integer.class,
+                memberProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countStoppedActiveProduct(Long activeProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product
+                        WHERE id = ?
+                          AND stopped_on IS NOT NULL
+                        """,
+                Integer.class,
+                activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private LocalDate findStoppedOn(Long activeProductId) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT stopped_on
+                        FROM member_active_product
+                        WHERE id = ?
+                        """,
+                LocalDate.class,
+                activeProductId
+        );
+    }
+
+    private int countIntakeDays() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM intake_day", Integer.class);
+        return count == null ? 0 : count;
+    }
+
+    private int countIntakeRecords() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM intake_record", Integer.class);
         return count == null ? 0 : count;
     }
 

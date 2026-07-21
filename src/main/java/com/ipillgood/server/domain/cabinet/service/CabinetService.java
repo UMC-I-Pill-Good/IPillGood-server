@@ -11,6 +11,8 @@ import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
 import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
+import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
+import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.product.entity.Product;
@@ -38,6 +40,7 @@ public class CabinetService {
 
     private final MemberRepository memberRepository;
     private final MemberProductRepository memberProductRepository;
+    private final MemberActiveProductRepository memberActiveProductRepository;
     private final ProductRepository productRepository;
 
     @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
@@ -103,6 +106,36 @@ public class CabinetService {
         return CabinetConverter.toAddProducts(orderedRows, storagePublicBaseUrl);
     }
 
+    @Transactional
+    public CabinetResponse.DeleteProducts deleteProducts(Long memberId, CabinetRequest.DeleteProducts request) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        List<Long> memberProductIds = validateDeleteMemberProductIds(request);
+        List<MemberProduct> memberProducts =
+                memberProductRepository.findActiveProductsForDelete(memberId, memberProductIds);
+        validateAllMemberProductsExist(memberProductIds, memberProducts);
+
+        Map<Long, MemberProduct> memberProductsById = toMemberProductsById(memberProducts);
+        List<MemberProduct> orderedMemberProducts = memberProductIds.stream()
+                .map(memberProductsById::get)
+                .toList();
+        List<MemberActiveProduct> activeProducts =
+                memberActiveProductRepository.findActiveByMemberProductIds(memberId, memberProductIds);
+        Map<Long, MemberActiveProduct> activeProductsByMemberProductId =
+                toActiveProductsByMemberProductId(activeProducts);
+
+        CabinetResponse.DeleteProducts response =
+                CabinetConverter.toDeleteProducts(orderedMemberProducts, activeProductsByMemberProductId);
+        LocalDateTime deletedAt = LocalDateTime.now();
+        LocalDate stoppedOn = LocalDate.now();
+
+        orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
+        activeProducts.forEach(activeProduct -> activeProduct.markStopped(stoppedOn));
+
+        return response;
+    }
+
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.UNAUTHORIZED));
@@ -129,6 +162,21 @@ public class CabinetService {
         return productIds;
     }
 
+    private List<Long> validateDeleteMemberProductIds(CabinetRequest.DeleteProducts request) {
+        if (request == null || request.memberProductIds() == null || request.memberProductIds().isEmpty()) {
+            throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_ID_INVALID);
+        }
+
+        List<Long> memberProductIds = request.memberProductIds();
+        Set<Long> uniqueMemberProductIds = new HashSet<>();
+        for (Long memberProductId : memberProductIds) {
+            if (memberProductId == null || memberProductId < 1 || !uniqueMemberProductIds.add(memberProductId)) {
+                throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_ID_INVALID);
+            }
+        }
+        return memberProductIds;
+    }
+
     private void validateMemberProductId(Long memberProductId) {
         if (memberProductId == null || memberProductId < 1) {
             throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_ID_INVALID);
@@ -138,6 +186,12 @@ public class CabinetService {
     private void validateAllProductsExist(List<Long> productIds, List<Product> products) {
         if (products.size() != productIds.size()) {
             throw new CabinetException(CabinetErrorCode.ADD_TARGET_PRODUCT_NOT_FOUND);
+        }
+    }
+
+    private void validateAllMemberProductsExist(List<Long> memberProductIds, List<MemberProduct> memberProducts) {
+        if (memberProducts.size() != memberProductIds.size()) {
+            throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_NOT_FOUND);
         }
     }
 
@@ -152,6 +206,22 @@ public class CabinetService {
         Map<Long, Product> productsById = new HashMap<>();
         products.forEach(product -> productsById.put(product.getId(), product));
         return productsById;
+    }
+
+    private Map<Long, MemberProduct> toMemberProductsById(List<MemberProduct> memberProducts) {
+        Map<Long, MemberProduct> memberProductsById = new HashMap<>();
+        memberProducts.forEach(memberProduct -> memberProductsById.put(memberProduct.getId(), memberProduct));
+        return memberProductsById;
+    }
+
+    private Map<Long, MemberActiveProduct> toActiveProductsByMemberProductId(
+            List<MemberActiveProduct> activeProducts
+    ) {
+        Map<Long, MemberActiveProduct> activeProductsByMemberProductId = new HashMap<>();
+        activeProducts.forEach(activeProduct ->
+                activeProductsByMemberProductId.put(activeProduct.getMemberProduct().getId(), activeProduct)
+        );
+        return activeProductsByMemberProductId;
     }
 
     private Map<Long, Integer> toProductOrder(List<Long> productIds) {

@@ -176,4 +176,69 @@ public interface CabinetApi {
             )
             CabinetRequest.AddProducts request
     );
+
+    @Operation(
+            summary = "캐비닛 영양제 복수 삭제",
+            description = "선택한 캐비닛 보유 영양제를 삭제합니다. 섭취 중인 영양제는 함께 중단 처리하고 과거 복용 기록은 유지합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "캐비닛 영양제 복수 삭제 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "deletedCount": 2,
+                                                "deletedProducts": [
+                                                  {
+                                                    "memberProductId": 15,
+                                                    "productId": 112,
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                    "wasActiveIntake": true,
+                                                    "stoppedActiveProductId": 7
+                                                  },
+                                                  {
+                                                    "memberProductId": 16,
+                                                    "productId": 124,
+                                                    "productName": "헬로바이오 맥스 비타민C 3000",
+                                                    "wasActiveIntake": false,
+                                                    "stoppedActiveProductId": null
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<CabinetResponse.DeleteProducts> deleteProducts(
+            @Parameter(hidden = true)
+            Long memberId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "삭제할 회원 캐비닛 상품 ID 목록입니다.",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "memberProductIds": [
+                                                15,
+                                                16
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            )
+            CabinetRequest.DeleteProducts request
+    );
 }

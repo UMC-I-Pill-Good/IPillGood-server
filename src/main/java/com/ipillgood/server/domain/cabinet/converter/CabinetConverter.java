@@ -1,10 +1,12 @@
 package com.ipillgood.server.domain.cabinet.converter;
 
 import com.ipillgood.server.domain.cabinet.dto.CabinetResponse;
+import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.cabinet.repository.CabinetAddedProductRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
+import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -54,6 +56,20 @@ public class CabinetConverter {
                 .build();
     }
 
+    public static CabinetResponse.DeleteProducts toDeleteProducts(
+            List<MemberProduct> memberProducts,
+            Map<Long, MemberActiveProduct> activeProductsByMemberProductId
+    ) {
+        List<CabinetResponse.DeletedProduct> deletedProducts = memberProducts.stream()
+                .map(memberProduct -> toDeletedProduct(memberProduct, activeProductsByMemberProductId))
+                .toList();
+
+        return CabinetResponse.DeleteProducts.builder()
+                .deletedCount(deletedProducts.size())
+                .deletedProducts(deletedProducts)
+                .build();
+    }
+
     public static CabinetResponse.ProductDetail toProductDetail(
             CabinetProductDetailRow detailRow,
             List<CabinetProductIngredientKeywordRow> ingredientRows,
@@ -72,6 +88,22 @@ public class CabinetConverter {
                 .hasMyReview(detailRow.hasMyReview())
                 .ingredients(toProductIngredients(ingredientRows, imageBaseUrl))
                 .activeProduct(toActiveProduct(detailRow, currentDate))
+                .build();
+    }
+
+    private static CabinetResponse.DeletedProduct toDeletedProduct(
+            MemberProduct memberProduct,
+            Map<Long, MemberActiveProduct> activeProductsByMemberProductId
+    ) {
+        MemberActiveProduct activeProduct = activeProductsByMemberProductId.get(memberProduct.getId());
+        Long stoppedActiveProductId = activeProduct == null ? null : activeProduct.getId();
+
+        return CabinetResponse.DeletedProduct.builder()
+                .memberProductId(memberProduct.getId())
+                .productId(memberProduct.getProduct().getId())
+                .productName(memberProduct.getProduct().getName())
+                .wasActiveIntake(activeProduct != null)
+                .stoppedActiveProductId(stoppedActiveProductId)
                 .build();
     }
 

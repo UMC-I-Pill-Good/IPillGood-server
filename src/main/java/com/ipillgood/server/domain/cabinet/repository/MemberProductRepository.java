@@ -127,4 +127,18 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
             @Param("memberId") Long memberId,
             @Param("memberProductIds") Collection<Long> memberProductIds
     );
+
+    @Query("""
+            select mp
+            from MemberProduct mp
+            join fetch mp.product p
+            where mp.member.id = :memberId
+              and mp.id in :memberProductIds
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    List<MemberProduct> findActiveProductsForDelete(
+            @Param("memberId") Long memberId,
+            @Param("memberProductIds") Collection<Long> memberProductIds
+    );
 }
