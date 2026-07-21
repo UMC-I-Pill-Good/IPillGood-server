@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface MemberProductRepository extends JpaRepository<MemberProduct, Long> {
 
@@ -32,6 +33,63 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
             order by mp.addedAt desc
             """)
     List<CabinetProductRow> findActiveCabinetProducts(@Param("memberId") Long memberId);
+
+    @Query("""
+            select new com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow(
+                mp.id,
+                p.id,
+                p.brand,
+                p.name,
+                ap.id,
+                ap.startedOn,
+                ap.notificationEnabled,
+                ap.intakeTime,
+                ap.frequency,
+                ap.frequencyIntervalDays,
+                ap.scheduleAnchorOn,
+                case when count(pr.id) > 0 then true else false end
+            )
+            from MemberProduct mp
+            join mp.product p
+            left join MemberActiveProduct ap on ap.memberProduct = mp and ap.stoppedOn is null
+            left join ProductReview pr on pr.product = p
+                and pr.member.id = :memberId
+                and pr.deletedAt is null
+            where mp.member.id = :memberId
+              and mp.id = :memberProductId
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            group by mp.id, p.id, p.brand, p.name, ap.id, ap.startedOn, ap.notificationEnabled,
+                ap.intakeTime, ap.frequency, ap.frequencyIntervalDays, ap.scheduleAnchorOn
+            """)
+    Optional<CabinetProductDetailRow> findActiveCabinetProductDetail(
+            @Param("memberId") Long memberId,
+            @Param("memberProductId") Long memberProductId
+    );
+
+    @Query("""
+            select new com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow(
+                i.id,
+                i.name,
+                i.imageKey,
+                i.description,
+                ek.keyword
+            )
+            from MemberProduct mp
+            join mp.product p
+            join ProductIngredient pi on pi.product = p
+            join pi.ingredient i
+            left join EffectKeyword ek on ek.ingredient = i
+            where mp.member.id = :memberId
+              and mp.id = :memberProductId
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            order by pi.id asc, ek.id asc
+            """)
+    List<CabinetProductIngredientKeywordRow> findProductIngredientKeywordRows(
+            @Param("memberId") Long memberId,
+            @Param("memberProductId") Long memberProductId
+    );
 
     @Query("""
             select mp.product.id

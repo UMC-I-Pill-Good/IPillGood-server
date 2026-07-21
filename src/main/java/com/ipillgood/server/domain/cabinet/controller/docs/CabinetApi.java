@@ -58,6 +58,67 @@ public interface CabinetApi {
     );
 
     @Operation(
+            summary = "캐비닛 개별 영양제 조회",
+            description = "캐비닛 개별 영양제 상세 모달에 필요한 상품 요약, 포함 성분, 섭취 중 설정 정보를 조회합니다. 섭취 중이 아니면 activeProduct는 null로 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "캐비닛 개별 영양제 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "memberProductId": 15,
+                                                "productId": 112,
+                                                "brand": "뉴트리코어",
+                                                "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                "thumbnailImageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png",
+                                                "isActiveIntake": true,
+                                                "hasMyReview": false,
+                                                "ingredients": [
+                                                  {
+                                                    "ingredientId": 2,
+                                                    "name": "비타민 D",
+                                                    "imageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png",
+                                                    "description": "칼슘 흡수와 뼈 건강에 도움을 주는 성분입니다.",
+                                                    "effectTags": [
+                                                      "뼈 건강"
+                                                    ]
+                                                  }
+                                                ],
+                                                "activeProduct": {
+                                                  "activeProductId": 7,
+                                                  "startedOn": "2026-07-01",
+                                                  "intakeDayCount": 21,
+                                                  "notificationEnabled": true,
+                                                  "intakeTime": "08:30",
+                                                  "frequency": "EVERY_DAY",
+                                                  "frequencyLabel": "매일",
+                                                  "frequencyIntervalDays": 1,
+                                                  "scheduleAnchorOn": "2026-07-01"
+                                                }
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<CabinetResponse.ProductDetail> getProduct(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(description = "조회할 회원 캐비닛 상품 ID")
+            Long memberProductId
+    );
+
+    @Operation(
             summary = "캐비닛 영양제 추가",
             description = "선택한 영양제를 내 캐비닛 보유 목록에 추가합니다. 복용 설정과 병용 금기 판단은 처리하지 않습니다."
     )

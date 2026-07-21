@@ -62,6 +62,11 @@ class CabinetControllerTest {
         insertIngredient(4L, "마그네슘", "ingredients/4.png");
         insertIngredient(5L, "아연", "ingredients/5.png");
 
+        insertEffectKeyword(1L, 2L, "뼈 건강");
+        insertEffectKeyword(2L, 2L, "면역");
+        insertEffectKeyword(3L, 1L, "기본 영양");
+        insertEffectKeyword(4L, 3L, "항산화");
+
         insertProduct(100L, "비타민 D 제품", "테스트브랜드", null);
         insertProduct(101L, "멀티비타민 제품", "테스트브랜드", null);
         insertProduct(102L, "삭제된 보유 제품", "테스트브랜드", null);
@@ -84,6 +89,8 @@ class CabinetControllerTest {
 
         insertMemberActiveProduct(10L, 1L, MEMBER_ID, null);
         insertMemberActiveProduct(11L, 2L, MEMBER_ID, "2026-07-22");
+
+        insertProductReview(1L, 101L, MEMBER_ID);
 
         accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
         emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER");
@@ -113,6 +120,14 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("인증 없이 캐비닛 개별 영양제를 조회하면 401을 반환한다")
+    void getProduct_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
     @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 보유 영양제 목록을 조회할 수 없다")
     void getProducts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCTS_URL)
@@ -134,6 +149,17 @@ class CabinetControllerTest {
                                   "productIds": [102]
                                 }
                                 """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 개별 영양제를 조회할 수 없다")
+    void getProduct_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("CABINET403_1"))
@@ -178,6 +204,62 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.memberNickname").value("빈회원"))
                 .andExpect(jsonPath("$.result.totalCount").value(0))
                 .andExpect(jsonPath("$.result.products.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("섭취 중인 캐비닛 개별 영양제를 조회한다")
+    void getProduct_withActiveIntake_returnsProductDetail() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.memberProductId").value(1))
+                .andExpect(jsonPath("$.result.productId").value(100))
+                .andExpect(jsonPath("$.result.brand").value("테스트브랜드"))
+                .andExpect(jsonPath("$.result.productName").value("비타민 D 제품"))
+                .andExpect(jsonPath("$.result.thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"))
+                .andExpect(jsonPath("$.result.isActiveIntake").value(true))
+                .andExpect(jsonPath("$.result.hasMyReview").value(false))
+                .andExpect(jsonPath("$.result.ingredients.length()").value(1))
+                .andExpect(jsonPath("$.result.ingredients[0].ingredientId").value(2))
+                .andExpect(jsonPath("$.result.ingredients[0].name").value("비타민 D"))
+                .andExpect(jsonPath("$.result.ingredients[0].imageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"))
+                .andExpect(jsonPath("$.result.ingredients[0].description").value("성분 설명"))
+                .andExpect(jsonPath("$.result.ingredients[0].effectTags", contains("뼈 건강", "면역")))
+                .andExpect(jsonPath("$.result.activeProduct.activeProductId").value(10))
+                .andExpect(jsonPath("$.result.activeProduct.startedOn").value("2026-07-01"))
+                .andExpect(jsonPath("$.result.activeProduct.intakeDayCount").value(21))
+                .andExpect(jsonPath("$.result.activeProduct.notificationEnabled").value(true))
+                .andExpect(jsonPath("$.result.activeProduct.intakeTime").value("09:00"))
+                .andExpect(jsonPath("$.result.activeProduct.frequency").value("EVERY_DAY"))
+                .andExpect(jsonPath("$.result.activeProduct.frequencyLabel").value("매일"))
+                .andExpect(jsonPath("$.result.activeProduct.frequencyIntervalDays").value(1))
+                .andExpect(jsonPath("$.result.activeProduct.scheduleAnchorOn").value("2026-07-01"));
+    }
+
+    @Test
+    @DisplayName("섭취 중이 아닌 캐비닛 개별 영양제는 activeProduct 없이 조회한다")
+    void getProduct_withoutActiveIntake_returnsProductDetailWithNullActiveProduct() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/2")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.memberProductId").value(2))
+                .andExpect(jsonPath("$.result.productId").value(101))
+                .andExpect(jsonPath("$.result.brand").value("테스트브랜드"))
+                .andExpect(jsonPath("$.result.productName").value("멀티비타민 제품"))
+                .andExpect(jsonPath("$.result.thumbnailImageUrl")
+                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")))
+                .andExpect(jsonPath("$.result.isActiveIntake").value(false))
+                .andExpect(jsonPath("$.result.hasMyReview").value(true))
+                .andExpect(jsonPath("$.result.ingredients.length()").value(2))
+                .andExpect(jsonPath("$.result.ingredients[*].ingredientId", contains(1, 3)))
+                .andExpect(jsonPath("$.result.ingredients[0].effectTags", contains("기본 영양")))
+                .andExpect(jsonPath("$.result.ingredients[1].effectTags", contains("항산화")))
+                .andExpect(jsonPath("$.result.activeProduct").doesNotExist());
     }
 
     @Test
@@ -286,6 +368,41 @@ class CabinetControllerTest {
         assertEquals(0, countActiveMemberProducts(MEMBER_ID, 104L));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1"})
+    @DisplayName("memberProductId가 1 미만이면 400을 반환한다")
+    void getProduct_withInvalidMemberProductId_returnsBadRequest(String memberProductId) throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/" + memberProductId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET400_3"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("memberProductId가 숫자 형식이 아니면 공통 400을 반환한다")
+    void getProduct_withNonNumericMemberProductId_returnsCommonBadRequest() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/abc")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {999L, 3L, 4L, 5L})
+    @DisplayName("조회 대상이 활성 캐비닛 보유 상품이 아니면 404를 반환한다")
+    void getProduct_withUnavailableMemberProduct_returnsNotFound(long memberProductId) throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCTS_URL + "/" + memberProductId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET404_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
     private void clearDatabase() {
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
         jdbcTemplate.update("DELETE FROM product_review_report");
@@ -376,6 +493,17 @@ class CabinetControllerTest {
         );
     }
 
+    private void insertEffectKeyword(Long id, Long ingredientId, String keyword) {
+        jdbcTemplate.update("""
+                        INSERT INTO effect_keyword (id, ingredient_id, keyword, created_at, updated_at)
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                ingredientId,
+                keyword
+        );
+    }
+
     private void insertProduct(Long id, String name, String brand, String deletedAt) {
         jdbcTemplate.update("""
                         INSERT INTO product (
@@ -463,6 +591,30 @@ class CabinetControllerTest {
                 memberProductId,
                 memberId,
                 stoppedOn
+        );
+    }
+
+    private void insertProductReview(Long id, Long productId, Long memberId) {
+        jdbcTemplate.update("""
+                        INSERT INTO product_review (
+                            id,
+                            product_id,
+                            member_id,
+                            reviewer_age_group,
+                            reviewer_gender,
+                            rating,
+                            content,
+                            helpful_count,
+                            deleted_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, 'TWENTIES', 'FEMALE', 5, '좋아요', 0, NULL,
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                productId,
+                memberId
         );
     }
 

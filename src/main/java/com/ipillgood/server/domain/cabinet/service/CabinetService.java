@@ -7,6 +7,8 @@ import com.ipillgood.server.domain.cabinet.dto.CabinetResponse;
 import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.cabinet.exception.CabinetException;
 import com.ipillgood.server.domain.cabinet.repository.CabinetAddedProductRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
 import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.member.entity.Member;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,6 +49,20 @@ public class CabinetService {
 
         List<CabinetProductRow> products = memberProductRepository.findActiveCabinetProducts(memberId);
         return CabinetConverter.toProductList(member.getNickname(), products, storagePublicBaseUrl);
+    }
+
+    public CabinetResponse.ProductDetail getProduct(Long memberId, Long memberProductId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+        validateMemberProductId(memberProductId);
+
+        CabinetProductDetailRow product = memberProductRepository
+                .findActiveCabinetProductDetail(memberId, memberProductId)
+                .orElseThrow(() -> new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_NOT_FOUND));
+        List<CabinetProductIngredientKeywordRow> ingredients =
+                memberProductRepository.findProductIngredientKeywordRows(memberId, memberProductId);
+
+        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), storagePublicBaseUrl);
     }
 
     @Transactional
@@ -110,6 +127,12 @@ public class CabinetService {
             }
         }
         return productIds;
+    }
+
+    private void validateMemberProductId(Long memberProductId) {
+        if (memberProductId == null || memberProductId < 1) {
+            throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_ID_INVALID);
+        }
     }
 
     private void validateAllProductsExist(List<Long> productIds, List<Product> products) {
