@@ -1,8 +1,12 @@
 package com.ipillgood.server.domain.auth.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+
+import java.util.List;
 
 public class AuthRequest {
 
@@ -27,7 +31,22 @@ public class AuthRequest {
             String password,
 
             @NotBlank(message = "비밀번호 확인을 입력해주세요.")
-            String passwordConfirm
+            String passwordConfirm,
+
+            // 약관 동의 목록
+            @NotNull(message = "약관 동의 정보가 필요합니다.")
+            @Valid
+            List<PolicyAgreement> policyAgreements
+    ) {
+    }
+
+    // 약관 동의 항목
+    public record PolicyAgreement(
+            @NotNull(message = "약관 문서 ID가 필요합니다.")
+            Long policyDocumentId,
+
+            @NotNull(message = "약관 동의 여부가 필요합니다.")
+            Boolean agreed
     ) {
     }
 

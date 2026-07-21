@@ -21,10 +21,13 @@ public class AuthConverter {
     // 회원가입 - 멤버 엔티티 -> DTO 변환
     public static AuthResponse.SignUp toSignUpResponse(Member member) {
         return AuthResponse.SignUp.builder()
-                .id(member.getId())
+                .memberId(member.getId())
                 .nickname(member.getNickname())
                 .username(member.getUsername())
                 .email(member.getEmail())
+                .profileImageKey(member.getProfileImageKey())
+                .onboardingCompleted(member.getOnboardingCompletedAt() != null)
+                .createdAt(member.getCreatedAt())
                 .build();
     }
 
