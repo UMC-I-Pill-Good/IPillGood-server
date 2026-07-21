@@ -15,7 +15,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-l거atest
+정    runs-on: ubuntu-latest
     env:
       ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
       EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
