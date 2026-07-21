@@ -56,6 +56,7 @@ class CabinetControllerTest {
     private String accessToken;
     private String emptyMemberAccessToken;
     private String onboardingIncompleteAccessToken;
+    private String defaultActiveProductStartedOn;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +66,7 @@ class CabinetControllerTest {
         insertMember(OTHER_MEMBER_ID, "다른회원", "2026-07-01 00:00:00");
         insertMember(EMPTY_MEMBER_ID, "빈회원", "2026-07-01 00:00:00");
         insertMember(ONBOARDING_INCOMPLETE_MEMBER_ID, "미완료", null);
+        defaultActiveProductStartedOn = LocalDate.now().minusDays(20).toString();
 
         insertIngredient(1L, "종합비타민", "ingredients/1.png");
         insertIngredient(2L, "비타민 D", "ingredients/2.png");
@@ -644,14 +646,14 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.ingredients[0].description").value("성분 설명"))
                 .andExpect(jsonPath("$.result.ingredients[0].effectTags", contains("뼈 건강", "면역")))
                 .andExpect(jsonPath("$.result.activeProduct.activeProductId").value(10))
-                .andExpect(jsonPath("$.result.activeProduct.startedOn").value("2026-07-01"))
+                .andExpect(jsonPath("$.result.activeProduct.startedOn").value(defaultActiveProductStartedOn))
                 .andExpect(jsonPath("$.result.activeProduct.intakeDayCount").value(21))
                 .andExpect(jsonPath("$.result.activeProduct.notificationEnabled").value(true))
                 .andExpect(jsonPath("$.result.activeProduct.intakeTime").value("09:00"))
                 .andExpect(jsonPath("$.result.activeProduct.frequency").value("EVERY_DAY"))
                 .andExpect(jsonPath("$.result.activeProduct.frequencyLabel").value("매일"))
                 .andExpect(jsonPath("$.result.activeProduct.frequencyIntervalDays").value(1))
-                .andExpect(jsonPath("$.result.activeProduct.scheduleAnchorOn").value("2026-07-01"));
+                .andExpect(jsonPath("$.result.activeProduct.scheduleAnchorOn").value(defaultActiveProductStartedOn));
     }
 
     @Test
@@ -1070,7 +1072,7 @@ class CabinetControllerTest {
     }
 
     private void insertMemberActiveProduct(Long id, Long memberProductId, Long memberId, String stoppedOn) {
-        insertMemberActiveProduct(id, memberProductId, memberId, "2026-07-01", stoppedOn, null);
+        insertMemberActiveProduct(id, memberProductId, memberId, defaultActiveProductStartedOn, stoppedOn, null);
     }
 
     private void insertMemberActiveProduct(
