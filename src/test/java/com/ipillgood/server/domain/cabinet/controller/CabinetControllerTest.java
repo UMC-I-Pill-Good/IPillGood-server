@@ -4,17 +4,22 @@ import com.ipillgood.server.global.security.jwt.JwtProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -75,6 +80,7 @@ class CabinetControllerTest {
         insertMemberProduct(3L, MEMBER_ID, 102L, "2026-07-22 10:00:00", "2026-07-23 00:00:00");
         insertMemberProduct(4L, MEMBER_ID, 103L, "2026-07-23 10:00:00", null);
         insertMemberProduct(5L, OTHER_MEMBER_ID, 104L, "2026-07-24 10:00:00", null);
+        restartMemberProductIdentity();
 
         insertMemberActiveProduct(10L, 1L, MEMBER_ID, null);
         insertMemberActiveProduct(11L, 2L, MEMBER_ID, "2026-07-22");
@@ -93,10 +99,41 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("인증 없이 캐비닛 영양제를 추가하면 401을 반환한다")
+    void addProducts_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post(CABINET_PRODUCTS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productIds": [102]
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
     @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 보유 영양제 목록을 조회할 수 없다")
     void getProducts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 영양제를 추가할 수 없다")
+    void addProducts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(post(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productIds": [102]
+                                }
+                                """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("CABINET403_1"))
@@ -141,6 +178,112 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.memberNickname").value("빈회원"))
                 .andExpect(jsonPath("$.result.totalCount").value(0))
                 .andExpect(jsonPath("$.result.products.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("캐비닛에 영양제를 복수 추가한다")
+    void addProducts_withValidProducts_returnsCreated() throws Exception {
+        int beforeCount = countMemberProducts();
+
+        mockMvc.perform(post(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productIds": [102, 104]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS201_1"))
+                .andExpect(jsonPath("$.message").value("리소스가 성공적으로 생성되었습니다."))
+                .andExpect(jsonPath("$.result.addedCount").value(2))
+                .andExpect(jsonPath("$.result.addedProducts.length()").value(2))
+                .andExpect(jsonPath("$.result.addedProducts[*].productId", contains(102, 104)))
+                .andExpect(jsonPath("$.result.addedProducts[*].brand", contains("테스트브랜드", "테스트브랜드")))
+                .andExpect(jsonPath("$.result.addedProducts[0].productName").value("삭제된 보유 제품"))
+                .andExpect(jsonPath("$.result.addedProducts[0].thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/4.png"))
+                .andExpect(jsonPath("$.result.addedProducts[0].addedAt")
+                        .value(matchesPattern("\\d{4}-\\d{2}-\\d{2}T.+")))
+                .andExpect(jsonPath("$.result.addedProducts[1].productName").value("다른 회원 제품"))
+                .andExpect(jsonPath("$.result.addedProducts[1].thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"));
+
+        assertEquals(beforeCount + 2, countMemberProducts());
+        assertEquals(2, countMemberProducts(MEMBER_ID, 102L));
+        assertEquals(1, countActiveMemberProducts(MEMBER_ID, 102L));
+        assertEquals(1, countActiveMemberProducts(MEMBER_ID, 104L));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}",
+            "{\"productIds\":null}",
+            "{\"productIds\":[]}",
+            "{\"productIds\":[104,104]}",
+            "{\"productIds\":[null]}",
+            "{\"productIds\":[0]}",
+            "{\"productIds\":[-1]}"
+    })
+    @DisplayName("캐비닛 추가 상품 목록이 올바르지 않으면 400을 반환하고 추가하지 않는다")
+    void addProducts_withInvalidProductIds_returnsBadRequest(String requestBody) throws Exception {
+        int beforeCount = countMemberProducts();
+
+        mockMvc.perform(post(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET400_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(beforeCount, countMemberProducts());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"productIds\":[104,999]}",
+            "{\"productIds\":[104,103]}"
+    })
+    @DisplayName("존재하지 않거나 삭제된 상품이 포함되면 404를 반환하고 일부만 추가하지 않는다")
+    void addProducts_withUnknownOrDeletedProduct_returnsNotFound(String requestBody) throws Exception {
+        int beforeCount = countMemberProducts();
+
+        mockMvc.perform(post(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(beforeCount, countMemberProducts());
+        assertEquals(0, countActiveMemberProducts(MEMBER_ID, 104L));
+    }
+
+    @Test
+    @DisplayName("이미 보유 중인 영양제가 포함되면 409를 반환하고 일부만 추가하지 않는다")
+    void addProducts_withAlreadyOwnedProduct_returnsConflict() throws Exception {
+        int beforeCount = countMemberProducts();
+
+        mockMvc.perform(post(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "productIds": [100, 104]
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET409_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(beforeCount, countMemberProducts());
+        assertEquals(0, countActiveMemberProducts(MEMBER_ID, 104L));
     }
 
     private void clearDatabase() {
@@ -293,6 +436,10 @@ class CabinetControllerTest {
         );
     }
 
+    private void restartMemberProductIdentity() {
+        jdbcTemplate.execute("ALTER TABLE member_product ALTER COLUMN id RESTART WITH 100");
+    }
+
     private void insertMemberActiveProduct(Long id, Long memberProductId, Long memberId, String stoppedOn) {
         jdbcTemplate.update("""
                         INSERT INTO member_active_product (
@@ -317,6 +464,40 @@ class CabinetControllerTest {
                 memberId,
                 stoppedOn
         );
+    }
+
+    private int countMemberProducts() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM member_product", Integer.class);
+        return count == null ? 0 : count;
+    }
+
+    private int countMemberProducts(Long memberId, Long productId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_product
+                        WHERE member_id = ?
+                          AND product_id = ?
+                        """,
+                Integer.class,
+                memberId,
+                productId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countActiveMemberProducts(Long memberId, Long productId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_product
+                        WHERE member_id = ?
+                          AND product_id = ?
+                          AND deleted_at IS NULL
+                        """,
+                Integer.class,
+                memberId,
+                productId
+        );
+        return count == null ? 0 : count;
     }
 
     private String bearerToken(String token) {

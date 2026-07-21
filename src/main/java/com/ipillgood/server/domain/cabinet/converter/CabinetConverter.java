@@ -1,6 +1,7 @@
 package com.ipillgood.server.domain.cabinet.converter;
 
 import com.ipillgood.server.domain.cabinet.dto.CabinetResponse;
+import com.ipillgood.server.domain.cabinet.repository.CabinetAddedProductRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
 
 import java.util.List;
@@ -30,6 +31,20 @@ public class CabinetConverter {
                 .build();
     }
 
+    public static CabinetResponse.AddProducts toAddProducts(
+            List<CabinetAddedProductRow> rows,
+            String imageBaseUrl
+    ) {
+        List<CabinetResponse.AddedProduct> addedProducts = rows.stream()
+                .map(row -> toAddedProduct(row, imageBaseUrl))
+                .toList();
+
+        return CabinetResponse.AddProducts.builder()
+                .addedCount(addedProducts.size())
+                .addedProducts(addedProducts)
+                .build();
+    }
+
     private static CabinetResponse.ProductSummary toProductSummary(
             CabinetProductRow row,
             String imageBaseUrl
@@ -48,8 +63,30 @@ public class CabinetConverter {
     }
 
     private static String toThumbnailImageUrl(CabinetProductRow row, String imageBaseUrl) {
-        String imageKey = row.ingredientCount() == 1
-                ? row.singleIngredientImageKey()
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    }
+
+    private static CabinetResponse.AddedProduct toAddedProduct(
+            CabinetAddedProductRow row,
+            String imageBaseUrl
+    ) {
+        return CabinetResponse.AddedProduct.builder()
+                .memberProductId(row.memberProductId())
+                .productId(row.productId())
+                .brand(row.brand())
+                .productName(row.productName())
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .addedAt(row.addedAt())
+                .build();
+    }
+
+    private static String toThumbnailImageUrl(CabinetAddedProductRow row, String imageBaseUrl) {
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    }
+
+    private static String toThumbnailImageUrl(Long ingredientCount, String singleIngredientImageKey, String imageBaseUrl) {
+        String imageKey = ingredientCount != null && ingredientCount == 1L
+                ? singleIngredientImageKey
                 : randomMultiIngredientImageKey();
         return toImageUrl(imageBaseUrl, imageKey);
     }

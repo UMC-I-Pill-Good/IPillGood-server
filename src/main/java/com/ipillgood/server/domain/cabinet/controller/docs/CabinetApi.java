@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.cabinet.controller.docs;
 
+import com.ipillgood.server.domain.cabinet.dto.CabinetRequest;
 import com.ipillgood.server.domain.cabinet.dto.CabinetResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,5 +55,64 @@ public interface CabinetApi {
     ApiResponse<CabinetResponse.ProductList> getProducts(
             @Parameter(hidden = true)
             Long memberId
+    );
+
+    @Operation(
+            summary = "캐비닛 영양제 추가",
+            description = "선택한 영양제를 내 캐비닛 보유 목록에 추가합니다. 복용 설정과 병용 금기 판단은 처리하지 않습니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "캐비닛 영양제 추가 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS201_1",
+                                              "message": "리소스가 성공적으로 생성되었습니다.",
+                                              "result": {
+                                                "addedCount": 2,
+                                                "addedProducts": [
+                                                  {
+                                                    "memberProductId": 21,
+                                                    "productId": 118,
+                                                    "brand": "솔가",
+                                                    "productName": "솔가 비타민D3 1000IU",
+                                                    "thumbnailImageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png",
+                                                    "addedAt": "2026-07-21T11:30:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<CabinetResponse.AddProducts> addProducts(
+            @Parameter(hidden = true)
+            Long memberId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "캐비닛에 추가할 영양제 상품 ID 목록입니다.",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "productIds": [
+                                                118,
+                                                124
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            )
+            CabinetRequest.AddProducts request
     );
 }

@@ -8,6 +8,40 @@ import java.util.List;
 
 public class CabinetResponse {
 
+    @Schema(description = "캐비닛 영양제 추가 응답")
+    @Builder
+    public record AddProducts(
+            @Schema(description = "추가된 영양제 수", example = "2")
+            Integer addedCount,
+
+            @Schema(description = "추가된 캐비닛 보유 영양제 목록")
+            List<AddedProduct> addedProducts
+    ) {
+    }
+
+    @Schema(description = "추가된 캐비닛 보유 영양제 항목")
+    @Builder
+    public record AddedProduct(
+            @Schema(description = "생성된 회원 캐비닛 상품 ID", example = "21")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "118")
+            Long productId,
+
+            @Schema(description = "브랜드명", example = "솔가")
+            String brand,
+
+            @Schema(description = "영양제 상품명", example = "솔가 비타민D3 1000IU")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl,
+
+            @Schema(description = "캐비닛에 추가한 일시", example = "2026-07-21T11:30:00")
+            LocalDateTime addedAt
+    ) {
+    }
+
     @Schema(description = "캐비닛 보유 영양제 목록 조회 응답")
     @Builder
     public record ProductList(

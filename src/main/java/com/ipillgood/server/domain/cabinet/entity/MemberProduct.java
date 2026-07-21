@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -40,4 +41,11 @@ public class MemberProduct extends BaseSoftDeleteEntity {
 
     @Column(name = "added_at", nullable = false)
     private LocalDateTime addedAt;
+
+    @Builder
+    public MemberProduct(Member member, Product product, LocalDateTime addedAt) {
+        this.member = member;
+        this.product = product;
+        this.addedAt = addedAt;
+    }
 }
