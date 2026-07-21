@@ -71,4 +71,9 @@ public class Member extends BaseEntity {
         this.status = status == null ? MemberStatus.ACTIVE : status;
         this.profileImageKey = profileImageKey == null ? DEFAULT_PROFILE_IMAGE_KEY : profileImageKey;
     }
+
+    // 최초 설문 기반 추천 성공 시 온보딩 완료 처리
+    public void completeOnboarding(LocalDateTime completedAt) {
+        this.onboardingCompletedAt = completedAt;
+    }
 }
