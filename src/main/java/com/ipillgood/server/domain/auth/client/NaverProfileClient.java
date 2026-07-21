@@ -26,9 +26,9 @@ public class NaverProfileClient implements SocialProfileClient {
     private final SocialProperties.Naver properties;
     private final RestClient restClient;
 
-    public NaverProfileClient(SocialProperties socialProperties) {
+    public NaverProfileClient(SocialProperties socialProperties, RestClient socialRestClient) {
         this.properties = socialProperties.naver();
-        this.restClient = RestClient.builder().build();
+        this.restClient = socialRestClient;
     }
 
     @Override

@@ -25,9 +25,9 @@ public class KakaoProfileClient implements SocialProfileClient {
     private final SocialProperties.Kakao properties;
     private final RestClient restClient;
 
-    public KakaoProfileClient(SocialProperties socialProperties) {
+    public KakaoProfileClient(SocialProperties socialProperties, RestClient socialRestClient) {
         this.properties = socialProperties.kakao();
-        this.restClient = RestClient.builder().build();
+        this.restClient = socialRestClient;
     }
 
     @Override
