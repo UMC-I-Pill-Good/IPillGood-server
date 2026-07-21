@@ -166,6 +166,17 @@ class IngredientControllerTest {
     @DisplayName("ingredientId가 1 미만이면 400을 반환한다")
     void getIngredient_withInvalidId_returnsBadRequest(String ingredientId) throws Exception {
         mockMvc.perform(get(INGREDIENTS_URL + "/" + ingredientId)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INGREDIENT400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("ingredientId가 숫자 형식이 아니면 공통 400을 반환한다")
+    void getIngredient_withNonNumericId_returnsCommonBadRequest() throws Exception {
+        mockMvc.perform(get(INGREDIENTS_URL + "/abc")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.isSuccess").value(false))
@@ -180,7 +191,7 @@ class IngredientControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
-                .andExpect(jsonPath("$.code").value("COMMON404_1"))
+                .andExpect(jsonPath("$.code").value("INGREDIENT404_1"))
                 .andExpect(jsonPath("$.result").doesNotExist());
     }
 

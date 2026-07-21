@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.ingredient.service;
 
+import com.ipillgood.server.domain.ingredient.code.IngredientErrorCode;
 import com.ipillgood.server.domain.ingredient.converter.IngredientConverter;
 import com.ipillgood.server.domain.ingredient.dto.IngredientResponse;
 import com.ipillgood.server.domain.ingredient.entity.AlternativeFood;
@@ -17,7 +18,6 @@ import com.ipillgood.server.domain.ingredient.repository.IngredientCautionReposi
 import com.ipillgood.server.domain.ingredient.repository.IngredientCombinationRepository;
 import com.ipillgood.server.domain.ingredient.repository.IngredientEffectRepository;
 import com.ipillgood.server.domain.ingredient.repository.IngredientRepository;
-import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,7 +55,7 @@ public class IngredientService {
         validateIngredientId(ingredientId);
 
         Ingredient ingredient = ingredientRepository.findById(ingredientId)
-                .orElseThrow(() -> new IngredientException(GeneralErrorCode.NOT_FOUND));
+                .orElseThrow(() -> new IngredientException(IngredientErrorCode.INGREDIENT_NOT_FOUND));
 
         List<IngredientEffect> effects = ingredientEffectRepository.findByIngredientIdOrderByIdAsc(ingredientId);
         List<IngredientCaution> cautions = ingredientCautionRepository.findByIngredientIdOrderByIdAsc(ingredientId);
@@ -88,7 +88,7 @@ public class IngredientService {
 
     private void validateIngredientId(Long ingredientId) {
         if (ingredientId == null || ingredientId < 1) {
-            throw new IngredientException(GeneralErrorCode.BAD_REQUEST);
+            throw new IngredientException(IngredientErrorCode.INVALID_INGREDIENT_ID);
         }
     }
 }
