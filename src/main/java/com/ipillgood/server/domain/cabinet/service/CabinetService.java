@@ -7,6 +7,8 @@ import com.ipillgood.server.domain.cabinet.dto.CabinetResponse;
 import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.cabinet.exception.CabinetException;
 import com.ipillgood.server.domain.cabinet.repository.CabinetAddedProductRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateTagRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
@@ -20,16 +22,21 @@ import com.ipillgood.server.domain.product.repository.ProductRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,6 +45,11 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class CabinetService {
 
+    private static final int DEFAULT_PRODUCT_CANDIDATE_PAGE = 0;
+    private static final int DEFAULT_PRODUCT_CANDIDATE_SIZE = 20;
+    private static final int MAX_PRODUCT_CANDIDATE_SIZE = 100;
+    private static final int MAX_PRODUCT_CANDIDATE_KEYWORD_LENGTH = 100;
+
     private final MemberRepository memberRepository;
     private final MemberProductRepository memberProductRepository;
     private final MemberActiveProductRepository memberActiveProductRepository;
@@ -45,6 +57,40 @@ public class CabinetService {
 
     @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
     private String storagePublicBaseUrl;
+
+    public CabinetResponse.ProductCandidates getProductCandidates(
+            Long memberId,
+            String keyword,
+            String sort,
+            String page,
+            String size
+    ) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        ProductCandidateSearchCondition condition =
+                validateProductCandidateSearchCondition(keyword, sort, page, size);
+        PageRequest pageRequest = PageRequest.of(condition.page(), condition.size());
+        Page<CabinetProductCandidateRow> candidatePage = findProductCandidatePage(memberId, condition, pageRequest);
+
+        List<Long> productIds = candidatePage.getContent()
+                .stream()
+                .map(CabinetProductCandidateRow::productId)
+                .toList();
+        Map<Long, List<String>> tagsByProductId = findProductCandidateTags(productIds);
+
+        return CabinetConverter.toProductCandidates(
+                condition.keyword(),
+                condition.sort().name(),
+                condition.page(),
+                condition.size(),
+                candidatePage.getTotalElements(),
+                candidatePage.hasNext(),
+                candidatePage.getContent(),
+                tagsByProductId,
+                storagePublicBaseUrl
+        );
+    }
 
     public CabinetResponse.ProductList getProducts(Long memberId) {
         Member member = getMember(memberId);
@@ -134,6 +180,126 @@ public class CabinetService {
         activeProducts.forEach(activeProduct -> activeProduct.markStopped(stoppedOn));
 
         return response;
+    }
+
+    private ProductCandidateSearchCondition validateProductCandidateSearchCondition(
+            String keyword,
+            String sort,
+            String page,
+            String size
+    ) {
+        String normalizedKeyword = normalizeProductCandidateKeyword(keyword);
+        ProductCandidateSort candidateSort = parseProductCandidateSort(sort);
+        int parsedPage = parseProductCandidatePage(page);
+        int parsedSize = parseProductCandidateSize(size);
+        String searchKeyword = normalizedKeyword == null
+                ? null
+                : normalizedKeyword.toLowerCase(Locale.ROOT);
+
+        return new ProductCandidateSearchCondition(
+                normalizedKeyword,
+                searchKeyword,
+                candidateSort,
+                parsedPage,
+                parsedSize
+        );
+    }
+
+    private String normalizeProductCandidateKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+
+        String normalizedKeyword = keyword.trim();
+        if (normalizedKeyword.isEmpty()) {
+            return null;
+        }
+        if (normalizedKeyword.length() > MAX_PRODUCT_CANDIDATE_KEYWORD_LENGTH) {
+            throw new CabinetException(CabinetErrorCode.PRODUCT_CANDIDATE_SEARCH_CONDITION_INVALID);
+        }
+        return normalizedKeyword;
+    }
+
+    private ProductCandidateSort parseProductCandidateSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return ProductCandidateSort.REVIEW_COUNT_DESC;
+        }
+
+        try {
+            return ProductCandidateSort.valueOf(sort.trim());
+        } catch (IllegalArgumentException e) {
+            throw new CabinetException(CabinetErrorCode.PRODUCT_CANDIDATE_SEARCH_CONDITION_INVALID);
+        }
+    }
+
+    private int parseProductCandidatePage(String page) {
+        if (page == null || page.isBlank()) {
+            return DEFAULT_PRODUCT_CANDIDATE_PAGE;
+        }
+
+        int parsedPage = parseInteger(page);
+        if (parsedPage < 0) {
+            throw new CabinetException(CabinetErrorCode.PRODUCT_CANDIDATE_SEARCH_CONDITION_INVALID);
+        }
+        return parsedPage;
+    }
+
+    private int parseProductCandidateSize(String size) {
+        if (size == null || size.isBlank()) {
+            return DEFAULT_PRODUCT_CANDIDATE_SIZE;
+        }
+
+        int parsedSize = parseInteger(size);
+        if (parsedSize < 1 || parsedSize > MAX_PRODUCT_CANDIDATE_SIZE) {
+            throw new CabinetException(CabinetErrorCode.PRODUCT_CANDIDATE_SEARCH_CONDITION_INVALID);
+        }
+        return parsedSize;
+    }
+
+    private int parseInteger(String value) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            throw new CabinetException(CabinetErrorCode.PRODUCT_CANDIDATE_SEARCH_CONDITION_INVALID);
+        }
+    }
+
+    private Page<CabinetProductCandidateRow> findProductCandidatePage(
+            Long memberId,
+            ProductCandidateSearchCondition condition,
+            PageRequest pageRequest
+    ) {
+        return switch (condition.sort()) {
+            case REVIEW_COUNT_DESC -> memberProductRepository.findProductCandidatesOrderByReviewCountDesc(
+                    memberId,
+                    condition.searchKeyword(),
+                    pageRequest
+            );
+            case RATING_DESC -> memberProductRepository.findProductCandidatesOrderByRatingDesc(
+                    memberId,
+                    condition.searchKeyword(),
+                    pageRequest
+            );
+        };
+    }
+
+    private Map<Long, List<String>> findProductCandidateTags(List<Long> productIds) {
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, List<String>> tagsByProductId = new LinkedHashMap<>();
+        for (CabinetProductCandidateTagRow tagRow : memberProductRepository.findProductCandidateTags(productIds)) {
+            if (tagRow.keyword() == null || tagRow.keyword().isBlank()) {
+                continue;
+            }
+
+            List<String> tags = tagsByProductId.computeIfAbsent(tagRow.productId(), productId -> new ArrayList<>());
+            if (!tags.contains(tagRow.keyword())) {
+                tags.add(tagRow.keyword());
+            }
+        }
+        return tagsByProductId;
     }
 
     private Member getMember(Long memberId) {
@@ -230,5 +396,19 @@ public class CabinetService {
             productOrder.put(productIds.get(index), index);
         }
         return productOrder;
+    }
+
+    private enum ProductCandidateSort {
+        REVIEW_COUNT_DESC,
+        RATING_DESC
+    }
+
+    private record ProductCandidateSearchCondition(
+            String keyword,
+            String searchKeyword,
+            ProductCandidateSort sort,
+            int page,
+            int size
+    ) {
     }
 }

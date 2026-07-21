@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -24,6 +25,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class CabinetController implements CabinetApi {
 
     private final CabinetService cabinetService;
+
+    @Override
+    @GetMapping("/product-candidates")
+    public ApiResponse<CabinetResponse.ProductCandidates> getProductCandidates(
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String page,
+            @RequestParam(required = false) String size
+    ) {
+        CabinetResponse.ProductCandidates response =
+                cabinetService.getProductCandidates(memberId, keyword, sort, page, size);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
 
     @Override
     @GetMapping("/products")

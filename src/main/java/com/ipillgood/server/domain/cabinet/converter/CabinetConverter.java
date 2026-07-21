@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.cabinet.converter;
 import com.ipillgood.server.domain.cabinet.dto.CabinetResponse;
 import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.cabinet.repository.CabinetAddedProductRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
@@ -24,6 +25,32 @@ public class CabinetConverter {
     private static final DateTimeFormatter INTAKE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private CabinetConverter() {
+    }
+
+    public static CabinetResponse.ProductCandidates toProductCandidates(
+            String keyword,
+            String sort,
+            Integer page,
+            Integer size,
+            Long totalCount,
+            Boolean hasNext,
+            List<CabinetProductCandidateRow> rows,
+            Map<Long, List<String>> tagsByProductId,
+            String imageBaseUrl
+    ) {
+        List<CabinetResponse.ProductCandidate> products = rows.stream()
+                .map(row -> toProductCandidate(row, tagsByProductId.getOrDefault(row.productId(), List.of()), imageBaseUrl))
+                .toList();
+
+        return CabinetResponse.ProductCandidates.builder()
+                .keyword(keyword)
+                .sort(sort)
+                .page(page)
+                .size(size)
+                .totalCount(totalCount)
+                .hasNext(hasNext)
+                .products(products)
+                .build();
     }
 
     public static CabinetResponse.ProductList toProductList(
@@ -91,6 +118,26 @@ public class CabinetConverter {
                 .build();
     }
 
+    private static CabinetResponse.ProductCandidate toProductCandidate(
+            CabinetProductCandidateRow row,
+            List<String> ingredientTags,
+            String imageBaseUrl
+    ) {
+        boolean isOwned = Boolean.TRUE.equals(row.isOwned());
+
+        return CabinetResponse.ProductCandidate.builder()
+                .productId(row.productId())
+                .brand(row.brand())
+                .productName(row.productName())
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .averageRating(row.averageRating())
+                .reviewCount(row.reviewCount() == null ? 0 : row.reviewCount().intValue())
+                .ingredientTags(ingredientTags)
+                .isOwned(isOwned)
+                .isSelectable(!isOwned)
+                .build();
+    }
+
     private static CabinetResponse.DeletedProduct toDeletedProduct(
             MemberProduct memberProduct,
             Map<Long, MemberActiveProduct> activeProductsByMemberProductId
@@ -125,6 +172,10 @@ public class CabinetConverter {
     }
 
     private static String toThumbnailImageUrl(CabinetProductRow row, String imageBaseUrl) {
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    }
+
+    private static String toThumbnailImageUrl(CabinetProductCandidateRow row, String imageBaseUrl) {
         return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
     }
 

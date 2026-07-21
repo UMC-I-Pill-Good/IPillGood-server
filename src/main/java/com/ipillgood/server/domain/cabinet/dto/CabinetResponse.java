@@ -9,6 +9,64 @@ import java.util.List;
 
 public class CabinetResponse {
 
+    @Schema(description = "캐비닛 추가 후보 검색 응답")
+    @Builder
+    public record ProductCandidates(
+            @Schema(description = "적용된 검색어", nullable = true, example = "비타민D")
+            String keyword,
+
+            @Schema(description = "적용된 정렬 기준", example = "REVIEW_COUNT_DESC")
+            String sort,
+
+            @Schema(description = "현재 페이지 번호", example = "0")
+            Integer page,
+
+            @Schema(description = "페이지 크기", example = "20")
+            Integer size,
+
+            @Schema(description = "검색 조건에 맞는 전체 상품 수", example = "42")
+            Long totalCount,
+
+            @Schema(description = "다음 페이지 존재 여부", example = "true")
+            Boolean hasNext,
+
+            @Schema(description = "캐비닛 추가 후보 상품 목록")
+            List<ProductCandidate> products
+    ) {
+    }
+
+    @Schema(description = "캐비닛 추가 후보 상품 항목")
+    @Builder
+    public record ProductCandidate(
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "브랜드명", example = "뉴트리코어")
+            String brand,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl,
+
+            @Schema(description = "활성 후기 기준 평균 별점", nullable = true, example = "4.7")
+            Double averageRating,
+
+            @Schema(description = "활성 후기 수", example = "128")
+            Integer reviewCount,
+
+            @Schema(description = "포함 성분의 효능 태그 목록")
+            List<String> ingredientTags,
+
+            @Schema(description = "이미 캐비닛에 보유 중인지 여부", example = "true")
+            Boolean isOwned,
+
+            @Schema(description = "캐비닛 추가 대상으로 선택 가능한지 여부", example = "false")
+            Boolean isSelectable
+    ) {
+    }
+
     @Schema(description = "캐비닛 영양제 추가 응답")
     @Builder
     public record AddProducts(

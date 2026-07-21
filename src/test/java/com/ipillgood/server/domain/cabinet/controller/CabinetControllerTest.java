@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CabinetControllerTest {
 
     private static final String CABINET_PRODUCTS_URL = "/api/v1/cabinet/products";
+    private static final String CABINET_PRODUCT_CANDIDATES_URL = "/api/v1/cabinet/product-candidates";
     private static final long MEMBER_ID = 1L;
     private static final long OTHER_MEMBER_ID = 2L;
     private static final long EMPTY_MEMBER_ID = 3L;
@@ -145,6 +146,14 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("인증 없이 캐비닛 추가 후보를 검색하면 401을 반환한다")
+    void getProductCandidates_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
     @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 보유 영양제 목록을 조회할 수 없다")
     void getProducts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCTS_URL)
@@ -197,6 +206,177 @@ class CabinetControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 추가 후보를 검색할 수 없다")
+    void getProductCandidates_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("캐비닛 추가 후보를 기본 정렬로 조회하고 보유 여부와 태그를 반환한다")
+    void getProductCandidates_withDefaultCondition_returnsCandidates() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.keyword").doesNotExist())
+                .andExpect(jsonPath("$.result.sort").value("REVIEW_COUNT_DESC"))
+                .andExpect(jsonPath("$.result.page").value(0))
+                .andExpect(jsonPath("$.result.size").value(20))
+                .andExpect(jsonPath("$.result.totalCount").value(4))
+                .andExpect(jsonPath("$.result.hasNext").value(false))
+                .andExpect(jsonPath("$.result.products.length()").value(4))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(101, 104, 100, 102)))
+                .andExpect(jsonPath("$.result.products[0].brand").value("테스트브랜드"))
+                .andExpect(jsonPath("$.result.products[0].productName").value("멀티비타민 제품"))
+                .andExpect(jsonPath("$.result.products[0].thumbnailImageUrl")
+                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")))
+                .andExpect(jsonPath("$.result.products[0].averageRating").value(5.0))
+                .andExpect(jsonPath("$.result.products[0].reviewCount").value(1))
+                .andExpect(jsonPath("$.result.products[0].ingredientTags", contains("기본 영양", "항산화")))
+                .andExpect(jsonPath("$.result.products[0].isOwned").value(true))
+                .andExpect(jsonPath("$.result.products[0].isSelectable").value(false))
+                .andExpect(jsonPath("$.result.products[1].productId").value(104))
+                .andExpect(jsonPath("$.result.products[1].isOwned").value(false))
+                .andExpect(jsonPath("$.result.products[1].isSelectable").value(true))
+                .andExpect(jsonPath("$.result.products[2].productId").value(100))
+                .andExpect(jsonPath("$.result.products[2].thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"))
+                .andExpect(jsonPath("$.result.products[2].ingredientTags", contains("뼈 건강", "면역")))
+                .andExpect(jsonPath("$.result.products[2].isOwned").value(true))
+                .andExpect(jsonPath("$.result.products[2].isSelectable").value(false))
+                .andExpect(jsonPath("$.result.products[3].productId").value(102))
+                .andExpect(jsonPath("$.result.products[3].averageRating").doesNotExist())
+                .andExpect(jsonPath("$.result.products[3].reviewCount").value(0))
+                .andExpect(jsonPath("$.result.products[3].isOwned").value(false))
+                .andExpect(jsonPath("$.result.products[3].isSelectable").value(true));
+    }
+
+    @Test
+    @DisplayName("캐비닛 추가 후보를 브랜드명, 상품명, 성분명으로 부분 일치 검색한다")
+    void getProductCandidates_withKeyword_searchesBrandProductNameAndIngredientName() throws Exception {
+        insertProduct(105L, "Daily TEST Capsule", "CaseBrand", null);
+        insertProductIngredient(7L, 105L, 2L);
+
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "casebrand"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.keyword").value("casebrand"))
+                .andExpect(jsonPath("$.result.totalCount").value(1))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(105)));
+
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "test"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.totalCount").value(1))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(105)));
+
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "마그네슘"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.totalCount").value(1))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(102)));
+
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "아연"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.totalCount").value(0))
+                .andExpect(jsonPath("$.result.products.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("캐비닛 추가 후보를 후기 수와 평점 기준으로 정렬한다")
+    void getProductCandidates_withSort_returnsOrderedCandidates() throws Exception {
+        insertProduct(200L, "정렬 A", "정렬브랜드", null);
+        insertProduct(201L, "정렬 B", "정렬브랜드", null);
+        insertProduct(202L, "정렬 C", "정렬브랜드", null);
+        insertProductIngredient(2001L, 200L, 2L);
+        insertProductIngredient(2002L, 201L, 3L);
+        insertProductIngredient(2003L, 202L, 4L);
+        insertProductReview(2001L, 200L, MEMBER_ID, 3, null);
+        insertProductReview(2002L, 200L, OTHER_MEMBER_ID, 3, null);
+        insertProductReview(2003L, 201L, MEMBER_ID, 5, null);
+
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "정렬")
+                        .param("sort", "REVIEW_COUNT_DESC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.sort").value("REVIEW_COUNT_DESC"))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(200, 201, 202)))
+                .andExpect(jsonPath("$.result.products[*].reviewCount", contains(2, 1, 0)));
+
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "정렬")
+                        .param("sort", "RATING_DESC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.sort").value("RATING_DESC"))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(201, 200, 202)))
+                .andExpect(jsonPath("$.result.products[0].averageRating").value(5.0))
+                .andExpect(jsonPath("$.result.products[1].averageRating").value(3.0))
+                .andExpect(jsonPath("$.result.products[2].averageRating").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("캐비닛 추가 후보 검색은 페이지 정보를 반환한다")
+    void getProductCandidates_withPaging_returnsPageInfo() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("page", "0")
+                        .param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.page").value(0))
+                .andExpect(jsonPath("$.result.size").value(2))
+                .andExpect(jsonPath("$.result.totalCount").value(4))
+                .andExpect(jsonPath("$.result.hasNext").value(true))
+                .andExpect(jsonPath("$.result.products.length()").value(2))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(101, 104)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "?sort=UNKNOWN",
+            "?sort=rating_desc",
+            "?page=-1",
+            "?page=abc",
+            "?size=0",
+            "?size=101",
+            "?size=abc"
+    })
+    @DisplayName("캐비닛 추가 후보 검색 조건이 올바르지 않으면 400을 반환한다")
+    void getProductCandidates_withInvalidCondition_returnsBadRequest(String queryString) throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL + queryString)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("캐비닛 추가 후보 검색어가 100자를 초과하면 400을 반환한다")
+    void getProductCandidates_withTooLongKeyword_returnsBadRequest() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", "a".repeat(101)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET400_1"))
                 .andExpect(jsonPath("$.result").doesNotExist());
     }
 
@@ -760,6 +940,10 @@ class CabinetControllerTest {
     }
 
     private void insertProductReview(Long id, Long productId, Long memberId) {
+        insertProductReview(id, productId, memberId, 5, null);
+    }
+
+    private void insertProductReview(Long id, Long productId, Long memberId, int rating, String deletedAt) {
         jdbcTemplate.update("""
                         INSERT INTO product_review (
                             id,
@@ -774,12 +958,14 @@ class CabinetControllerTest {
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, 'TWENTIES', 'FEMALE', 5, '좋아요', 0, NULL,
+                        VALUES (?, ?, ?, 'TWENTIES', 'FEMALE', ?, '좋아요', 0, ?,
                                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 productId,
-                memberId
+                memberId,
+                rating,
+                deletedAt
         );
     }
 

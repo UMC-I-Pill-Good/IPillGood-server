@@ -7,12 +7,79 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Cabinet API", description = "캐비닛 관련 API")
 public interface CabinetApi {
+
+    @Operation(
+            summary = "캐비닛 추가 후보 검색",
+            description = "캐비닛 추가 화면에서 상품 후보를 검색합니다. 브랜드명, 상품명, 포함 성분명을 대상으로 조회하고 보유 여부를 함께 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "캐비닛 추가 후보 검색 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "keyword": "비타민D",
+                                                "sort": "REVIEW_COUNT_DESC",
+                                                "page": 0,
+                                                "size": 20,
+                                                "totalCount": 42,
+                                                "hasNext": true,
+                                                "products": [
+                                                  {
+                                                    "productId": 112,
+                                                    "brand": "뉴트리코어",
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                    "thumbnailImageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png",
+                                                    "averageRating": 4.7,
+                                                    "reviewCount": 128,
+                                                    "ingredientTags": [
+                                                      "뼈 건강",
+                                                      "면역"
+                                                    ],
+                                                    "isOwned": true,
+                                                    "isSelectable": false
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<CabinetResponse.ProductCandidates> getProductCandidates(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(description = "검색어입니다.")
+            String keyword,
+            @Parameter(
+                    description = "정렬 기준입니다.",
+                    schema = @Schema(
+                            allowableValues = {"REVIEW_COUNT_DESC", "RATING_DESC"},
+                            defaultValue = "REVIEW_COUNT_DESC"
+                    )
+            )
+            String sort,
+            @Parameter(description = "페이지 번호입니다.", schema = @Schema(defaultValue = "0"))
+            String page,
+            @Parameter(description = "페이지 크기입니다.", schema = @Schema(defaultValue = "20"))
+            String size
+    );
 
     @Operation(
             summary = "캐비닛 보유 영양제 목록 조회",
