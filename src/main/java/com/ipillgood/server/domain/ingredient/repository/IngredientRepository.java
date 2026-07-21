@@ -24,4 +24,13 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
             @Param("memberId") Long memberId,
             @Param("ingredientId") Long ingredientId
     );
+
+    @Query("""
+            select i from Ingredient i
+            where i.id not in (
+                select ci.ingredient.id from ContraindicationIngredient ci
+                where ci.contraindication.id in :excludedContraindicationIds
+            )
+            """)
+    List<Ingredient> findSafeCandidates(@Param("excludedContraindicationIds") List<Long> excludedContraindicationIds);
 }
