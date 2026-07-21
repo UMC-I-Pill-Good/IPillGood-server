@@ -21,7 +21,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -97,33 +96,4 @@ public class SurveyResponse extends BaseEntity {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
-
-    @Builder
-    public SurveyResponse(Member member, SurveySubmissionType submissionType, Short birthYear, Gender gender,
-                           JobType jobType, Short menstrualCycleDays, LocalDate lastPeriodStartedOn,
-                           SmokingStatus smokingStatus, DrinkingStatus drinkingStatus, DietType dietType,
-                           ExerciseFrequency exerciseFrequency, Boolean pregnant, boolean underlyingDiseaseNone,
-                           boolean medicationNone, boolean allergyNone, boolean currentIngredientNone) {
-        this.member = member;
-        this.submissionType = submissionType;
-        this.birthYear = birthYear;
-        this.gender = gender;
-        this.jobType = jobType;
-        this.menstrualCycleDays = menstrualCycleDays;
-        this.lastPeriodStartedOn = lastPeriodStartedOn;
-        this.smokingStatus = smokingStatus;
-        this.drinkingStatus = drinkingStatus;
-        this.dietType = dietType;
-        this.exerciseFrequency = exerciseFrequency;
-        this.pregnant = pregnant;
-        this.underlyingDiseaseNone = underlyingDiseaseNone;
-        this.medicationNone = medicationNone;
-        this.allergyNone = allergyNone;
-        this.currentIngredientNone = currentIngredientNone;
-    }
-
-    // 설문 저장 완료 처리
-    public void markCompleted(LocalDateTime completedAt) {
-        this.completedAt = completedAt;
-    }
 }

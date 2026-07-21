@@ -13,7 +13,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -53,12 +52,4 @@ public class RecommendationItem extends BaseEntity {
 
     @Column(name = "ai_reason", nullable = false, columnDefinition = "TEXT")
     private String aiReason;
-
-    @Builder
-    public RecommendationItem(Recommendation recommendation, Ingredient ingredient, Short rankNo, String aiReason) {
-        this.recommendation = recommendation;
-        this.ingredient = ingredient;
-        this.rankNo = rankNo;
-        this.aiReason = aiReason;
-    }
 }

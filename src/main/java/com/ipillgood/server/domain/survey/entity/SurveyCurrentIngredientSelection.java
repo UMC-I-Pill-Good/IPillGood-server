@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -33,10 +32,4 @@ public class SurveyCurrentIngredientSelection extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ingredient_id", nullable = false)
     private Ingredient ingredient;
-
-    @Builder
-    public SurveyCurrentIngredientSelection(SurveyResponse surveyResponse, Ingredient ingredient) {
-        this.surveyResponse = surveyResponse;
-        this.ingredient = ingredient;
-    }
 }

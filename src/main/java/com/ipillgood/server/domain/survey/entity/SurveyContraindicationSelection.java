@@ -12,7 +12,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -40,10 +39,4 @@ public class SurveyContraindicationSelection extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contraindication_id", nullable = false)
     private Contraindication contraindication;
-
-    @Builder
-    public SurveyContraindicationSelection(SurveyResponse surveyResponse, Contraindication contraindication) {
-        this.surveyResponse = surveyResponse;
-        this.contraindication = contraindication;
-    }
 }

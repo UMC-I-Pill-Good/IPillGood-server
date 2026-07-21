@@ -15,7 +15,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -46,10 +45,4 @@ public class SurveyOnboardingConcernSelection extends BaseEntity {
 
     @Column(name = "priority")
     private Short priority;
-
-    @Builder
-    public SurveyOnboardingConcernSelection(SurveyResponse surveyResponse, OnboardingConcernCode concernCode) {
-        this.surveyResponse = surveyResponse;
-        this.concernCode = concernCode;
-    }
 }
