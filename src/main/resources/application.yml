@@ -31,7 +31,14 @@ jwt:
   access-token-validity: 3600000
   refresh-token-validity: 1209600000
 
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-flash-lite-latest
+  base-url: https://generativelanguage.googleapis.com
+
 app:
+  image:
+    base-url: ${IMAGE_BASE_URL:https://ipillgood-assets.s3.ap-northeast-2.amazonaws.com}
   storage:
     public-base-url: ${STORAGE_PUBLIC_BASE_URL:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}
 
