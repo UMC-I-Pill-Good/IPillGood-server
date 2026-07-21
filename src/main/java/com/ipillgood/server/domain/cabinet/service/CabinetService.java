@@ -12,6 +12,7 @@ import com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateTag
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetReviewPromptRow;
 import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
@@ -49,6 +50,7 @@ public class CabinetService {
     private static final int DEFAULT_PRODUCT_CANDIDATE_SIZE = 20;
     private static final int MAX_PRODUCT_CANDIDATE_SIZE = 100;
     private static final int MAX_PRODUCT_CANDIDATE_KEYWORD_LENGTH = 100;
+    private static final int REVIEW_PROMPT_DUE_DAYS = 30;
 
     private final MemberRepository memberRepository;
     private final MemberProductRepository memberProductRepository;
@@ -98,6 +100,16 @@ public class CabinetService {
 
         List<CabinetProductRow> products = memberProductRepository.findActiveCabinetProducts(memberId);
         return CabinetConverter.toProductList(member.getNickname(), products, storagePublicBaseUrl);
+    }
+
+    public CabinetResponse.ReviewPrompts getDueReviewPrompts(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate dueStartedOn = LocalDate.now().minusDays(REVIEW_PROMPT_DUE_DAYS);
+        List<CabinetReviewPromptRow> reviewPrompts =
+                memberProductRepository.findDueReviewPrompts(memberId, dueStartedOn);
+        return CabinetConverter.toReviewPrompts(reviewPrompts);
     }
 
     public CabinetResponse.ProductDetail getProduct(Long memberId, Long memberProductId) {

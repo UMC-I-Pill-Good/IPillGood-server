@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 // 섭취 중인 상품
@@ -63,6 +64,9 @@ public class MemberActiveProduct extends BaseEntity {
 
     @Column(name = "notification_enabled", nullable = false)
     private boolean notificationEnabled = true;
+
+    @Column(name = "review_prompt_dismissed_at")
+    private LocalDateTime reviewPromptDismissedAt;
 
     public void markStopped(LocalDate stoppedOn) {
         this.stoppedOn = stoppedOn;

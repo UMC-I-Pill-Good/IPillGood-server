@@ -172,6 +172,28 @@ public class CabinetResponse {
     ) {
     }
 
+    @Schema(description = "후기 작성 유도 대상 조회 응답")
+    @Builder
+    public record ReviewPrompts(
+            @Schema(description = "노출할 후기 작성 유도 인앱 배너 목록")
+            List<ReviewPrompt> duePrompts
+    ) {
+    }
+
+    @Schema(description = "후기 작성 유도 대상 항목")
+    @Builder
+    public record ReviewPrompt(
+            @Schema(description = "배너 닫힘 기록에 사용할 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "후기 작성 화면 이동에 사용할 영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "배너 안내 문구에 표시할 영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName
+    ) {
+    }
+
     @Schema(description = "캐비닛 개별 영양제 조회 응답")
     @Builder
     public record ProductDetail(

@@ -50,6 +50,15 @@ public class CabinetController implements CabinetApi {
     }
 
     @Override
+    @GetMapping("/review-prompts/due")
+    public ApiResponse<CabinetResponse.ReviewPrompts> getDueReviewPrompts(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        CabinetResponse.ReviewPrompts response = cabinetService.getDueReviewPrompts(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
     @GetMapping("/products/{memberProductId}")
     public ApiResponse<CabinetResponse.ProductDetail> getProduct(
             @AuthenticationPrincipal Long memberId,

@@ -125,6 +125,43 @@ public interface CabinetApi {
     );
 
     @Operation(
+            summary = "후기 작성 유도 대상 조회",
+            description = "섭취 중으로 등록한 지 30일이 지났고 아직 후기를 작성하지 않은 영양제를 조회합니다. 닫힘 처리된 배너 대상은 제외합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "후기 작성 유도 대상 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "duePrompts": [
+                                                  {
+                                                    "activeProductId": 7,
+                                                    "productId": 112,
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<CabinetResponse.ReviewPrompts> getDueReviewPrompts(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
             summary = "캐비닛 개별 영양제 조회",
             description = "캐비닛 개별 영양제 상세 모달에 필요한 상품 요약, 포함 성분, 섭취 중 설정 정보를 조회합니다. 섭취 중이 아니면 activeProduct는 null로 반환합니다."
     )
