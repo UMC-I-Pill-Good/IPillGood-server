@@ -12,6 +12,8 @@ public enum RecommendationSuccessCode implements BaseSuccessCode {
     CURRENT_RECOMMENDATION_SUCCESS(HttpStatus.OK, "SUCCESS200_1", "현재 추천 결과 조회에 성공했습니다."),
     RECOMMENDATION_DETAIL_SUCCESS(HttpStatus.OK, "SUCCESS200_1", "추천 생성 상태/결과 조회에 성공했습니다."),
     RECOMMENDATION_RETRY_SUCCESS(HttpStatus.ACCEPTED, "SUCCESS202_1", "추천 생성 재시도에 성공했습니다."),
+    FEEDBACK_DUE_SUCCESS(HttpStatus.OK, "SUCCESS200_1", "추천 피드백 대상 조회에 성공했습니다."),
+    FEEDBACK_RESPONSE_SUCCESS(HttpStatus.CREATED, "SUCCESS201_1", "추천 피드백 응답 저장에 성공했습니다."),
     ;
 
     private final HttpStatus status;

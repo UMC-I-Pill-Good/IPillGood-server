@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -59,4 +60,17 @@ public class RecommendationFeedbackCycle extends BaseEntity {
 
     @Column(name = "next_cycle_due_on")
     private LocalDate nextCycleDueOn;
+
+    @Builder
+    public RecommendationFeedbackCycle(Member member, Recommendation recommendation, LocalDate cycleDueOn) {
+        this.member = member;
+        this.recommendation = recommendation;
+        this.cycleDueOn = cycleDueOn;
+    }
+
+    public void respond(RecommendationFeedbackResponse responseType, LocalDateTime respondedAt, LocalDate nextCycleDueOn) {
+        this.responseType = responseType;
+        this.respondedAt = respondedAt;
+        this.nextCycleDueOn = nextCycleDueOn;
+    }
 }
