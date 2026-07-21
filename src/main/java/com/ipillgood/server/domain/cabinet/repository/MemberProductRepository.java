@@ -1,6 +1,8 @@
 package com.ipillgood.server.domain.cabinet.repository;
 
 import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +12,128 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MemberProductRepository extends JpaRepository<MemberProduct, Long> {
+
+    @Query(
+            value = """
+                    select new com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateRow(
+                        p.id,
+                        p.brand,
+                        p.name,
+                        count(distinct pi.id),
+                        min(i.imageKey),
+                        avg(pr.rating),
+                        count(distinct pr.id),
+                        case when count(distinct mp.id) > 0 then true else false end
+                    )
+                    from Product p
+                    left join ProductIngredient searchPi on searchPi.product = p
+                    left join searchPi.ingredient searchIngredient
+                    left join ProductIngredient pi on pi.product = p
+                    left join pi.ingredient i
+                    left join ProductReview pr on pr.product = p
+                        and pr.deletedAt is null
+                    left join MemberProduct mp on mp.product = p
+                        and mp.member.id = :memberId
+                        and mp.deletedAt is null
+                    where p.deletedAt is null
+                      and (
+                          :keyword is null
+                          or lower(p.brand) like concat('%', :keyword, '%')
+                          or lower(p.name) like concat('%', :keyword, '%')
+                          or lower(searchIngredient.name) like concat('%', :keyword, '%')
+                      )
+                    group by p.id, p.brand, p.name
+                    order by count(distinct pr.id) desc, p.name asc, p.id asc
+                    """,
+            countQuery = """
+                    select count(distinct p.id)
+                    from Product p
+                    left join ProductIngredient searchPi on searchPi.product = p
+                    left join searchPi.ingredient searchIngredient
+                    where p.deletedAt is null
+                      and (
+                          :keyword is null
+                          or lower(p.brand) like concat('%', :keyword, '%')
+                          or lower(p.name) like concat('%', :keyword, '%')
+                          or lower(searchIngredient.name) like concat('%', :keyword, '%')
+                      )
+                    """
+    )
+    Page<CabinetProductCandidateRow> findProductCandidatesOrderByReviewCountDesc(
+            @Param("memberId") Long memberId,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+
+    @Query(
+            value = """
+                    select new com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateRow(
+                        p.id,
+                        p.brand,
+                        p.name,
+                        count(distinct pi.id),
+                        min(i.imageKey),
+                        avg(pr.rating),
+                        count(distinct pr.id),
+                        case when count(distinct mp.id) > 0 then true else false end
+                    )
+                    from Product p
+                    left join ProductIngredient searchPi on searchPi.product = p
+                    left join searchPi.ingredient searchIngredient
+                    left join ProductIngredient pi on pi.product = p
+                    left join pi.ingredient i
+                    left join ProductReview pr on pr.product = p
+                        and pr.deletedAt is null
+                    left join MemberProduct mp on mp.product = p
+                        and mp.member.id = :memberId
+                        and mp.deletedAt is null
+                    where p.deletedAt is null
+                      and (
+                          :keyword is null
+                          or lower(p.brand) like concat('%', :keyword, '%')
+                          or lower(p.name) like concat('%', :keyword, '%')
+                          or lower(searchIngredient.name) like concat('%', :keyword, '%')
+                      )
+                    group by p.id, p.brand, p.name
+                    order by case when avg(pr.rating) is null then 1 else 0 end asc,
+                        avg(pr.rating) desc, p.name asc, p.id asc
+                    """,
+            countQuery = """
+                    select count(distinct p.id)
+                    from Product p
+                    left join ProductIngredient searchPi on searchPi.product = p
+                    left join searchPi.ingredient searchIngredient
+                    where p.deletedAt is null
+                      and (
+                          :keyword is null
+                          or lower(p.brand) like concat('%', :keyword, '%')
+                          or lower(p.name) like concat('%', :keyword, '%')
+                          or lower(searchIngredient.name) like concat('%', :keyword, '%')
+                      )
+                    """
+    )
+    Page<CabinetProductCandidateRow> findProductCandidatesOrderByRatingDesc(
+            @Param("memberId") Long memberId,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+
+    @Query("""
+            select new com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateTagRow(
+                p.id,
+                ek.keyword
+            )
+            from Product p
+            join ProductIngredient pi on pi.product = p
+            join pi.ingredient i
+            join EffectKeyword ek on ek.ingredient = i
+            where p.id in :productIds
+              and p.deletedAt is null
+            order by p.id asc, pi.id asc, ek.id asc
+            """)
+    List<CabinetProductCandidateTagRow> findProductCandidateTags(
+            @Param("productIds") Collection<Long> productIds
+    );
 
     @Query("""
             select new com.ipillgood.server.domain.cabinet.repository.CabinetProductRow(

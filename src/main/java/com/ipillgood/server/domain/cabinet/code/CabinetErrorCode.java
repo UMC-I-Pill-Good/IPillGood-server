@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum CabinetErrorCode implements BaseErrorCode {
 
     // 400 BAD_REQUEST - 캐비닛 요청 값 검증
+    PRODUCT_CANDIDATE_SEARCH_CONDITION_INVALID(HttpStatus.BAD_REQUEST, "CABINET400_1", "캐비닛 검색 조건이 올바르지 않습니다."),
     ADD_PRODUCT_LIST_INVALID(HttpStatus.BAD_REQUEST, "CABINET400_2", "캐비닛에 추가할 상품 목록이 올바르지 않습니다."),
     MEMBER_PRODUCT_ID_INVALID(HttpStatus.BAD_REQUEST, "CABINET400_3", "캐비닛 보유 상품 ID가 올바르지 않습니다."),
 
