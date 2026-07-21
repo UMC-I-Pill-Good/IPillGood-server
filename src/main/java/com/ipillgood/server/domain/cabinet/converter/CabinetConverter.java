@@ -7,6 +7,7 @@ import com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateRow
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetReviewPromptRow;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 
 import java.time.LocalDate;
@@ -97,6 +98,27 @@ public class CabinetConverter {
                 .build();
     }
 
+    public static CabinetResponse.ReviewPrompts toReviewPrompts(
+            List<CabinetReviewPromptRow> rows
+    ) {
+        List<CabinetResponse.ReviewPrompt> duePrompts = rows.stream()
+                .map(CabinetConverter::toReviewPrompt)
+                .toList();
+
+        return CabinetResponse.ReviewPrompts.builder()
+                .duePrompts(duePrompts)
+                .build();
+    }
+
+    public static CabinetResponse.ReviewPromptDismissed toReviewPromptDismissed(
+            MemberActiveProduct activeProduct
+    ) {
+        return CabinetResponse.ReviewPromptDismissed.builder()
+                .activeProductId(activeProduct.getId())
+                .dismissedAt(activeProduct.getReviewPromptDismissedAt())
+                .build();
+    }
+
     public static CabinetResponse.ProductDetail toProductDetail(
             CabinetProductDetailRow detailRow,
             List<CabinetProductIngredientKeywordRow> ingredientRows,
@@ -115,6 +137,16 @@ public class CabinetConverter {
                 .hasMyReview(detailRow.hasMyReview())
                 .ingredients(toProductIngredients(ingredientRows, imageBaseUrl))
                 .activeProduct(toActiveProduct(detailRow, currentDate))
+                .build();
+    }
+
+    private static CabinetResponse.ReviewPrompt toReviewPrompt(
+            CabinetReviewPromptRow row
+    ) {
+        return CabinetResponse.ReviewPrompt.builder()
+                .activeProductId(row.activeProductId())
+                .productId(row.productId())
+                .productName(row.productName())
                 .build();
     }
 
