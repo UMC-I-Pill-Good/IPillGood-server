@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -55,4 +56,16 @@ public class PolicyDocument extends BaseEntity {
 
     @Column(name = "active", nullable = false)
     private boolean active = true;
+
+    @Builder
+    private PolicyDocument(PolicyDocumentType documentType, String title, String content,
+                          boolean required, String version, LocalDateTime effectiveAt, boolean active) {
+        this.documentType = documentType;
+        this.title = title;
+        this.content = content;
+        this.required = required;
+        this.version = version;
+        this.effectiveAt = effectiveAt;
+        this.active = active;
+    }
 }

@@ -13,6 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -48,4 +49,22 @@ public class MemberPolicyAgreement extends BaseEntity {
 
     @Column(name = "agreed_at")
     private LocalDateTime agreedAt;
+
+    @Builder
+    private MemberPolicyAgreement(Member member, PolicyDocument policyDocument, boolean agreed, LocalDateTime agreedAt) {
+        this.member = member;
+        this.policyDocument = policyDocument;
+        this.agreed = agreed;
+        this.agreedAt = agreedAt;
+    }
+
+    // 동의 이력 생성 (동의한 약관만 동의 일시 기록)
+    public static MemberPolicyAgreement of(Member member, PolicyDocument policyDocument, boolean agreed) {
+        return MemberPolicyAgreement.builder()
+                .member(member)
+                .policyDocument(policyDocument)
+                .agreed(agreed)
+                .agreedAt(agreed ? LocalDateTime.now() : null)
+                .build();
+    }
 }
