@@ -15,6 +15,8 @@ public enum SurveyErrorCode implements BaseErrorCode {
     CONTRAINDICATION_DETAIL_REQUIRED(HttpStatus.BAD_REQUEST, "SURVEY400_4", "기저질환, 복용약, 알러지는 없음 또는 상세 항목을 선택해야 합니다."),
     CURRENT_INGREDIENT_DETAIL_REQUIRED(HttpStatus.BAD_REQUEST, "SURVEY400_5", "현재 복용 성분은 없음 또는 성분을 선택해야 합니다."),
     PREGNANT_REQUIRED_FOR_FEMALE(HttpStatus.BAD_REQUEST, "SURVEY400_6", "여성 사용자는 임신 여부를 선택해야 합니다."),
+    PREGNANT_NOT_ALLOWED_FOR_MALE(HttpStatus.BAD_REQUEST, "SURVEY400_7", "남성 사용자는 임신 여부를 입력할 수 없습니다."),
+    MENSTRUAL_INFO_NOT_ALLOWED_FOR_MALE(HttpStatus.BAD_REQUEST, "SURVEY400_8", "남성 사용자는 생리 관련 정보를 입력할 수 없습니다."),
     ;
 
     private final HttpStatus status;

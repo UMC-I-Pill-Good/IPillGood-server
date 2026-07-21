@@ -71,7 +71,7 @@ public class SurveyService {
 
         validateBirthYear(request.birthYear());
         validatePregnant(request.gender(), request.pregnant());
-        validateMenstrualInfo(request.menstrualCycleDays(), request.lastPeriodStartedOn());
+        validateMenstrualInfo(request.gender(), request.menstrualCycleDays(), request.lastPeriodStartedOn());
         validateConcernCodeCount(request.onboardingConcernCodes());
         validateCurrentIngredientSelection(request.currentIngredientNone(), request.currentIngredientIds());
 
@@ -118,13 +118,20 @@ public class SurveyService {
         if (gender == Gender.FEMALE && pregnant == null) {
             throw new SurveyException(SurveyErrorCode.PREGNANT_REQUIRED_FOR_FEMALE);
         }
+        if (gender == Gender.MALE && pregnant != null) {
+            throw new SurveyException(SurveyErrorCode.PREGNANT_NOT_ALLOWED_FOR_MALE);
+        }
     }
 
-    private void validateMenstrualInfo(Integer menstrualCycleDays, java.time.LocalDate lastPeriodStartedOn) {
+    private void validateMenstrualInfo(Gender gender, Integer menstrualCycleDays,
+                                        java.time.LocalDate lastPeriodStartedOn) {
         boolean hasCycle = menstrualCycleDays != null;
         boolean hasLastPeriod = lastPeriodStartedOn != null;
         if (hasCycle != hasLastPeriod) {
             throw new SurveyException(SurveyErrorCode.MENSTRUAL_INFO_INCOMPLETE);
+        }
+        if (gender == Gender.MALE && (hasCycle || hasLastPeriod)) {
+            throw new SurveyException(SurveyErrorCode.MENSTRUAL_INFO_NOT_ALLOWED_FOR_MALE);
         }
     }
 
