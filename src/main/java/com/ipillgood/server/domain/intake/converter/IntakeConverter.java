@@ -2,6 +2,7 @@ package com.ipillgood.server.domain.intake.converter;
 
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
+import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -28,6 +29,19 @@ public class IntakeConverter {
                 .build();
     }
 
+    public static IntakeResponse.CompatibilityCheck toCompatibilityCheck(
+            List<CompatibilityConflictRow> rows
+    ) {
+        List<IntakeResponse.CompatibilityConflict> conflicts = rows.stream()
+                .map(IntakeConverter::toCompatibilityConflict)
+                .toList();
+
+        return IntakeResponse.CompatibilityCheck.builder()
+                .hasConflicts(!conflicts.isEmpty())
+                .conflicts(conflicts)
+                .build();
+    }
+
     private static IntakeResponse.ActiveProductSummary toActiveProductSummary(
             ActiveProductRow row,
             String imageBaseUrl
@@ -38,6 +52,19 @@ public class IntakeConverter {
                 .productId(row.productId())
                 .productName(row.productName())
                 .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .build();
+    }
+
+    private static IntakeResponse.CompatibilityConflict toCompatibilityConflict(
+            CompatibilityConflictRow row
+    ) {
+        return IntakeResponse.CompatibilityConflict.builder()
+                .combinationType(row.combinationType())
+                .currentIngredientId(row.currentIngredientId())
+                .currentIngredientName(row.currentIngredientName())
+                .targetIngredientId(row.targetIngredientId())
+                .targetIngredientName(row.targetIngredientName())
+                .reason(row.reason())
                 .build();
     }
 
@@ -68,4 +95,3 @@ public class IntakeConverter {
         return normalizedBaseUrl + "/" + normalizedImageKey;
     }
 }
-

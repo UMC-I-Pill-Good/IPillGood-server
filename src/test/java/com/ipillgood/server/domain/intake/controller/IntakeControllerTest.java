@@ -13,8 +13,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class IntakeControllerTest {
 
     private static final String ACTIVE_PRODUCTS_URL = "/api/v1/intake/active-products";
+    private static final String COMPATIBILITY_CHECKS_URL = "/api/v1/intake/compatibility-checks";
     private static final long MEMBER_ID = 1L;
     private static final long OTHER_MEMBER_ID = 2L;
     private static final long EMPTY_MEMBER_ID = 3L;
@@ -54,6 +58,9 @@ class IntakeControllerTest {
         insertIngredient(1L, "비타민 D", "ingredients/1.png");
         insertIngredient(2L, "비타민 C", "ingredients/2.png");
         insertIngredient(3L, "아연", "ingredients/3.png");
+        insertIngredient(4L, "철", "ingredients/4.png");
+        insertIngredient(5L, "마그네슘", "ingredients/5.png");
+        insertIngredient(6L, "프로바이오틱스", "ingredients/6.png");
 
         insertProduct(100L, "비타민 D 제품", "테스트브랜드", null);
         insertProduct(101L, "멀티비타민 제품", "테스트브랜드", null);
@@ -62,6 +69,9 @@ class IntakeControllerTest {
         insertProduct(104L, "삭제된 상품", "테스트브랜드", "2026-07-01 00:00:00");
         insertProduct(105L, "다른 회원 제품", "테스트브랜드", null);
         insertProduct(106L, "먼저 등록한 제품", "테스트브랜드", null);
+        insertProduct(107L, "철 마그네슘 제품", "테스트브랜드", null);
+        insertProduct(108L, "프로바이오틱스 제품", "테스트브랜드", null);
+        insertProduct(109L, "빈회원 철 제품", "테스트브랜드", null);
 
         insertProductIngredient(1L, 100L, 1L);
         insertProductIngredient(2L, 101L, 1L);
@@ -71,6 +81,14 @@ class IntakeControllerTest {
         insertProductIngredient(6L, 104L, 2L);
         insertProductIngredient(7L, 105L, 3L);
         insertProductIngredient(8L, 106L, 3L);
+        insertProductIngredient(9L, 107L, 4L);
+        insertProductIngredient(10L, 107L, 5L);
+        insertProductIngredient(11L, 108L, 6L);
+        insertProductIngredient(12L, 109L, 4L);
+
+        insertIngredientCombination(1L, 1L, 4L, "CAUTION", "동시 복용 시 흡수에 영향을 줄 수 있습니다.");
+        insertIngredientCombination(2L, 5L, 3L, "CONTRAINDICATION", "함께 복용하는 것이 권장되지 않습니다.");
+        insertIngredientCombination(3L, 2L, 4L, "GOOD", "함께 섭취하면 좋습니다.");
 
         insertMemberProduct(1L, MEMBER_ID, 100L, "2026-07-01 10:00:00", null);
         insertMemberProduct(2L, MEMBER_ID, 101L, "2026-07-01 10:00:00", null);
@@ -79,6 +97,9 @@ class IntakeControllerTest {
         insertMemberProduct(5L, MEMBER_ID, 104L, "2026-07-01 10:00:00", null);
         insertMemberProduct(6L, OTHER_MEMBER_ID, 105L, "2026-07-01 10:00:00", null);
         insertMemberProduct(7L, MEMBER_ID, 106L, "2026-07-01 10:00:00", null);
+        insertMemberProduct(8L, MEMBER_ID, 107L, "2026-07-01 10:00:00", null);
+        insertMemberProduct(9L, MEMBER_ID, 108L, "2026-07-01 10:00:00", null);
+        insertMemberProduct(16L, EMPTY_MEMBER_ID, 109L, "2026-07-01 10:00:00", null);
 
         insertMemberActiveProduct(10L, 1L, MEMBER_ID, null, "2026-07-02 09:00:00");
         insertMemberActiveProduct(11L, 2L, MEMBER_ID, null, "2026-07-02 09:00:00");
@@ -146,6 +167,232 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.totalCount").value(0))
                 .andExpect(jsonPath("$.result.activeProducts.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("인증 없이 병용 금기 확인을 요청하면 401을 반환한다")
+    void checkCompatibility_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 8
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 병용 금기 확인을 요청할 수 없다")
+    void checkCompatibility_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 8
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("병용 금기 확인 요청 본문이 없으면 400을 반환한다")
+    void checkCompatibility_withoutBody_returnsBadRequest() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("memberProductId가 없으면 400을 반환한다")
+    void checkCompatibility_withoutMemberProductId_returnsBadRequest() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("memberProductId가 1 미만이면 400을 반환한다")
+    void checkCompatibility_withInvalidMemberProductId_returnsBadRequest() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 0
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("등록 대상 캐비닛 상품이 현재 회원의 활성 보유 상품이 아니면 404를 반환한다")
+    void checkCompatibility_withUnavailableTarget_returnsNotFound() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 6
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("등록 대상 캐비닛 상품이 삭제되었으면 404를 반환한다")
+    void checkCompatibility_withDeletedCabinetProduct_returnsNotFound() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 4
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("등록 대상 상품이 삭제되었으면 404를 반환한다")
+    void checkCompatibility_withDeletedProduct_returnsNotFound() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 5
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("등록 대상 캐비닛 상품이 없으면 404를 반환한다")
+    void checkCompatibility_withUnknownTarget_returnsNotFound() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 999
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("이미 섭취 중인 캐비닛 상품이면 409를 반환한다")
+    void checkCompatibility_withAlreadyActiveTarget_returnsConflict() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 1
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE409_1"))
+                .andExpect(jsonPath("$.message").value("이미 섭취 중인 영양제입니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("활성 섭취 중 상품과 등록 대상 상품의 주의/금기 성분 조합을 조회한다")
+    void checkCompatibility_withConflicts_returnsWarningsOnly() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 8
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.hasConflicts").value(true))
+                .andExpect(jsonPath("$.result.conflicts.length()").value(2))
+                .andExpect(jsonPath("$.result.conflicts[*].combinationType",
+                        contains("CAUTION", "CONTRAINDICATION")))
+                .andExpect(jsonPath("$.result.conflicts[*].combinationType", not(hasItem("GOOD"))))
+                .andExpect(jsonPath("$.result.conflicts[0].currentIngredientId").value(1))
+                .andExpect(jsonPath("$.result.conflicts[0].currentIngredientName").value("비타민 D"))
+                .andExpect(jsonPath("$.result.conflicts[0].targetIngredientId").value(4))
+                .andExpect(jsonPath("$.result.conflicts[0].targetIngredientName").value("철"))
+                .andExpect(jsonPath("$.result.conflicts[0].reason")
+                        .value("동시 복용 시 흡수에 영향을 줄 수 있습니다."))
+                .andExpect(jsonPath("$.result.conflicts[1].currentIngredientId").value(3))
+                .andExpect(jsonPath("$.result.conflicts[1].currentIngredientName").value("아연"))
+                .andExpect(jsonPath("$.result.conflicts[1].targetIngredientId").value(5))
+                .andExpect(jsonPath("$.result.conflicts[1].targetIngredientName").value("마그네슘"))
+                .andExpect(jsonPath("$.result.conflicts[1].reason")
+                        .value("함께 복용하는 것이 권장되지 않습니다."));
+    }
+
+    @Test
+    @DisplayName("병용 금기 조합이 없으면 빈 목록을 반환한다")
+    void checkCompatibility_withNoMatchingConflicts_returnsEmptyConflicts() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 9
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.hasConflicts").value(false))
+                .andExpect(jsonPath("$.result.conflicts.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("현재 활성 섭취 중 상품이 없으면 빈 목록을 반환한다")
+    void checkCompatibility_withNoActiveProducts_returnsEmptyConflicts() throws Exception {
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 16
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.hasConflicts").value(false))
+                .andExpect(jsonPath("$.result.conflicts.length()").value(0));
     }
 
     private void clearDatabase() {
@@ -235,6 +482,33 @@ class IntakeControllerTest {
                 id,
                 name,
                 imageKey
+        );
+    }
+
+    private void insertIngredientCombination(
+            Long id,
+            Long ingredientAId,
+            Long ingredientBId,
+            String type,
+            String reason
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO ingredient_combination (
+                            id,
+                            ingredient_a_id,
+                            ingredient_b_id,
+                            type,
+                            reason,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                ingredientAId,
+                ingredientBId,
+                type,
+                reason
         );
     }
 
@@ -337,4 +611,3 @@ class IntakeControllerTest {
         return "Bearer " + token;
     }
 }
-

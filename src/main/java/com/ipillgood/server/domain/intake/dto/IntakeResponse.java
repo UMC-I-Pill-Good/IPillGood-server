@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.intake.dto;
 
+import com.ipillgood.server.domain.ingredient.entity.enums.CombinationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -37,5 +38,38 @@ public class IntakeResponse {
             String thumbnailImageUrl
     ) {
     }
-}
 
+    @Schema(description = "섭취 중 등록 전 병용 금기 확인 응답")
+    @Builder
+    public record CompatibilityCheck(
+            @Schema(description = "병용 금기 또는 주의 조합 존재 여부", example = "true")
+            Boolean hasConflicts,
+
+            @Schema(description = "감지된 병용 금기 또는 주의 조합 목록")
+            List<CompatibilityConflict> conflicts
+    ) {
+    }
+
+    @Schema(description = "병용 금기 또는 주의 조합 항목")
+    @Builder
+    public record CompatibilityConflict(
+            @Schema(description = "조합 유형", example = "CAUTION")
+            CombinationType combinationType,
+
+            @Schema(description = "현재 섭취 중 영양제의 매칭 성분 ID", example = "10")
+            Long currentIngredientId,
+
+            @Schema(description = "현재 섭취 중 영양제의 매칭 성분명", example = "칼슘")
+            String currentIngredientName,
+
+            @Schema(description = "새로 등록하려는 영양제의 매칭 성분 ID", example = "18")
+            Long targetIngredientId,
+
+            @Schema(description = "새로 등록하려는 영양제의 매칭 성분명", example = "철")
+            String targetIngredientName,
+
+            @Schema(description = "함께 복용할 때 권장되지 않거나 주의가 필요한 이유")
+            String reason
+    ) {
+    }
+}
