@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -58,4 +59,35 @@ public class Recommendation extends BaseEntity {
 
     @Column(name = "activated_at")
     private LocalDateTime activatedAt;
+
+    @Builder
+    public Recommendation(Member member, SurveyResponse surveyResponse, RecommendationStatus status,
+                           LocalDateTime startedAt) {
+        this.member = member;
+        this.surveyResponse = surveyResponse;
+        this.status = status;
+        this.startedAt = startedAt;
+    }
+
+    // AI 추천 성공 처리 (활성 추천으로 전환)
+    public void markSuccess(String healthSummary, LocalDateTime completedAt) {
+        this.status = RecommendationStatus.SUCCESS;
+        this.healthSummary = healthSummary;
+        this.completedAt = completedAt;
+        this.activatedAt = completedAt;
+    }
+
+    // 안전 후보 검증까지는 정상 처리됐으나 추천 결과가 없는 경우
+    public void markNoResult(String healthSummary, LocalDateTime completedAt) {
+        this.status = RecommendationStatus.NO_RESULT;
+        this.healthSummary = healthSummary;
+        this.completedAt = completedAt;
+    }
+
+    // Gemini 호출/파싱 등 시스템 오류로 실패 처리
+    public void markFailed(String failureReason, LocalDateTime completedAt) {
+        this.status = RecommendationStatus.FAILED;
+        this.failureReason = failureReason;
+        this.completedAt = completedAt;
+    }
 }
