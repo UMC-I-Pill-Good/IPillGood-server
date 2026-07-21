@@ -90,4 +90,12 @@ public class Recommendation extends BaseEntity {
         this.failureReason = failureReason;
         this.completedAt = completedAt;
     }
+
+    // FAILED/NO_RESULT 상태에서 재시도 요청 시 PENDING으로 초기화
+    public void markRetried(LocalDateTime startedAt) {
+        this.status = RecommendationStatus.PENDING;
+        this.failureReason = null;
+        this.startedAt = startedAt;
+        this.completedAt = null;
+    }
 }
