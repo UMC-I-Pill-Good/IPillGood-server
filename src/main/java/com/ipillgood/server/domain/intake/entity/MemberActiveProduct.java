@@ -68,6 +68,13 @@ public class MemberActiveProduct extends BaseEntity {
     @Column(name = "review_prompt_dismissed_at")
     private LocalDateTime reviewPromptDismissedAt;
 
+    public LocalDateTime dismissReviewPrompt(LocalDateTime dismissedAt) {
+        if (reviewPromptDismissedAt == null) {
+            reviewPromptDismissedAt = dismissedAt;
+        }
+        return reviewPromptDismissedAt;
+    }
+
     public void markStopped(LocalDate stoppedOn) {
         this.stoppedOn = stoppedOn;
     }

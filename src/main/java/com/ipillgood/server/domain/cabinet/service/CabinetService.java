@@ -112,6 +112,20 @@ public class CabinetService {
         return CabinetConverter.toReviewPrompts(reviewPrompts);
     }
 
+    @Transactional
+    public CabinetResponse.ReviewPromptDismissed dismissReviewPrompt(Long memberId, Long activeProductId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+        validateActiveProductId(activeProductId);
+
+        MemberActiveProduct activeProduct = memberActiveProductRepository
+                .findActiveReviewPromptDismissTarget(memberId, activeProductId)
+                .orElseThrow(() -> new CabinetException(CabinetErrorCode.REVIEW_PROMPT_NOT_FOUND));
+        activeProduct.dismissReviewPrompt(LocalDateTime.now());
+
+        return CabinetConverter.toReviewPromptDismissed(activeProduct);
+    }
+
     public CabinetResponse.ProductDetail getProduct(Long memberId, Long memberProductId) {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
@@ -358,6 +372,12 @@ public class CabinetService {
     private void validateMemberProductId(Long memberProductId) {
         if (memberProductId == null || memberProductId < 1) {
             throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_ID_INVALID);
+        }
+    }
+
+    private void validateActiveProductId(Long activeProductId) {
+        if (activeProductId == null || activeProductId < 1) {
+            throw new CabinetException(CabinetErrorCode.REVIEW_PROMPT_ID_INVALID);
         }
     }
 

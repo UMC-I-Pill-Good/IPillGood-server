@@ -162,6 +162,40 @@ public interface CabinetApi {
     );
 
     @Operation(
+            summary = "후기 작성 유도 배너 닫힘 기록",
+            description = "후기 작성 유도 인앱 배너를 닫은 상태로 저장합니다. 이미 닫힌 대상은 기존 닫힘 일시를 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "후기 작성 유도 배너 닫힘 기록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "activeProductId": 7,
+                                                "dismissedAt": "2026-07-21T11:30:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<CabinetResponse.ReviewPromptDismissed> dismissReviewPrompt(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(description = "닫힘 처리할 활성 섭취 중 상품 ID")
+            Long activeProductId
+    );
+
+    @Operation(
             summary = "캐비닛 개별 영양제 조회",
             description = "캐비닛 개별 영양제 상세 모달에 필요한 상품 요약, 포함 성분, 섭취 중 설정 정보를 조회합니다. 섭취 중이 아니면 activeProduct는 null로 반환합니다."
     )

@@ -194,6 +194,17 @@ public class CabinetResponse {
     ) {
     }
 
+    @Schema(description = "후기 작성 유도 배너 닫힘 기록 응답")
+    @Builder
+    public record ReviewPromptDismissed(
+            @Schema(description = "닫힘 처리된 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "후기 작성 유도 인앱 배너 닫힘 일시", example = "2026-07-21T11:30:00")
+            LocalDateTime dismissedAt
+    ) {
+    }
+
     @Schema(description = "캐비닛 개별 영양제 조회 응답")
     @Builder
     public record ProductDetail(

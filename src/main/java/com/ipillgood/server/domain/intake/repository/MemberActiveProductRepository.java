@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface MemberActiveProductRepository extends JpaRepository<MemberActiveProduct, Long> {
 
@@ -20,5 +21,21 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
     List<MemberActiveProduct> findActiveByMemberProductIds(
             @Param("memberId") Long memberId,
             @Param("memberProductIds") Collection<Long> memberProductIds
+    );
+
+    @Query("""
+            select ap
+            from MemberActiveProduct ap
+            join fetch ap.memberProduct mp
+            join fetch mp.product p
+            where ap.member.id = :memberId
+              and ap.id = :activeProductId
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    Optional<MemberActiveProduct> findActiveReviewPromptDismissTarget(
+            @Param("memberId") Long memberId,
+            @Param("activeProductId") Long activeProductId
     );
 }

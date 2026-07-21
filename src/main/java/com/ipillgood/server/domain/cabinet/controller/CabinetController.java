@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,6 +56,16 @@ public class CabinetController implements CabinetApi {
             @AuthenticationPrincipal Long memberId
     ) {
         CabinetResponse.ReviewPrompts response = cabinetService.getDueReviewPrompts(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @PatchMapping("/review-prompts/{activeProductId}/dismissed")
+    public ApiResponse<CabinetResponse.ReviewPromptDismissed> dismissReviewPrompt(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long activeProductId
+    ) {
+        CabinetResponse.ReviewPromptDismissed response = cabinetService.dismissReviewPrompt(memberId, activeProductId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 

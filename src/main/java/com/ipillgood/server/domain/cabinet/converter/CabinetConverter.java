@@ -110,6 +110,15 @@ public class CabinetConverter {
                 .build();
     }
 
+    public static CabinetResponse.ReviewPromptDismissed toReviewPromptDismissed(
+            MemberActiveProduct activeProduct
+    ) {
+        return CabinetResponse.ReviewPromptDismissed.builder()
+                .activeProductId(activeProduct.getId())
+                .dismissedAt(activeProduct.getReviewPromptDismissedAt())
+                .build();
+    }
+
     public static CabinetResponse.ProductDetail toProductDetail(
             CabinetProductDetailRow detailRow,
             List<CabinetProductIngredientKeywordRow> ingredientRows,
