@@ -21,8 +21,9 @@ public enum IntakeErrorCode implements BaseErrorCode {
     REGISTRATION_TARGET_NOT_FOUND(HttpStatus.NOT_FOUND, "INTAKE404_1", "섭취 중으로 등록할 캐비닛 상품을 찾을 수 없습니다."),
     ACTIVE_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "INTAKE404_2", "활성 섭취 중 상품을 찾을 수 없습니다."),
 
-    // 409 CONFLICT - 섭취 중 상품 중복 등록
+    // 409 CONFLICT - 섭취 중 상품 중복 등록/복용 팝업 노출 대상 오류
     ACTIVE_PRODUCT_ALREADY_EXISTS(HttpStatus.CONFLICT, "INTAKE409_1", "이미 섭취 중인 영양제입니다."),
+    TODAY_POPUP_NOT_TARGET(HttpStatus.CONFLICT, "INTAKE409_2", "오늘 복용 팝업 노출 대상이 아닙니다."),
     ;
 
     private final HttpStatus status;

@@ -36,6 +36,15 @@ public class IntakeController implements IntakeApi {
     }
 
     @Override
+    @PatchMapping("/today/popup-shown")
+    public ApiResponse<IntakeResponse.TodayPopupShown> recordTodayPopupShown(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        IntakeResponse.TodayPopupShown response = intakeService.recordTodayPopupShown(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
     @GetMapping("/active-products")
     public ApiResponse<IntakeResponse.ActiveProducts> getActiveProducts(
             @AuthenticationPrincipal Long memberId

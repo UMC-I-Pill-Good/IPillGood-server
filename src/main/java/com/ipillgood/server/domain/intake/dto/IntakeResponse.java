@@ -93,6 +93,20 @@ public class IntakeResponse {
     ) {
     }
 
+    @Schema(description = "오늘 복용 팝업 노출 기록 응답")
+    @Builder
+    public record TodayPopupShown(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 자동 팝업 노출 기록 존재 여부", example = "true")
+            Boolean autoPopupShown,
+
+            @Schema(description = "자동 팝업 노출 기록 일시", example = "2026-07-21T09:00:00")
+            LocalDateTime autoPopupShownAt
+    ) {
+    }
+
     @Schema(description = "섭취 중 영양제 등록 응답")
     @Builder
     public record RegisterActiveProduct(

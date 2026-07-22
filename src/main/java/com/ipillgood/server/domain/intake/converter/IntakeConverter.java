@@ -11,6 +11,7 @@ import com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow;
 import com.ipillgood.server.domain.product.entity.Product;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -67,6 +68,17 @@ public class IntakeConverter {
                 .autoPopupShown(autoPopupShown)
                 .autoPopupRequired(autoPopupRequired)
                 .scheduledProducts(scheduledProducts)
+                .build();
+    }
+
+    public static IntakeResponse.TodayPopupShown toTodayPopupShown(
+            LocalDate currentDate,
+            LocalDateTime autoPopupShownAt
+    ) {
+        return IntakeResponse.TodayPopupShown.builder()
+                .currentDate(currentDate)
+                .autoPopupShown(autoPopupShownAt != null)
+                .autoPopupShownAt(autoPopupShownAt)
                 .build();
     }
 

@@ -81,6 +81,73 @@ public interface IntakeApi {
     );
 
     @Operation(
+            summary = "오늘 복용 팝업 노출 기록",
+            description = "홈 자동 팝업을 실제 노출한 뒤 오늘의 자동 팝업 노출 이력을 기록합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "오늘 복용 팝업 노출 기록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "autoPopupShown": true,
+                                                "autoPopupShownAt": "2026-07-21T09:00:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "오늘 복용 팝업 노출 대상 아님",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE409_2",
+                                              "message": "오늘 복용 팝업 노출 대상이 아닙니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.TodayPopupShown> recordTodayPopupShown(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
             summary = "섭취 중 영양제 목록 조회",
             description = "홈에서 표시할 현재 섭취 중 영양제 카드 목록을 활성 등록 순서로 조회합니다."
     )

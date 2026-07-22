@@ -31,20 +31,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class IntakeService {
 
+    private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final List<CombinationType> WARNING_COMBINATION_TYPES = List.of(
             CombinationType.CAUTION,
             CombinationType.CONTRAINDICATION
@@ -75,12 +78,8 @@ public class IntakeService {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
-        LocalDate currentDate = LocalDate.now();
-        List<TodayScheduledProductRow> scheduledRows = memberActiveProductRepository
-                .findTodayScheduleCandidateRows(memberId, currentDate)
-                .stream()
-                .filter(row -> isScheduledOn(row, currentDate))
-                .toList();
+        LocalDate currentDate = currentDate();
+        List<TodayScheduledProductRow> scheduledRows = findTodayScheduledRows(memberId, currentDate);
 
         IntakeDay intakeDay = intakeDayRepository.findByMemberIdAndIntakeOn(memberId, currentDate)
                 .orElse(null);
@@ -97,6 +96,32 @@ public class IntakeService {
     }
 
     @Transactional
+    public IntakeResponse.TodayPopupShown recordTodayPopupShown(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate currentDate = currentDate();
+        IntakeDay intakeDay = intakeDayRepository.findByMemberIdAndIntakeOn(memberId, currentDate)
+                .orElse(null);
+
+        if (intakeDay != null && intakeDay.getAutoPopupShownAt() != null) {
+            return IntakeConverter.toTodayPopupShown(currentDate, intakeDay.getAutoPopupShownAt());
+        }
+
+        List<TodayScheduledProductRow> scheduledRows = findTodayScheduledRows(memberId, currentDate);
+        Map<Long, TodayIntakeRecordRow> recordsByActiveProductId =
+                findTodayRecordsByActiveProductId(intakeDay, scheduledRows);
+        validateTodayPopupTarget(scheduledRows, recordsByActiveProductId);
+
+        if (intakeDay == null) {
+            intakeDay = intakeDayRepository.save(IntakeDay.create(member, currentDate));
+        }
+
+        LocalDateTime autoPopupShownAt = intakeDay.markAutoPopupShown(currentDateTime());
+        return IntakeConverter.toTodayPopupShown(currentDate, autoPopupShownAt);
+    }
+
+    @Transactional
     public IntakeResponse.RegisterActiveProduct registerActiveProduct(
             Long memberId,
             IntakeRequest.RegisterActiveProduct request
@@ -110,7 +135,7 @@ public class IntakeService {
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
 
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         MemberActiveProduct activeProduct = MemberActiveProduct.create(
                 targetMemberProduct,
                 member,
@@ -144,7 +169,7 @@ public class IntakeService {
                 .findActiveSettingsUpdateTarget(memberId, parsedActiveProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
 
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         if (values.intakeTime() != null) {
             activeProduct.changeIntakeTime(values.intakeTime());
         }
@@ -176,7 +201,7 @@ public class IntakeService {
                 .findActiveStopTarget(memberId, parsedActiveProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
 
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         activeProductStopService.stop(activeProduct, currentDate);
         return IntakeConverter.toRemoveActiveProduct(activeProduct, currentDate);
     }
@@ -221,6 +246,29 @@ public class IntakeService {
                 );
     }
 
+    private List<TodayScheduledProductRow> findTodayScheduledRows(Long memberId, LocalDate currentDate) {
+        return memberActiveProductRepository
+                .findTodayScheduleCandidateRows(memberId, currentDate)
+                .stream()
+                .filter(row -> isScheduledOn(row, currentDate))
+                .toList();
+    }
+
+    private void validateTodayPopupTarget(
+            List<TodayScheduledProductRow> scheduledRows,
+            Map<Long, TodayIntakeRecordRow> recordsByActiveProductId
+    ) {
+        int scheduledCount = scheduledRows.size();
+        int takenCount = (int) scheduledRows.stream()
+                .map(row -> recordsByActiveProductId.get(row.activeProductId()))
+                .filter(record -> record != null && Boolean.TRUE.equals(record.taken()))
+                .count();
+
+        if (scheduledCount == 0 || takenCount == scheduledCount) {
+            throw new IntakeException(IntakeErrorCode.TODAY_POPUP_NOT_TARGET);
+        }
+    }
+
     private Map<Long, TodayIntakeRecordRow> findTodayRecordsByActiveProductId(
             IntakeDay intakeDay,
             List<TodayScheduledProductRow> scheduledRows
@@ -249,6 +297,14 @@ public class IntakeService {
 
         long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), currentDate);
         return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+    }
+
+    private LocalDate currentDate() {
+        return LocalDate.now(SERVICE_ZONE_ID);
+    }
+
+    private LocalDateTime currentDateTime() {
+        return LocalDateTime.now(SERVICE_ZONE_ID);
     }
 
     private Member getMember(Long memberId) {
