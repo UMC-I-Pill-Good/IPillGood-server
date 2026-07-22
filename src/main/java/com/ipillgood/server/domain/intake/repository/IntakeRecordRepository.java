@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface IntakeRecordRepository extends JpaRepository<IntakeRecord, Long> {
@@ -37,5 +38,23 @@ public interface IntakeRecordRepository extends JpaRepository<IntakeRecord, Long
     List<IntakeRecord> findTodayRecordEntities(
             @Param("intakeDayId") Long intakeDayId,
             @Param("productIds") Collection<Long> productIds
+    );
+
+    @Query("""
+            select new com.ipillgood.server.domain.intake.repository.CalendarTakenCountRow(
+                iday.intakeOn,
+                count(ir.id)
+            )
+            from IntakeRecord ir
+            join ir.intakeDay iday
+            where iday.member.id = :memberId
+              and iday.intakeOn between :startDate and :endDate
+              and ir.taken = true
+            group by iday.intakeOn
+            """)
+    List<CalendarTakenCountRow> findCalendarTakenCountRows(
+            @Param("memberId") Long memberId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
     );
 }

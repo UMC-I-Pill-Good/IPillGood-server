@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -33,6 +34,17 @@ public class IntakeController implements IntakeApi {
             @AuthenticationPrincipal Long memberId
     ) {
         IntakeResponse.TodayIntakeStatus response = intakeService.getTodayIntakeStatus(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @GetMapping("/calendar")
+    public ApiResponse<IntakeResponse.Calendar> getIntakeCalendar(
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam(required = false) String year,
+            @RequestParam(required = false) String month
+    ) {
+        IntakeResponse.Calendar response = intakeService.getIntakeCalendar(memberId, year, month);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 

@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 
 import static org.hamcrest.Matchers.contains;
@@ -43,6 +44,7 @@ class IntakeControllerTest {
 
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String TODAY_STATUS_URL = "/api/v1/intake/today";
+    private static final String CALENDAR_URL = "/api/v1/intake/calendar";
     private static final String TODAY_POPUP_SHOWN_URL = "/api/v1/intake/today/popup-shown";
     private static final String TODAY_RECORDS_URL = "/api/v1/intake/today/records";
     private static final String ACTIVE_PRODUCTS_URL = "/api/v1/intake/active-products";
@@ -292,6 +294,150 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.result.scheduledProducts.length()").value(2))
                 .andExpect(jsonPath("$.result.scheduledProducts[*].activeProductId", contains(20, 10)))
                 .andExpect(jsonPath("$.result.scheduledProducts[*].activeProductId", not(hasItem(11))));
+    }
+
+    @Test
+    @DisplayName("인증 없이 복용 캘린더를 조회하면 401을 반환한다")
+    void getIntakeCalendar_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(CALENDAR_URL)
+                        .param("year", "2026")
+                        .param("month", "7"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 복용 캘린더를 조회할 수 없다")
+    void getIntakeCalendar_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(CALENDAR_URL)
+                        .param("year", "2026")
+                        .param("month", "7")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "",
+            "?year=2026",
+            "?month=7",
+            "?year=&month=7",
+            "?year=abc&month=7",
+            "?year=0&month=7",
+            "?year=2026&month=0",
+            "?year=2026&month=13",
+            "?year=2026&month=abc"
+    })
+    @DisplayName("복용 캘린더 조회 기간이 올바르지 않으면 400을 반환한다")
+    void getIntakeCalendar_withInvalidPeriod_returnsBadRequest(String queryString) throws Exception {
+        mockMvc.perform(get(CALENDAR_URL + queryString)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_5"))
+                .andExpect(jsonPath("$.message").value("복용 캘린더 조회 기간이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("복용 캘린더는 조회 월의 전체 날짜를 반환하고 기록을 생성하지 않는다")
+    void getIntakeCalendar_returnsAllDaysAndDoesNotCreateRecords() throws Exception {
+        YearMonth targetMonth = YearMonth.from(currentDate().minusMonths(1));
+        LocalDate firstDate = targetMonth.atDay(1);
+        LocalDate lastDate = targetMonth.atEndOfMonth();
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(get(CALENDAR_URL)
+                        .param("year", String.valueOf(targetMonth.getYear()))
+                        .param("month", String.valueOf(targetMonth.getMonthValue()))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.year").value(targetMonth.getYear()))
+                .andExpect(jsonPath("$.result.month").value(targetMonth.getMonthValue()))
+                .andExpect(jsonPath("$.result.days.length()").value(targetMonth.lengthOfMonth()))
+                .andExpect(jsonPath("$.result.days[0].date").value(firstDate.toString()))
+                .andExpect(jsonPath("$.result.days[0].dayOfMonth").value(1))
+                .andExpect(jsonPath("$.result.days[0].streakStatus").value("EXCLUDED"))
+                .andExpect(jsonPath("$.result.days[%d].date".formatted(targetMonth.lengthOfMonth() - 1))
+                        .value(lastDate.toString()))
+                .andExpect(jsonPath("$.result.days[%d].dayOfMonth".formatted(targetMonth.lengthOfMonth() - 1))
+                        .value(targetMonth.lengthOfMonth()))
+                .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(targetMonth.lengthOfMonth() - 1))
+                        .value("EXCLUDED"));
+
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("복용 캘린더는 주기 이력 기준으로 날짜별 연속 섭취 상태를 계산한다")
+    void getIntakeCalendar_withScheduleHistory_returnsDailyStreakStatuses() throws Exception {
+        LocalDate currentDate = currentDate();
+        YearMonth targetMonth = YearMonth.from(currentDate);
+        LocalDate completedOn = currentDate.minusDays(3);
+        LocalDate scheduleChangedOn = currentDate.minusDays(2);
+        LocalDate maintainedOn = currentDate.minusDays(1);
+        LocalDate upcomingOn = currentDate.plusDays(1);
+
+        insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+        changeActiveProductFrequencyPreservingHistory(
+                30L,
+                "EVERY_2_DAYS",
+                2,
+                scheduleChangedOn
+        );
+        insertCalendarIntakeDay(
+                101L,
+                EMPTY_MEMBER_ID,
+                completedOn,
+                true,
+                completedOn + " 08:00:00"
+        );
+        insertTodayIntakeRecord(101L, 101L, 30L, 109L, true, completedOn + " 08:00:00");
+
+        mockMvc.perform(get(CALENDAR_URL)
+                        .param("year", String.valueOf(targetMonth.getYear()))
+                        .param("month", String.valueOf(targetMonth.getMonthValue()))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.days[%d].date".formatted(completedOn.getDayOfMonth() - 1))
+                        .value(completedOn.toString()))
+                .andExpect(jsonPath("$.result.days[%d].allCompleted".formatted(completedOn.getDayOfMonth() - 1))
+                        .value(true))
+                .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(completedOn.getDayOfMonth() - 1))
+                        .value("COMPLETED"))
+                .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(completedOn.getDayOfMonth() - 1))
+                        .value(true))
+                .andExpect(jsonPath("$.result.days[%d].selectable".formatted(completedOn.getDayOfMonth() - 1))
+                        .value(true))
+                .andExpect(jsonPath("$.result.days[%d].takenCount".formatted(completedOn.getDayOfMonth() - 1))
+                        .value(1))
+                .andExpect(jsonPath("$.result.days[%d].completedAt".formatted(completedOn.getDayOfMonth() - 1))
+                        .value(completedOn + "T08:00:00"))
+                .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(scheduleChangedOn.getDayOfMonth() - 1))
+                        .value("BROKEN"))
+                .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(scheduleChangedOn.getDayOfMonth() - 1))
+                        .value(false))
+                .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(maintainedOn.getDayOfMonth() - 1))
+                        .value("MAINTAINED"))
+                .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(maintainedOn.getDayOfMonth() - 1))
+                        .value(true))
+                .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(currentDate.getDayOfMonth() - 1))
+                        .value("PENDING"))
+                .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(currentDate.getDayOfMonth() - 1))
+                        .value(false))
+                .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(upcomingOn.getDayOfMonth() - 1))
+                        .value("UPCOMING"))
+                .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(upcomingOn.getDayOfMonth() - 1))
+                        .value(false));
     }
 
     @Test
@@ -1926,6 +2072,45 @@ class IntakeControllerTest {
         );
     }
 
+    private void changeActiveProductFrequencyPreservingHistory(
+            Long activeProductId,
+            String frequency,
+            int frequencyIntervalDays,
+            LocalDate scheduleAnchorOn
+    ) {
+        jdbcTemplate.update("""
+                        UPDATE member_active_product
+                        SET frequency = ?,
+                            frequency_interval_days = ?,
+                            schedule_anchor_on = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        """,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn,
+                activeProductId
+        );
+        jdbcTemplate.update("""
+                        UPDATE member_active_product_schedule_history
+                        SET effective_to = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE member_active_product_id = ?
+                          AND effective_to IS NULL
+                        """,
+                scheduleAnchorOn,
+                activeProductId
+        );
+        insertMemberActiveProductScheduleHistory(
+                activeProductId,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn.toString(),
+                scheduleAnchorOn.toString(),
+                null
+        );
+    }
+
     private void insertIntakeDay(Long id, Long memberId, String intakeOn) {
         jdbcTemplate.update("""
                         INSERT INTO intake_day (
@@ -1970,6 +2155,34 @@ class IntakeControllerTest {
                 memberId,
                 intakeOn,
                 autoPopupShownAt
+        );
+    }
+
+    private void insertCalendarIntakeDay(
+            Long id,
+            Long memberId,
+            LocalDate intakeOn,
+            boolean allCompleted,
+            String completedAt
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_day (
+                            id,
+                            member_id,
+                            intake_on,
+                            auto_popup_shown_at,
+                            all_completed,
+                            completed_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                intakeOn,
+                allCompleted,
+                completedAt
         );
     }
 

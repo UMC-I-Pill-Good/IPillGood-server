@@ -4,6 +4,7 @@ import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
 import com.ipillgood.server.domain.intake.entity.IntakeRecord;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
@@ -14,6 +15,7 @@ import com.ipillgood.server.domain.product.entity.Product;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,39 @@ public class IntakeConverter {
         return IntakeResponse.ActiveProducts.builder()
                 .totalCount(activeProducts.size())
                 .activeProducts(activeProducts)
+                .build();
+    }
+
+    public static IntakeResponse.Calendar toCalendar(
+            YearMonth yearMonth,
+            List<IntakeResponse.CalendarDay> days
+    ) {
+        return IntakeResponse.Calendar.builder()
+                .year(yearMonth.getYear())
+                .month(yearMonth.getMonthValue())
+                .days(days)
+                .build();
+    }
+
+    public static IntakeResponse.CalendarDay toCalendarDay(
+            LocalDate date,
+            boolean allCompleted,
+            IntakeStreakStatus streakStatus,
+            int takenCount,
+            LocalDateTime completedAt
+    ) {
+        boolean hasTakenRecords = takenCount > 0;
+
+        return IntakeResponse.CalendarDay.builder()
+                .date(date)
+                .dayOfMonth(date.getDayOfMonth())
+                .hasTakenRecords(hasTakenRecords)
+                .allCompleted(allCompleted)
+                .streakStatus(streakStatus)
+                .streakIncluded(isStreakIncluded(streakStatus))
+                .selectable(hasTakenRecords)
+                .takenCount(takenCount)
+                .completedAt(completedAt)
                 .build();
     }
 
@@ -240,6 +275,10 @@ public class IntakeConverter {
                 .targetIngredientName(row.targetIngredientName())
                 .reason(row.reason())
                 .build();
+    }
+
+    private static boolean isStreakIncluded(IntakeStreakStatus status) {
+        return status == IntakeStreakStatus.COMPLETED || status == IntakeStreakStatus.MAINTAINED;
     }
 
     private static String toThumbnailImageUrl(ActiveProductRow row, String imageBaseUrl) {

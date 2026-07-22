@@ -14,6 +14,7 @@ public enum IntakeErrorCode implements BaseErrorCode {
     REGISTRATION_REQUEST_INVALID(HttpStatus.BAD_REQUEST, "INTAKE400_2", "등록/병용 확인 요청이 올바르지 않습니다."),
     SETTINGS_UPDATE_REQUEST_INVALID(HttpStatus.BAD_REQUEST, "INTAKE400_3", "섭취 중 영양제 설정 변경 요청이 올바르지 않습니다."),
     TODAY_RECORD_REQUEST_INVALID(HttpStatus.BAD_REQUEST, "INTAKE400_4", "오늘 복용 체크 요청이 올바르지 않습니다."),
+    CALENDAR_PERIOD_INVALID(HttpStatus.BAD_REQUEST, "INTAKE400_5", "복용 캘린더 조회 기간이 올바르지 않습니다."),
 
     // 403 FORBIDDEN - 복용 루틴 접근 조건
     ONBOARDING_NOT_COMPLETED(HttpStatus.FORBIDDEN, "INTAKE403_1", "초기 설문을 완료해야 이용할 수 있습니다."),
