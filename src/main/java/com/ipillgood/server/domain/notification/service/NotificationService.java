@@ -7,13 +7,19 @@ import com.ipillgood.server.domain.notification.converter.NotificationConverter;
 import com.ipillgood.server.domain.notification.dto.NotificationRequest;
 import com.ipillgood.server.domain.notification.dto.NotificationResponse;
 import com.ipillgood.server.domain.notification.entity.MemberNotificationSetting;
+import com.ipillgood.server.domain.notification.entity.MemberPushToken;
+import com.ipillgood.server.domain.notification.entity.enums.PushPlatform;
 import com.ipillgood.server.domain.notification.exception.NotificationException;
 import com.ipillgood.server.domain.notification.repository.MemberNotificationSettingRepository;
+import com.ipillgood.server.domain.notification.repository.MemberPushTokenRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -21,9 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private static final boolean DEFAULT_PUSH_ENABLED = true;
+    private static final int MAX_PUSH_TOKEN_LENGTH = 512;
+    private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MemberRepository memberRepository;
     private final MemberNotificationSettingRepository memberNotificationSettingRepository;
+    private final MemberPushTokenRepository memberPushTokenRepository;
 
     public NotificationResponse.AppPushSetting getAppPushSetting(Long memberId) {
         Member member = getMember(memberId);
@@ -53,6 +62,27 @@ public class NotificationService {
         return NotificationConverter.toAppPushSetting(setting.isPushEnabled());
     }
 
+    @Transactional
+    public NotificationResponse.PushTokenRegistration registerPushToken(
+            Long memberId,
+            NotificationRequest.RegisterPushToken request
+    ) {
+        Member member = getMember(memberId);
+        RegisterPushTokenRequestValues values = validateRegisterPushTokenRequest(request);
+        LocalDateTime now = LocalDateTime.now(SERVICE_ZONE_ID);
+
+        MemberPushToken pushToken = memberPushTokenRepository.findByToken(values.token())
+                .map(existingPushToken -> {
+                    existingPushToken.renew(member, values.platform(), now);
+                    return existingPushToken;
+                })
+                .orElseGet(() -> memberPushTokenRepository.save(
+                        MemberPushToken.create(member, values.platform(), values.token(), now)
+                ));
+
+        return NotificationConverter.toPushTokenRegistration(pushToken);
+    }
+
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.UNAUTHORIZED));
@@ -71,5 +101,27 @@ public class NotificationService {
             throw new NotificationException(NotificationErrorCode.APP_PUSH_SETTING_REQUEST_INVALID);
         }
         return pushEnabled;
+    }
+
+    private RegisterPushTokenRequestValues validateRegisterPushTokenRequest(
+            NotificationRequest.RegisterPushToken request
+    ) {
+        if (request == null
+                || !(request.platform() instanceof String platform)
+                || !(request.token() instanceof String token)) {
+            throw new NotificationException(NotificationErrorCode.PUSH_TOKEN_REGISTER_REQUEST_INVALID);
+        }
+        if (!PushPlatform.WEB.name().equals(platform)
+                || token.isBlank()
+                || token.length() > MAX_PUSH_TOKEN_LENGTH) {
+            throw new NotificationException(NotificationErrorCode.PUSH_TOKEN_REGISTER_REQUEST_INVALID);
+        }
+        return new RegisterPushTokenRequestValues(PushPlatform.WEB, token);
+    }
+
+    private record RegisterPushTokenRequestValues(
+            PushPlatform platform,
+            String token
+    ) {
     }
 }

@@ -11,6 +11,7 @@ public enum NotificationErrorCode implements BaseErrorCode {
 
     // 400 BAD_REQUEST - 알림 설정 요청 값 검증
     APP_PUSH_SETTING_REQUEST_INVALID(HttpStatus.BAD_REQUEST, "NOTIFICATION400_1", "앱 푸시 설정 변경 요청이 올바르지 않습니다."),
+    PUSH_TOKEN_REGISTER_REQUEST_INVALID(HttpStatus.BAD_REQUEST, "NOTIFICATION400_3", "푸시 토큰 등록 요청이 올바르지 않습니다."),
 
     // 403 FORBIDDEN - 알림 설정 접근 조건
     ONBOARDING_NOT_COMPLETED(HttpStatus.FORBIDDEN, "NOTIFICATION403_1", "초기 설문을 완료해야 알림 설정을 이용할 수 있습니다."),
