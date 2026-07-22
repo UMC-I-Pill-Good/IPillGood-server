@@ -68,11 +68,52 @@ public class MemberActiveProduct extends BaseEntity {
     @Column(name = "review_prompt_dismissed_at")
     private LocalDateTime reviewPromptDismissedAt;
 
+    private MemberActiveProduct(
+            MemberProduct memberProduct,
+            Member member,
+            LocalDate startedOn,
+            LocalTime intakeTime,
+            IntakeFrequency frequency
+    ) {
+        this.memberProduct = memberProduct;
+        this.member = member;
+        this.startedOn = startedOn;
+        this.intakeTime = intakeTime;
+        this.frequency = frequency;
+        this.frequencyIntervalDays = frequency.getIntervalDays();
+        this.scheduleAnchorOn = startedOn;
+        this.notificationEnabled = true;
+    }
+
+    public static MemberActiveProduct create(
+            MemberProduct memberProduct,
+            Member member,
+            LocalDate startedOn,
+            LocalTime intakeTime,
+            IntakeFrequency frequency
+    ) {
+        return new MemberActiveProduct(memberProduct, member, startedOn, intakeTime, frequency);
+    }
+
     public LocalDateTime dismissReviewPrompt(LocalDateTime dismissedAt) {
         if (reviewPromptDismissedAt == null) {
             reviewPromptDismissedAt = dismissedAt;
         }
         return reviewPromptDismissedAt;
+    }
+
+    public void changeIntakeTime(LocalTime intakeTime) {
+        this.intakeTime = intakeTime;
+    }
+
+    public void changeNotificationEnabled(boolean notificationEnabled) {
+        this.notificationEnabled = notificationEnabled;
+    }
+
+    public void changeFrequency(IntakeFrequency frequency, LocalDate scheduleAnchorOn) {
+        this.frequency = frequency;
+        this.frequencyIntervalDays = frequency.getIntervalDays();
+        this.scheduleAnchorOn = scheduleAnchorOn;
     }
 
     public void markStopped(LocalDate stoppedOn) {

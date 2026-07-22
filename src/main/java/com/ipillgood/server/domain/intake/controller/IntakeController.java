@@ -9,7 +9,10 @@ import com.ipillgood.server.global.apiPayload.code.GeneralSuccessCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +32,38 @@ public class IntakeController implements IntakeApi {
             @AuthenticationPrincipal Long memberId
     ) {
         IntakeResponse.ActiveProducts response = intakeService.getActiveProducts(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @PostMapping("/active-products")
+    public ApiResponse<IntakeResponse.RegisterActiveProduct> registerActiveProduct(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody(required = false) IntakeRequest.RegisterActiveProduct request
+    ) {
+        IntakeResponse.RegisterActiveProduct response = intakeService.registerActiveProduct(memberId, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, response);
+    }
+
+    @Override
+    @PatchMapping("/active-products/{activeProductId}")
+    public ApiResponse<IntakeResponse.UpdateActiveProductSettings> updateActiveProductSettings(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable String activeProductId,
+            @RequestBody(required = false) IntakeRequest.UpdateActiveProductSettings request
+    ) {
+        IntakeResponse.UpdateActiveProductSettings response =
+                intakeService.updateActiveProductSettings(memberId, activeProductId, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @DeleteMapping("/active-products/{activeProductId}")
+    public ApiResponse<IntakeResponse.RemoveActiveProduct> removeActiveProduct(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable String activeProductId
+    ) {
+        IntakeResponse.RemoveActiveProduct response = intakeService.removeActiveProduct(memberId, activeProductId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 
