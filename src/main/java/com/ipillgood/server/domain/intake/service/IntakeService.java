@@ -19,6 +19,7 @@ import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CalendarScheduleHistoryRow;
 import com.ipillgood.server.domain.intake.repository.CalendarTakenCountRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.intake.repository.DailyTakenProductRow;
 import com.ipillgood.server.domain.intake.repository.IntakeDayRepository;
 import com.ipillgood.server.domain.intake.repository.IntakeRecordRepository;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
@@ -63,6 +64,7 @@ public class IntakeService {
             CombinationType.CONTRAINDICATION
     );
     private static final Pattern INTAKE_TIME_PATTERN = Pattern.compile("^(?:[01]\\d|2[0-3]):[0-5]\\d$");
+    private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
     private static final DateTimeFormatter INTAKE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final MemberRepository memberRepository;
@@ -160,6 +162,15 @@ public class IntakeService {
         }
 
         return IntakeConverter.toCalendar(targetMonth, days);
+    }
+
+    public IntakeResponse.DailyTakenProducts getDailyTakenProducts(Long memberId, String date) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate targetDate = validateDailyTakenDate(date);
+        List<DailyTakenProductRow> rows = intakeRecordRepository.findDailyTakenProductRows(memberId, targetDate);
+        return IntakeConverter.toDailyTakenProducts(targetDate, rows);
     }
 
     @Transactional
@@ -580,6 +591,24 @@ public class IntakeService {
         } catch (NumberFormatException e) {
             throw new IntakeException(IntakeErrorCode.CALENDAR_PERIOD_INVALID);
         }
+    }
+
+    private LocalDate validateDailyTakenDate(String date) {
+        if (date == null || date.isBlank() || !DATE_PATTERN.matcher(date).matches()) {
+            throw new IntakeException(IntakeErrorCode.DATE_REQUEST_INVALID);
+        }
+
+        LocalDate parsedDate;
+        try {
+            parsedDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeException e) {
+            throw new IntakeException(IntakeErrorCode.DATE_REQUEST_INVALID);
+        }
+
+        if (parsedDate.getYear() < 1 || parsedDate.isAfter(currentDate())) {
+            throw new IntakeException(IntakeErrorCode.DATE_REQUEST_INVALID);
+        }
+        return parsedDate;
     }
 
     private LocalDate currentDate() {

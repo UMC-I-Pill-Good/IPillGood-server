@@ -88,6 +88,37 @@ public class IntakeResponse {
     ) {
     }
 
+    @Schema(description = "날짜별 섭취 완료 목록 조회 응답")
+    @Builder
+    public record DailyTakenProducts(
+            @Schema(description = "조회 날짜", example = "2026-07-21")
+            LocalDate date,
+
+            @Schema(description = "실제 섭취 완료한 영양제 수", example = "2")
+            Integer takenCount,
+
+            @Schema(description = "실제 섭취 완료한 영양제 목록")
+            List<DailyTakenProduct> products
+    ) {
+    }
+
+    @Schema(description = "날짜별 섭취 완료 영양제 항목")
+    @Builder
+    public record DailyTakenProduct(
+            @Schema(description = "섭취 완료 당시 연결된 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
+    ) {
+    }
+
     @Schema(description = "오늘 복용 상태 조회 응답")
     @Builder
     public record TodayIntakeStatus(

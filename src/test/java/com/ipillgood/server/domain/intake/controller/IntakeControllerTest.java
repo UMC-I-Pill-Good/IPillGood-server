@@ -45,6 +45,7 @@ class IntakeControllerTest {
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String TODAY_STATUS_URL = "/api/v1/intake/today";
     private static final String CALENDAR_URL = "/api/v1/intake/calendar";
+    private static final String DAILY_TAKEN_PRODUCTS_URL_PREFIX = "/api/v1/intake/days";
     private static final String TODAY_POPUP_SHOWN_URL = "/api/v1/intake/today/popup-shown";
     private static final String TODAY_RECORDS_URL = "/api/v1/intake/today/records";
     private static final String ACTIVE_PRODUCTS_URL = "/api/v1/intake/active-products";
@@ -438,6 +439,120 @@ class IntakeControllerTest {
                         .value("UPCOMING"))
                 .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(upcomingOn.getDayOfMonth() - 1))
                         .value(false));
+    }
+
+    @Test
+    @DisplayName("인증 없이 날짜별 섭취 완료 목록을 조회하면 401을 반환한다")
+    void getDailyTakenProducts_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(DAILY_TAKEN_PRODUCTS_URL_PREFIX + "/2026-07-02"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 날짜별 섭취 완료 목록을 조회할 수 없다")
+    void getDailyTakenProducts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(DAILY_TAKEN_PRODUCTS_URL_PREFIX + "/2026-07-02")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "not-a-date",
+            "2026-7-02",
+            "2026-02-30",
+            "0000-01-01"
+    })
+    @DisplayName("날짜 형식이 올바르지 않으면 날짜별 섭취 완료 목록 조회 시 400을 반환한다")
+    void getDailyTakenProducts_withInvalidDate_returnsBadRequest(String date) throws Exception {
+        mockMvc.perform(get(DAILY_TAKEN_PRODUCTS_URL_PREFIX + "/" + date)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_6"))
+                .andExpect(jsonPath("$.message").value("날짜 요청이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("오늘 이후 날짜로 날짜별 섭취 완료 목록을 조회하면 400을 반환한다")
+    void getDailyTakenProducts_withFutureDate_returnsBadRequest() throws Exception {
+        LocalDate futureDate = currentDate().plusDays(1);
+
+        mockMvc.perform(get(DAILY_TAKEN_PRODUCTS_URL_PREFIX + "/" + futureDate)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_6"))
+                .andExpect(jsonPath("$.message").value("날짜 요청이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("섭취 완료 기록이 없는 날짜는 빈 목록을 반환하고 기록을 생성하지 않는다")
+    void getDailyTakenProducts_withoutRecords_returnsEmptyListAndDoesNotCreateRecords() throws Exception {
+        LocalDate targetDate = currentDate().minusDays(1);
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(get(DAILY_TAKEN_PRODUCTS_URL_PREFIX + "/" + targetDate)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.date").value(targetDate.toString()))
+                .andExpect(jsonPath("$.result.takenCount").value(0))
+                .andExpect(jsonPath("$.result.products.length()").value(0));
+
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("날짜별 섭취 완료 목록은 해당 회원과 날짜의 완료 기록만 섭취 일시와 상품 ID 순서로 반환한다")
+    void getDailyTakenProducts_withRecords_returnsTakenProductsOnlyInOrder() throws Exception {
+        LocalDate targetDate = LocalDate.of(2026, 7, 2);
+        LocalDate otherDate = targetDate.minusDays(1);
+
+        insertCalendarIntakeDay(201L, MEMBER_ID, targetDate, false, null);
+        insertCalendarIntakeDay(202L, OTHER_MEMBER_ID, targetDate, true, targetDate + " 07:00:00");
+        insertCalendarIntakeDay(203L, MEMBER_ID, otherDate, true, otherDate + " 06:00:00");
+        insertTodayIntakeRecord(201L, 201L, 10L, 100L, true, targetDate + " 09:00:00");
+        insertTodayIntakeRecord(202L, 201L, 20L, 106L, true, targetDate + " 08:00:00");
+        insertTodayIntakeRecord(203L, 201L, 11L, 101L, true, targetDate + " 09:00:00");
+        insertTodayIntakeRecord(204L, 201L, 12L, 102L, true, targetDate + " 10:00:00");
+        insertTodayIntakeRecord(205L, 201L, 13L, 103L, false, null);
+        insertTodayIntakeRecord(206L, 202L, 15L, 105L, true, targetDate + " 07:00:00");
+        insertTodayIntakeRecord(207L, 203L, 20L, 106L, true, otherDate + " 06:00:00");
+
+        mockMvc.perform(get(DAILY_TAKEN_PRODUCTS_URL_PREFIX + "/" + targetDate)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.date").value(targetDate.toString()))
+                .andExpect(jsonPath("$.result.takenCount").value(4))
+                .andExpect(jsonPath("$.result.products.length()").value(4))
+                .andExpect(jsonPath("$.result.products[*].activeProductId", contains(20, 10, 11, 12)))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(106, 100, 101, 102)))
+                .andExpect(jsonPath("$.result.products[*].productName", contains(
+                        "먼저 등록한 제품",
+                        "비타민 D 제품",
+                        "멀티비타민 제품",
+                        "중단된 제품"
+                )))
+                .andExpect(jsonPath("$.result.products[*].takenAt", contains(
+                        targetDate + "T08:00:00",
+                        targetDate + "T09:00:00",
+                        targetDate + "T09:00:00",
+                        targetDate + "T10:00:00"
+                )));
     }
 
     @Test

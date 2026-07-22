@@ -57,4 +57,25 @@ public interface IntakeRecordRepository extends JpaRepository<IntakeRecord, Long
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    @Query("""
+            select new com.ipillgood.server.domain.intake.repository.DailyTakenProductRow(
+                ap.id,
+                p.id,
+                p.name,
+                ir.takenAt
+            )
+            from IntakeRecord ir
+            join ir.intakeDay iday
+            join ir.memberActiveProduct ap
+            join ir.product p
+            where iday.member.id = :memberId
+              and iday.intakeOn = :date
+              and ir.taken = true
+            order by ir.takenAt asc, p.id asc
+            """)
+    List<DailyTakenProductRow> findDailyTakenProductRows(
+            @Param("memberId") Long memberId,
+            @Param("date") LocalDate date
+    );
 }

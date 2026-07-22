@@ -8,6 +8,7 @@ import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.intake.repository.DailyTakenProductRow;
 import com.ipillgood.server.domain.intake.repository.TodayIntakeRecordRow;
 import com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow;
 import com.ipillgood.server.domain.product.entity.Product;
@@ -74,6 +75,21 @@ public class IntakeConverter {
                 .selectable(hasTakenRecords)
                 .takenCount(takenCount)
                 .completedAt(completedAt)
+                .build();
+    }
+
+    public static IntakeResponse.DailyTakenProducts toDailyTakenProducts(
+            LocalDate date,
+            List<DailyTakenProductRow> rows
+    ) {
+        List<IntakeResponse.DailyTakenProduct> products = rows.stream()
+                .map(IntakeConverter::toDailyTakenProduct)
+                .toList();
+
+        return IntakeResponse.DailyTakenProducts.builder()
+                .date(date)
+                .takenCount(products.size())
+                .products(products)
                 .build();
     }
 
@@ -245,6 +261,17 @@ public class IntakeConverter {
                 .productName(row.productName())
                 .taken(taken)
                 .takenAt(taken ? record.takenAt() : null)
+                .build();
+    }
+
+    private static IntakeResponse.DailyTakenProduct toDailyTakenProduct(
+            DailyTakenProductRow row
+    ) {
+        return IntakeResponse.DailyTakenProduct.builder()
+                .activeProductId(row.activeProductId())
+                .productId(row.productId())
+                .productName(row.productName())
+                .takenAt(row.takenAt())
                 .build();
     }
 

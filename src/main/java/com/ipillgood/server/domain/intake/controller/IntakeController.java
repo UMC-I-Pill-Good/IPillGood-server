@@ -49,6 +49,16 @@ public class IntakeController implements IntakeApi {
     }
 
     @Override
+    @GetMapping("/days/{date}")
+    public ApiResponse<IntakeResponse.DailyTakenProducts> getDailyTakenProducts(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable String date
+    ) {
+        IntakeResponse.DailyTakenProducts response = intakeService.getDailyTakenProducts(memberId, date);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
     @PatchMapping("/today/popup-shown")
     public ApiResponse<IntakeResponse.TodayPopupShown> recordTodayPopupShown(
             @AuthenticationPrincipal Long memberId
