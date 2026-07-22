@@ -6,7 +6,7 @@ import com.ipillgood.server.domain.review.dto.ReviewRequest;
 import com.ipillgood.server.domain.review.dto.ReviewResponse;
 import com.ipillgood.server.domain.review.service.ReviewService;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
-import com.ipillgood.server.global.apiPayload.code.GeneralSuccessCode;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,7 +25,7 @@ public class ReviewController implements ReviewApi {
     @PostMapping("/images/presign")
     public ApiResponse<ReviewResponse.ImagePresigns> createImageUploadUrls(
             @AuthenticationPrincipal Long memberId,
-            @RequestBody ReviewRequest.ImagePresign request
+            @RequestBody @Valid ReviewRequest.ImagePresign request
     ) {
         ReviewResponse.ImagePresigns response = reviewService.createImageUploadUrls(request);
         return ApiResponse.onSuccess(ReviewSuccessCode.REVIEW_IMAGE_UPLOAD_URL_SUCCESS, response);
