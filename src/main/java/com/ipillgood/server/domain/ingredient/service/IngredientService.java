@@ -18,8 +18,8 @@ import com.ipillgood.server.domain.ingredient.repository.IngredientCautionReposi
 import com.ipillgood.server.domain.ingredient.repository.IngredientCombinationRepository;
 import com.ipillgood.server.domain.ingredient.repository.IngredientEffectRepository;
 import com.ipillgood.server.domain.ingredient.repository.IngredientRepository;
+import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,13 +42,11 @@ public class IngredientService {
     private final IngredientCombinationRepository ingredientCombinationRepository;
     private final IngredientEffectRepository ingredientEffectRepository;
     private final IngredientRepository ingredientRepository;
-
-    @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String storagePublicBaseUrl;
+    private final S3Service s3Service;
 
     public IngredientResponse.IngredientList getIngredients() {
         List<Ingredient> ingredients = ingredientRepository.findAllByOrderByIdAsc();
-        return IngredientConverter.toIngredientList(ingredients, storagePublicBaseUrl);
+        return IngredientConverter.toIngredientList(ingredients, s3Service::getPublicUrl);
     }
 
     public IngredientResponse.IngredientDetail getIngredient(Long ingredientId, Long memberId) {
@@ -76,7 +74,7 @@ public class IngredientService {
                 combinations,
                 hasCabinetProduct,
                 alternativeFoods,
-                storagePublicBaseUrl
+                s3Service::getPublicUrl
         );
     }
 

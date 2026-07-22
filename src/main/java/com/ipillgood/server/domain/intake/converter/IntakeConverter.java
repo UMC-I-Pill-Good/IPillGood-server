@@ -22,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 public class IntakeConverter {
 
@@ -34,10 +35,10 @@ public class IntakeConverter {
 
     public static IntakeResponse.ActiveProducts toActiveProducts(
             List<ActiveProductRow> rows,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         List<IntakeResponse.ActiveProductSummary> activeProducts = rows.stream()
-                .map(row -> toActiveProductSummary(row, imageBaseUrl))
+                .map(row -> toActiveProductSummary(row, imageUrlResolver))
                 .toList();
 
         return IntakeResponse.ActiveProducts.builder()
@@ -186,14 +187,14 @@ public class IntakeConverter {
     public static IntakeResponse.RegisterActiveProduct toRegisterActiveProduct(
             MemberActiveProduct activeProduct,
             ActiveProductRow row,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return IntakeResponse.RegisterActiveProduct.builder()
                 .activeProductId(row.activeProductId())
                 .memberProductId(row.memberProductId())
                 .productId(row.productId())
                 .productName(row.productName())
-                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageUrlResolver))
                 .notificationEnabled(activeProduct.isNotificationEnabled())
                 .intakeTime(activeProduct.getIntakeTime().format(INTAKE_TIME_FORMATTER))
                 .frequency(activeProduct.getFrequency().name())
@@ -204,7 +205,7 @@ public class IntakeConverter {
     public static IntakeResponse.UpdateActiveProductSettings toUpdateActiveProductSettings(
             ActiveProductSettingsRow row,
             LocalDate currentDate,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return IntakeResponse.UpdateActiveProductSettings.builder()
                 .activeProductId(row.activeProductId())
@@ -215,7 +216,7 @@ public class IntakeConverter {
                 .thumbnailImageUrl(toThumbnailImageUrl(
                         row.ingredientCount(),
                         row.singleIngredientImageKey(),
-                        imageBaseUrl
+                        imageUrlResolver
                 ))
                 .startedOn(row.startedOn())
                 .intakeDayCount(toIntakeDayCount(row.startedOn(), currentDate))
@@ -259,14 +260,14 @@ public class IntakeConverter {
 
     private static IntakeResponse.ActiveProductSummary toActiveProductSummary(
             ActiveProductRow row,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return IntakeResponse.ActiveProductSummary.builder()
                 .activeProductId(row.activeProductId())
                 .memberProductId(row.memberProductId())
                 .productId(row.productId())
                 .productName(row.productName())
-                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageUrlResolver))
                 .build();
     }
 
@@ -330,15 +331,22 @@ public class IntakeConverter {
         return status == IntakeStreakStatus.COMPLETED || status == IntakeStreakStatus.MAINTAINED;
     }
 
-    private static String toThumbnailImageUrl(ActiveProductRow row, String imageBaseUrl) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    private static String toThumbnailImageUrl(
+            ActiveProductRow row,
+            Function<String, String> imageUrlResolver
+    ) {
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
-    private static String toThumbnailImageUrl(Long ingredientCount, String singleIngredientImageKey, String imageBaseUrl) {
+    private static String toThumbnailImageUrl(
+            Long ingredientCount,
+            String singleIngredientImageKey,
+            Function<String, String> imageUrlResolver
+    ) {
         String imageKey = ingredientCount != null && ingredientCount == 1L
                 ? singleIngredientImageKey
                 : randomMultiIngredientImageKey();
-        return toImageUrl(imageBaseUrl, imageKey);
+        return imageUrlResolver.apply(imageKey);
     }
 
     private static Integer toIntakeDayCount(LocalDate startedOn, LocalDate currentDate) {
@@ -356,17 +364,4 @@ public class IntakeConverter {
         return "ingredients/other" + imageNumber + ".png";
     }
 
-    private static String toImageUrl(String imageBaseUrl, String imageKey) {
-        if (imageBaseUrl == null || imageBaseUrl.isBlank() || imageKey == null || imageKey.isBlank()) {
-            return null;
-        }
-
-        String normalizedBaseUrl = imageBaseUrl.endsWith("/")
-                ? imageBaseUrl.substring(0, imageBaseUrl.length() - 1)
-                : imageBaseUrl;
-        String normalizedImageKey = imageKey.startsWith("/")
-                ? imageKey.substring(1)
-                : imageKey;
-        return normalizedBaseUrl + "/" + normalizedImageKey;
-    }
 }
