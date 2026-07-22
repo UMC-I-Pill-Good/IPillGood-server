@@ -1,10 +1,12 @@
 package com.ipillgood.server.domain.intake.converter;
 
+import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.product.entity.Product;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -77,6 +79,22 @@ public class IntakeConverter {
                 .frequencyLabel(row.frequency() == null ? null : row.frequency().getLabel())
                 .frequencyIntervalDays(row.frequencyIntervalDays() == null ? null : row.frequencyIntervalDays().intValue())
                 .scheduleAnchorOn(row.scheduleAnchorOn())
+                .build();
+    }
+
+    public static IntakeResponse.RemoveActiveProduct toRemoveActiveProduct(
+            MemberActiveProduct activeProduct,
+            LocalDate stoppedOn
+    ) {
+        MemberProduct memberProduct = activeProduct.getMemberProduct();
+        Product product = memberProduct.getProduct();
+
+        return IntakeResponse.RemoveActiveProduct.builder()
+                .activeProductId(activeProduct.getId())
+                .memberProductId(memberProduct.getId())
+                .productId(product.getId())
+                .productName(product.getName())
+                .stoppedOn(stoppedOn)
                 .build();
     }
 

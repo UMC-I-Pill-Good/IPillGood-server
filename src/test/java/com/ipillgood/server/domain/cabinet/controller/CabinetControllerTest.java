@@ -717,6 +717,9 @@ class CabinetControllerTest {
     @Test
     @DisplayName("캐비닛 영양제를 복수 삭제하고 활성 섭취 상품을 중단한다")
     void deleteProducts_withValidMemberProducts_returnsOk() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
+                defaultActiveProductStartedOn, null);
         insertIntakeDay(1L, MEMBER_ID, "2026-07-20");
         insertIntakeRecord(1L, 1L, 10L, 100L);
         int beforeIntakeDayCount = countIntakeDays();
@@ -749,7 +752,9 @@ class CabinetControllerTest {
         assertEquals(1, countDeletedMemberProduct(2L));
         assertEquals(0, countActiveMemberProducts(MEMBER_ID, 100L));
         assertEquals(0, countActiveMemberProducts(MEMBER_ID, 101L));
-        assertEquals(LocalDate.now(), findStoppedOn(10L));
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(0, countActiveScheduleHistories(10L));
+        assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
         assertEquals(beforeIntakeDayCount, countIntakeDays());
         assertEquals(beforeIntakeRecordCount, countIntakeRecords());
     }
@@ -766,6 +771,10 @@ class CabinetControllerTest {
     })
     @DisplayName("캐비닛 삭제 상품 ID 목록이 올바르지 않으면 400을 반환하고 삭제하지 않는다")
     void deleteProducts_withInvalidMemberProductIds_returnsBadRequest(String requestBody) throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
+                defaultActiveProductStartedOn, null);
+
         mockMvc.perform(delete(CABINET_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -777,6 +786,8 @@ class CabinetControllerTest {
 
         assertEquals(0, countDeletedMemberProduct(1L));
         assertEquals(0, countStoppedActiveProduct(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+        assertEquals(0, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
     }
 
     @ParameterizedTest
@@ -788,6 +799,10 @@ class CabinetControllerTest {
     })
     @DisplayName("삭제할 수 없는 캐비닛 상품이 포함되면 404를 반환하고 일부만 삭제하지 않는다")
     void deleteProducts_withUnavailableMemberProduct_returnsNotFound(String requestBody) throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
+                defaultActiveProductStartedOn, null);
+
         mockMvc.perform(delete(CABINET_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -799,6 +814,8 @@ class CabinetControllerTest {
 
         assertEquals(0, countDeletedMemberProduct(1L));
         assertEquals(0, countStoppedActiveProduct(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+        assertEquals(0, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
     }
 
     @ParameterizedTest
@@ -1113,6 +1130,36 @@ class CabinetControllerTest {
         );
     }
 
+    private void insertMemberActiveProductScheduleHistory(
+            Long activeProductId,
+            String frequency,
+            int frequencyIntervalDays,
+            String scheduleAnchorOn,
+            String effectiveFrom,
+            String effectiveTo
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_active_product_schedule_history (
+                            member_active_product_id,
+                            frequency,
+                            frequency_interval_days,
+                            schedule_anchor_on,
+                            effective_from,
+                            effective_to,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                activeProductId,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn,
+                effectiveFrom,
+                effectiveTo
+        );
+    }
+
     private void insertIntakeDay(Long id, Long memberId, String intakeOn) {
         jdbcTemplate.update("""
                         INSERT INTO intake_day (
@@ -1256,6 +1303,35 @@ class CabinetControllerTest {
                 LocalDate.class,
                 activeProductId
         );
+    }
+
+    private int countActiveScheduleHistories(Long activeProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND effective_to IS NULL
+                        """,
+                Integer.class,
+                activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countClosedScheduleHistories(Long activeProductId, String frequency, LocalDate effectiveTo) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND frequency = ?
+                          AND effective_to = ?
+                        """,
+                Integer.class,
+                activeProductId,
+                frequency,
+                effectiveTo
+        );
+        return count == null ? 0 : count;
     }
 
     private LocalDateTime findReviewPromptDismissedAt(Long activeProductId) {

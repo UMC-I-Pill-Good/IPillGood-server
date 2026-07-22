@@ -47,6 +47,7 @@ public class IntakeService {
     private final MemberProductRepository memberProductRepository;
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final MemberActiveProductScheduleHistoryRepository memberActiveProductScheduleHistoryRepository;
+    private final ActiveProductStopService activeProductStopService;
 
     @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
     private String storagePublicBaseUrl;
@@ -127,6 +128,21 @@ public class IntakeService {
                 currentDate,
                 storagePublicBaseUrl
         );
+    }
+
+    @Transactional
+    public IntakeResponse.RemoveActiveProduct removeActiveProduct(Long memberId, String activeProductId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        Long parsedActiveProductId = validateActiveProductId(activeProductId);
+        MemberActiveProduct activeProduct = memberActiveProductRepository
+                .findActiveStopTarget(memberId, parsedActiveProductId)
+                .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
+
+        LocalDate currentDate = LocalDate.now();
+        activeProductStopService.stop(activeProduct, currentDate);
+        return IntakeConverter.toRemoveActiveProduct(activeProduct, currentDate);
     }
 
     public IntakeResponse.CompatibilityCheck checkCompatibility(

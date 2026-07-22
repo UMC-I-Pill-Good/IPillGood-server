@@ -16,6 +16,7 @@ import com.ipillgood.server.domain.cabinet.repository.CabinetReviewPromptRow;
 import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
+import com.ipillgood.server.domain.intake.service.ActiveProductStopService;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.product.entity.Product;
@@ -56,6 +57,7 @@ public class CabinetService {
     private final MemberProductRepository memberProductRepository;
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final ProductRepository productRepository;
+    private final ActiveProductStopService activeProductStopService;
 
     @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
     private String storagePublicBaseUrl;
@@ -203,7 +205,7 @@ public class CabinetService {
         LocalDate stoppedOn = LocalDate.now();
 
         orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
-        activeProducts.forEach(activeProduct -> activeProduct.markStopped(stoppedOn));
+        activeProducts.forEach(activeProduct -> activeProductStopService.stop(activeProduct, stoppedOn));
 
         return response;
     }

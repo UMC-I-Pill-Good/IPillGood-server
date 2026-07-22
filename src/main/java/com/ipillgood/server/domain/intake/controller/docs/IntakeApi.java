@@ -264,6 +264,63 @@ public interface IntakeApi {
     );
 
     @Operation(
+            summary = "섭취 중 영양제 제거",
+            description = "홈에서 제거한 섭취 중 영양제를 중단 처리하고 제거된 상품 정보를 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "섭취 중 영양제 제거 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "activeProductId": 7,
+                                                "memberProductId": 15,
+                                                "productId": 112,
+                                                "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                "stoppedOn": "2026-07-21"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "활성 섭취 중 상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE404_2",
+                                              "message": "활성 섭취 중 상품을 찾을 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.RemoveActiveProduct> removeActiveProduct(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "제거할 활성 섭취 중 상품 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "7")
+            )
+            String activeProductId
+    );
+
+    @Operation(
             summary = "섭취 중 등록 전 병용 금기 확인",
             description = "새로 등록하려는 영양제와 현재 섭취 중 영양제 간 주의 또는 금기 성분 조합을 확인합니다."
     )

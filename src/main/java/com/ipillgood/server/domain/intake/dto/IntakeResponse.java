@@ -119,6 +119,26 @@ public class IntakeResponse {
     ) {
     }
 
+    @Schema(description = "섭취 중 영양제 제거 응답")
+    @Builder
+    public record RemoveActiveProduct(
+            @Schema(description = "중단 처리된 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "섭취 중단일", example = "2026-07-21")
+            LocalDate stoppedOn
+    ) {
+    }
+
     @Schema(description = "섭취 중 등록 전 병용 금기 확인 응답")
     @Builder
     public record CompatibilityCheck(

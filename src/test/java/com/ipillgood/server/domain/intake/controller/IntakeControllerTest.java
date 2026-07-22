@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -692,6 +693,85 @@ class IntakeControllerTest {
     }
 
     @Test
+    @DisplayName("섭취 중 영양제를 제거하고 주기 이력을 닫는다")
+    void removeActiveProduct_withActiveProduct_returnsOk() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertIntakeDay(1L, MEMBER_ID, "2026-07-20");
+        insertIntakeRecord(1L, 1L, 10L, 100L);
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.activeProductId").value(10))
+                .andExpect(jsonPath("$.result.memberProductId").value(1))
+                .andExpect(jsonPath("$.result.productId").value(100))
+                .andExpect(jsonPath("$.result.productName").value("비타민 D 제품"))
+                .andExpect(jsonPath("$.result.stoppedOn").value(currentDate.toString()));
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(0, countActiveScheduleHistories(10L));
+        assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
+        assertEquals(0, countDeletedMemberProduct(1L));
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("인증 없이 섭취 중 영양제 제거를 요청하면 401을 반환한다")
+    void removeActiveProduct_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(delete(activeProductUrl(10L)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 섭취 중 영양제를 제거할 수 없다")
+    void removeActiveProduct_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "abc"})
+    @DisplayName("제거할 activeProductId가 올바르지 않으면 400을 반환한다")
+    void removeActiveProduct_withInvalidActiveProductId_returnsBadRequest(String activeProductId) throws Exception {
+        mockMvc.perform(delete(activeProductUrl(activeProductId))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(0, countStoppedActiveProduct(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+    }
+
+    @Test
+    @DisplayName("제거 대상이 현재 회원의 활성 섭취 중 상품이 아니면 404를 반환한다")
+    void removeActiveProduct_withUnavailableActiveProduct_returnsNotFound() throws Exception {
+        for (long activeProductId : new long[]{999L, 12L, 13L, 14L, 15L}) {
+            mockMvc.perform(delete(activeProductUrl(activeProductId))
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("INTAKE404_2"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+
+        assertEquals(0, countStoppedActiveProduct(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+    }
+
+    @Test
     @DisplayName("인증 없이 병용 금기 확인을 요청하면 401을 반환한다")
     void checkCompatibility_withoutToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
@@ -1168,6 +1248,50 @@ class IntakeControllerTest {
         );
     }
 
+    private void insertIntakeDay(Long id, Long memberId, String intakeOn) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_day (
+                            id,
+                            member_id,
+                            intake_on,
+                            auto_popup_shown_at,
+                            all_completed,
+                            completed_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, NULL, true, '2026-07-20 09:10:00',
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                intakeOn
+        );
+    }
+
+    private void insertIntakeRecord(Long id, Long intakeDayId, Long memberActiveProductId, Long productId) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_record (
+                            id,
+                            intake_day_id,
+                            member_active_product_id,
+                            product_id,
+                            scheduled,
+                            taken,
+                            taken_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, true, true, '2026-07-20 09:10:00',
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                intakeDayId,
+                memberActiveProductId,
+                productId
+        );
+    }
+
     private int toIntakeDayCount(LocalDate startedOn, LocalDate currentDate) {
         long dayCount = ChronoUnit.DAYS.between(startedOn, currentDate) + 1;
         return (int) Math.max(dayCount, 1);
@@ -1211,6 +1335,50 @@ class IntakeControllerTest {
                 LocalDate.class,
                 activeProductId
         );
+    }
+
+    private LocalDate findStoppedOn(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT stopped_on FROM member_active_product WHERE id = ?",
+                LocalDate.class,
+                activeProductId
+        );
+    }
+
+    private int countStoppedActiveProduct(Long activeProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product
+                        WHERE id = ?
+                          AND stopped_on IS NOT NULL
+                        """,
+                Integer.class,
+                activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countDeletedMemberProduct(Long memberProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_product
+                        WHERE id = ?
+                          AND deleted_at IS NOT NULL
+                        """,
+                Integer.class,
+                memberProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countIntakeDays() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM intake_day", Integer.class);
+        return count == null ? 0 : count;
+    }
+
+    private int countIntakeRecords() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM intake_record", Integer.class);
+        return count == null ? 0 : count;
     }
 
     private int countScheduleHistories(Long activeProductId) {
