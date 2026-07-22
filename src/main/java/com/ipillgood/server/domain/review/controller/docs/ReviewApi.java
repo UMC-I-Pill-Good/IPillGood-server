@@ -32,8 +32,8 @@ public interface ReviewApi {
                                     value = """
                                             {
                                               "isSuccess": true,
-                                              "code": "SUCCESS200_1",
-                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "code": "REVIEW200_1",
+                                              "message": "후기 이미지 업로드 URL 발급에 성공했습니다.",
                                               "result": {
                                                 "images": [
                                                   {
