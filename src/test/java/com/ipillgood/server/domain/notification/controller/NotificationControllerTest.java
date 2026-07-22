@@ -8,12 +8,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -109,6 +113,151 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.result.pushEnabled").value(true));
     }
 
+    @Test
+    @DisplayName("인증 없이 앱 푸시 설정을 변경하면 401을 반환한다")
+    void updateAppPushSetting_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "pushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 앱 푸시 설정을 변경할 수 없다")
+    void updateAppPushSetting_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "pushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("설정 행이 없으면 생성한 뒤 앱 푸시 설정을 변경한다")
+    void updateAppPushSetting_withoutSetting_createsSettingAndReturnsUpdatedValue() throws Exception {
+        int beforeSettingCount = countMemberNotificationSettings();
+
+        mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "pushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(false));
+
+        assertEquals(beforeSettingCount + 1, countMemberNotificationSettings());
+        assertEquals(Boolean.FALSE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.TRUE, findIntakePushEnabled(MEMBER_ID));
+    }
+
+    @Test
+    @DisplayName("기존 설정 행이 있으면 앱 푸시 설정만 true로 변경한다")
+    void updateAppPushSetting_withExistingSetting_updatesPushEnabledToTrueOnly() throws Exception {
+        insertMemberNotificationSetting(MEMBER_ID, false, false);
+
+        mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "pushEnabled": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(true));
+
+        assertEquals(1, countMemberNotificationSettings());
+        assertEquals(Boolean.TRUE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.FALSE, findIntakePushEnabled(MEMBER_ID));
+    }
+
+    @Test
+    @DisplayName("기존 설정 행이 있으면 앱 푸시 설정만 false로 변경한다")
+    void updateAppPushSetting_withExistingSetting_updatesPushEnabledToFalseOnly() throws Exception {
+        insertMemberNotificationSetting(MEMBER_ID, true, true);
+
+        mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "pushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(false));
+
+        assertEquals(1, countMemberNotificationSettings());
+        assertEquals(Boolean.FALSE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.TRUE, findIntakePushEnabled(MEMBER_ID));
+    }
+
+    @Test
+    @DisplayName("앱 푸시 설정 변경 요청 본문이 없으면 400을 반환한다")
+    void updateAppPushSetting_withoutBody_returnsBadRequest() throws Exception {
+        mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("앱 푸시 설정 변경 요청의 pushEnabled가 Boolean이 아니면 400을 반환한다")
+    void updateAppPushSetting_withInvalidPushEnabled_returnsBadRequest() throws Exception {
+        List<String> invalidBodies = List.of(
+                "{}",
+                """
+                        {
+                          "pushEnabled": null
+                        }
+                        """,
+                """
+                        {
+                          "pushEnabled": "false"
+                        }
+                        """,
+                """
+                        {
+                          "pushEnabled": 1
+                        }
+                        """
+        );
+
+        for (String invalidBody : invalidBodies) {
+            mockMvc.perform(patch(APP_PUSH_SETTING_URL)
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(invalidBody))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("NOTIFICATION400_1"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
     private void clearDatabase() {
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
         jdbcTemplate.update("DELETE FROM notification_delivery_log");
@@ -169,6 +318,22 @@ class NotificationControllerTest {
     private int countMemberNotificationSettings() {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM member_notification_setting", Integer.class);
         return count == null ? 0 : count;
+    }
+
+    private Boolean findPushEnabled(Long memberId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT push_enabled FROM member_notification_setting WHERE member_id = ?",
+                Boolean.class,
+                memberId
+        );
+    }
+
+    private Boolean findIntakePushEnabled(Long memberId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT intake_push_enabled FROM member_notification_setting WHERE member_id = ?",
+                Boolean.class,
+                memberId
+        );
     }
 
     private String bearerToken(String token) {

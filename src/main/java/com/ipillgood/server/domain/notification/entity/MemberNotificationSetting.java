@@ -35,4 +35,18 @@ public class MemberNotificationSetting extends BaseEntity {
 
     @Column(name = "intake_push_enabled", nullable = false)
     private boolean intakePushEnabled = true;
+
+    private MemberNotificationSetting(Member member) {
+        this.member = member;
+        this.pushEnabled = true;
+        this.intakePushEnabled = true;
+    }
+
+    public static MemberNotificationSetting createDefault(Member member) {
+        return new MemberNotificationSetting(member);
+    }
+
+    public void changePushEnabled(boolean pushEnabled) {
+        this.pushEnabled = pushEnabled;
+    }
 }

@@ -4,6 +4,7 @@ import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.notification.code.NotificationErrorCode;
 import com.ipillgood.server.domain.notification.converter.NotificationConverter;
+import com.ipillgood.server.domain.notification.dto.NotificationRequest;
 import com.ipillgood.server.domain.notification.dto.NotificationResponse;
 import com.ipillgood.server.domain.notification.entity.MemberNotificationSetting;
 import com.ipillgood.server.domain.notification.exception.NotificationException;
@@ -34,6 +35,24 @@ public class NotificationService {
         return NotificationConverter.toAppPushSetting(pushEnabled);
     }
 
+    @Transactional
+    public NotificationResponse.AppPushSetting updateAppPushSetting(
+            Long memberId,
+            NotificationRequest.UpdateAppPushSetting request
+    ) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        boolean pushEnabled = validateUpdateAppPushSettingRequest(request);
+        MemberNotificationSetting setting = memberNotificationSettingRepository.findById(memberId)
+                .orElseGet(() -> memberNotificationSettingRepository.save(
+                        MemberNotificationSetting.createDefault(member)
+                ));
+        setting.changePushEnabled(pushEnabled);
+
+        return NotificationConverter.toAppPushSetting(setting.isPushEnabled());
+    }
+
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.UNAUTHORIZED));
@@ -43,5 +62,14 @@ public class NotificationService {
         if (member.getOnboardingCompletedAt() == null) {
             throw new NotificationException(NotificationErrorCode.ONBOARDING_NOT_COMPLETED);
         }
+    }
+
+    private boolean validateUpdateAppPushSettingRequest(NotificationRequest.UpdateAppPushSetting request) {
+        if (request == null
+                || request.pushEnabled() == null
+                || !(request.pushEnabled() instanceof Boolean pushEnabled)) {
+            throw new NotificationException(NotificationErrorCode.APP_PUSH_SETTING_REQUEST_INVALID);
+        }
+        return pushEnabled;
     }
 }
