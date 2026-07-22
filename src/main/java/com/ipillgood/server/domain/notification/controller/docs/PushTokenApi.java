@@ -81,4 +81,73 @@ public interface PushTokenApi {
             Long memberId,
             NotificationRequest.RegisterPushToken request
     );
+
+    @Operation(
+            summary = "푸시 토큰 비활성화",
+            description = "로그아웃 등에서 현재 사용자의 특정 푸시 토큰을 발송 대상에서 제외합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "푸시 토큰 비활성화 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "pushTokenId": 21,
+                                                "active": false
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "푸시 토큰 ID 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "NOTIFICATION400_4",
+                                              "message": "푸시 토큰 ID가 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "푸시 토큰 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "NOTIFICATION404_1",
+                                              "message": "푸시 토큰을 찾을 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<NotificationResponse.PushTokenDeactivation> deactivatePushToken(
+            @Parameter(hidden = true)
+            Long memberId,
+
+            @Parameter(description = "비활성화할 회원 푸시 토큰 ID")
+            Long pushTokenId
+    );
 }

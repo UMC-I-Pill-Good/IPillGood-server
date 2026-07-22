@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface MemberPushTokenRepository extends JpaRepository<MemberPushToken, Long> {
     Optional<MemberPushToken> findByToken(String token);
+
+    Optional<MemberPushToken> findByIdAndMember_Id(Long id, Long memberId);
 }

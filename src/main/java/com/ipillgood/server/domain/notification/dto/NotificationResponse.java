@@ -32,4 +32,15 @@ public class NotificationResponse {
             LocalDateTime lastSeenAt
     ) {
     }
+
+    @Schema(description = "푸시 토큰 비활성화 응답")
+    @Builder
+    public record PushTokenDeactivation(
+            @Schema(description = "비활성화된 회원 푸시 토큰 ID", example = "21")
+            Long pushTokenId,
+
+            @Schema(description = "푸시 토큰 활성 여부", example = "false")
+            Boolean active
+    ) {
+    }
 }

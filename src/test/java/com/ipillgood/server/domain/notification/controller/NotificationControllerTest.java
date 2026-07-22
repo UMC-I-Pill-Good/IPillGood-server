@@ -19,6 +19,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -490,6 +491,133 @@ class NotificationControllerTest {
                     .andExpect(jsonPath("$.code").value("NOTIFICATION400_3"))
                     .andExpect(jsonPath("$.result").doesNotExist());
         }
+    }
+
+    @Test
+    @DisplayName("인증 없이 푸시 토큰을 비활성화하면 401을 반환한다")
+    void deactivatePushToken_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/21"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩 미완료 회원도 본인 푸시 토큰을 비활성화할 수 있다")
+    void deactivatePushToken_withoutCompletedOnboarding_deactivatesToken() throws Exception {
+        insertMemberPushToken(
+                31L,
+                ONBOARDING_INCOMPLETE_MEMBER_ID,
+                "WEB",
+                "incomplete_deactivate_token",
+                true,
+                "2026-07-01 00:00:00"
+        );
+
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/31")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushTokenId").value(31))
+                .andExpect(jsonPath("$.result.active").value(false));
+
+        assertEquals(Boolean.FALSE, findPushTokenActive("incomplete_deactivate_token"));
+    }
+
+    @Test
+    @DisplayName("활성 푸시 토큰을 비활성화하면 토큰 행을 삭제하지 않고 active를 false로 변경한다")
+    void deactivatePushToken_withActiveToken_deactivatesTokenWithoutDeletingRow() throws Exception {
+        insertMemberPushToken(32L, MEMBER_ID, "WEB", "active_deactivate_token", true, "2026-07-01 00:00:00");
+        int beforeTokenCount = countMemberPushTokens();
+
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/32")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushTokenId").value(32))
+                .andExpect(jsonPath("$.result.active").value(false))
+                .andExpect(jsonPath("$.result.platform").doesNotExist())
+                .andExpect(jsonPath("$.result.lastSeenAt").doesNotExist())
+                .andExpect(jsonPath("$.result.token").doesNotExist());
+
+        assertEquals(beforeTokenCount, countMemberPushTokens());
+        assertEquals(Boolean.FALSE, findPushTokenActive("active_deactivate_token"));
+    }
+
+    @Test
+    @DisplayName("이미 비활성인 푸시 토큰을 다시 비활성화해도 성공한다")
+    void deactivatePushToken_withInactiveToken_returnsSuccess() throws Exception {
+        insertMemberPushToken(33L, MEMBER_ID, "WEB", "already_inactive_token", false, "2026-07-01 00:00:00");
+
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/33")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushTokenId").value(33))
+                .andExpect(jsonPath("$.result.active").value(false));
+
+        assertEquals(Boolean.FALSE, findPushTokenActive("already_inactive_token"));
+    }
+
+    @Test
+    @DisplayName("푸시 토큰 ID가 1 미만이면 400을 반환한다")
+    void deactivatePushToken_withInvalidPushTokenId_returnsBadRequest() throws Exception {
+        List<String> invalidPushTokenIds = List.of("0", "-1");
+
+        for (String invalidPushTokenId : invalidPushTokenIds) {
+            mockMvc.perform(delete(PUSH_TOKEN_URL + "/" + invalidPushTokenId)
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("NOTIFICATION400_4"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
+    @Test
+    @DisplayName("푸시 토큰 ID가 숫자 형식이 아니면 400을 반환한다")
+    void deactivatePushToken_withNonNumericPushTokenId_returnsBadRequest() throws Exception {
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/abc")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 푸시 토큰이면 404를 반환한다")
+    void deactivatePushToken_withUnknownPushToken_returnsNotFound() throws Exception {
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/34")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("다른 회원의 푸시 토큰이면 404를 반환하고 토큰 상태를 변경하지 않는다")
+    void deactivatePushToken_withOtherMemberPushToken_returnsNotFoundWithoutChangingToken() throws Exception {
+        insertMemberPushToken(
+                35L,
+                ONBOARDING_INCOMPLETE_MEMBER_ID,
+                "WEB",
+                "other_member_deactivate_token",
+                true,
+                "2026-07-01 00:00:00"
+        );
+
+        mockMvc.perform(delete(PUSH_TOKEN_URL + "/35")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION404_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(Boolean.TRUE, findPushTokenActive("other_member_deactivate_token"));
     }
 
     private void clearDatabase() {

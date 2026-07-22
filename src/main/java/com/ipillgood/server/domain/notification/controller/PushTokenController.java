@@ -8,6 +8,8 @@ import com.ipillgood.server.global.apiPayload.ApiResponse;
 import com.ipillgood.server.global.apiPayload.code.GeneralSuccessCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +29,17 @@ public class PushTokenController implements PushTokenApi {
             @RequestBody(required = false) NotificationRequest.RegisterPushToken request
     ) {
         NotificationResponse.PushTokenRegistration response = notificationService.registerPushToken(memberId, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @DeleteMapping("/{pushTokenId}")
+    public ApiResponse<NotificationResponse.PushTokenDeactivation> deactivatePushToken(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long pushTokenId
+    ) {
+        NotificationResponse.PushTokenDeactivation response =
+                notificationService.deactivatePushToken(memberId, pushTokenId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 }

@@ -71,4 +71,8 @@ public class MemberPushToken extends BaseEntity {
         this.active = true;
         this.lastSeenAt = lastSeenAt;
     }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }

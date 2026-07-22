@@ -19,4 +19,11 @@ public class NotificationConverter {
                 .lastSeenAt(pushToken.getLastSeenAt())
                 .build();
     }
+
+    public static NotificationResponse.PushTokenDeactivation toPushTokenDeactivation(MemberPushToken pushToken) {
+        return NotificationResponse.PushTokenDeactivation.builder()
+                .pushTokenId(pushToken.getId())
+                .active(pushToken.isActive())
+                .build();
+    }
 }

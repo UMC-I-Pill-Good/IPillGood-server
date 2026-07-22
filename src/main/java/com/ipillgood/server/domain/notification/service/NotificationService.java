@@ -83,6 +83,18 @@ public class NotificationService {
         return NotificationConverter.toPushTokenRegistration(pushToken);
     }
 
+    @Transactional
+    public NotificationResponse.PushTokenDeactivation deactivatePushToken(Long memberId, Long pushTokenId) {
+        getMember(memberId);
+        validatePushTokenId(pushTokenId);
+
+        MemberPushToken pushToken = memberPushTokenRepository.findByIdAndMember_Id(pushTokenId, memberId)
+                .orElseThrow(() -> new NotificationException(NotificationErrorCode.PUSH_TOKEN_NOT_FOUND));
+        pushToken.deactivate();
+
+        return NotificationConverter.toPushTokenDeactivation(pushToken);
+    }
+
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.UNAUTHORIZED));
@@ -117,6 +129,12 @@ public class NotificationService {
             throw new NotificationException(NotificationErrorCode.PUSH_TOKEN_REGISTER_REQUEST_INVALID);
         }
         return new RegisterPushTokenRequestValues(PushPlatform.WEB, token);
+    }
+
+    private void validatePushTokenId(Long pushTokenId) {
+        if (pushTokenId == null || pushTokenId < 1) {
+            throw new NotificationException(NotificationErrorCode.PUSH_TOKEN_ID_INVALID);
+        }
     }
 
     private record RegisterPushTokenRequestValues(
