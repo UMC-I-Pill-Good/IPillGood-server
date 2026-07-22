@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,6 +42,16 @@ public class IntakeController implements IntakeApi {
             @AuthenticationPrincipal Long memberId
     ) {
         IntakeResponse.TodayPopupShown response = intakeService.recordTodayPopupShown(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @PutMapping("/today/records")
+    public ApiResponse<IntakeResponse.SaveTodayIntakeRecords> saveTodayIntakeRecords(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody(required = false) IntakeRequest.SaveTodayIntakeRecords request
+    ) {
+        IntakeResponse.SaveTodayIntakeRecords response = intakeService.saveTodayIntakeRecords(memberId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 

@@ -2,7 +2,16 @@ package com.ipillgood.server.domain.intake.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
+
 public class IntakeRequest {
+
+    @Schema(description = "오늘 복용 체크 저장 요청")
+    public record SaveTodayIntakeRecords(
+            @Schema(description = "오늘 섭취 완료로 저장할 활성 섭취 중 상품 ID 목록", example = "[7]")
+            List<Long> takenActiveProductIds
+    ) {
+    }
 
     @Schema(description = "섭취 중 영양제 등록 요청")
     public record RegisterActiveProduct(

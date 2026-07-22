@@ -107,6 +107,55 @@ public class IntakeResponse {
     ) {
     }
 
+    @Schema(description = "오늘 복용 체크 저장 응답")
+    @Builder
+    public record SaveTodayIntakeRecords(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 복용 예정 영양제 수", example = "2")
+            Integer scheduledCount,
+
+            @Schema(description = "오늘 실제 섭취 완료한 영양제 수", example = "1")
+            Integer takenCount,
+
+            @Schema(description = "오늘 복용 예정 영양제를 모두 완료했는지 여부", example = "false")
+            Boolean allCompleted,
+
+            @Schema(description = "전체 완료 일시", example = "2026-07-21T21:05:00")
+            LocalDateTime completedAt,
+
+            @Schema(description = "홈 미섭취 안내 박스 노출 여부", example = "true")
+            Boolean missedNoticeVisible,
+
+            @Schema(description = "오늘 복용 예정 영양제별 저장 결과")
+            List<TodayIntakeRecord> records
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 체크 저장 항목")
+    @Builder
+    public record TodayIntakeRecord(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "오늘 복용 예정 여부", example = "true")
+            Boolean scheduled,
+
+            @Schema(description = "오늘 섭취 완료 여부", example = "true")
+            Boolean taken,
+
+            @Schema(description = "오늘 섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
+    ) {
+    }
+
     @Schema(description = "섭취 중 영양제 등록 응답")
     @Builder
     public record RegisterActiveProduct(

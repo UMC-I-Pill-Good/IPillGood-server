@@ -61,6 +61,22 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
     );
 
     @Query("""
+            select ap
+            from MemberActiveProduct ap
+            join fetch ap.memberProduct mp
+            join fetch mp.product p
+            where ap.member.id = :memberId
+              and ap.id in :activeProductIds
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    List<MemberActiveProduct> findActiveTodayRecordTargets(
+            @Param("memberId") Long memberId,
+            @Param("activeProductIds") Collection<Long> activeProductIds
+    );
+
+    @Query("""
             select new com.ipillgood.server.domain.intake.repository.ActiveProductRow(
                 ap.id,
                 mp.id,

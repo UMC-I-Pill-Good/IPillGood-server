@@ -67,4 +67,17 @@ public class IntakeDay extends BaseEntity {
         }
         return autoPopupShownAt;
     }
+
+    public void changeCompletion(boolean allCompleted, LocalDateTime completedAt) {
+        if (allCompleted) {
+            if (!this.allCompleted || this.completedAt == null) {
+                this.completedAt = completedAt;
+            }
+            this.allCompleted = true;
+            return;
+        }
+
+        this.allCompleted = false;
+        this.completedAt = null;
+    }
 }
