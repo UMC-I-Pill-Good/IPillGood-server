@@ -7,6 +7,7 @@ import com.ipillgood.server.domain.intake.code.IntakeErrorCode;
 import com.ipillgood.server.domain.intake.converter.IntakeConverter;
 import com.ipillgood.server.domain.intake.dto.IntakeRequest;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
+import com.ipillgood.server.domain.intake.entity.IntakeDay;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProductScheduleHistory;
 import com.ipillgood.server.domain.intake.entity.enums.IntakeFrequency;
@@ -14,8 +15,12 @@ import com.ipillgood.server.domain.intake.exception.IntakeException;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.intake.repository.IntakeDayRepository;
+import com.ipillgood.server.domain.intake.repository.IntakeRecordRepository;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductScheduleHistoryRepository;
+import com.ipillgood.server.domain.intake.repository.TodayIntakeRecordRow;
+import com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
@@ -28,7 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 @Service
@@ -47,6 +56,8 @@ public class IntakeService {
     private final MemberProductRepository memberProductRepository;
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final MemberActiveProductScheduleHistoryRepository memberActiveProductScheduleHistoryRepository;
+    private final IntakeDayRepository intakeDayRepository;
+    private final IntakeRecordRepository intakeRecordRepository;
     private final ActiveProductStopService activeProductStopService;
 
     @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
@@ -58,6 +69,31 @@ public class IntakeService {
 
         List<ActiveProductRow> activeProducts = memberActiveProductRepository.findActiveProductRows(memberId);
         return IntakeConverter.toActiveProducts(activeProducts, storagePublicBaseUrl);
+    }
+
+    public IntakeResponse.TodayIntakeStatus getTodayIntakeStatus(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate currentDate = LocalDate.now();
+        List<TodayScheduledProductRow> scheduledRows = memberActiveProductRepository
+                .findTodayScheduleCandidateRows(memberId, currentDate)
+                .stream()
+                .filter(row -> isScheduledOn(row, currentDate))
+                .toList();
+
+        IntakeDay intakeDay = intakeDayRepository.findByMemberIdAndIntakeOn(memberId, currentDate)
+                .orElse(null);
+        boolean autoPopupShown = intakeDay != null && intakeDay.getAutoPopupShownAt() != null;
+        Map<Long, TodayIntakeRecordRow> recordsByActiveProductId =
+                findTodayRecordsByActiveProductId(intakeDay, scheduledRows);
+
+        return IntakeConverter.toTodayIntakeStatus(
+                currentDate,
+                scheduledRows,
+                recordsByActiveProductId,
+                autoPopupShown
+        );
     }
 
     @Transactional
@@ -183,6 +219,36 @@ public class IntakeService {
                                 MemberActiveProductScheduleHistory.createChanged(activeProduct)
                         )
                 );
+    }
+
+    private Map<Long, TodayIntakeRecordRow> findTodayRecordsByActiveProductId(
+            IntakeDay intakeDay,
+            List<TodayScheduledProductRow> scheduledRows
+    ) {
+        if (intakeDay == null || scheduledRows.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> activeProductIds = scheduledRows.stream()
+                .map(TodayScheduledProductRow::activeProductId)
+                .toList();
+        return intakeRecordRepository.findTodayRecordRows(intakeDay.getId(), activeProductIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        TodayIntakeRecordRow::activeProductId,
+                        Function.identity(),
+                        (first, ignored) -> first
+                ));
+    }
+
+    private boolean isScheduledOn(TodayScheduledProductRow row, LocalDate currentDate) {
+        if (row.scheduleAnchorOn() == null || row.frequencyIntervalDays() == null
+                || row.frequencyIntervalDays() < 1) {
+            return false;
+        }
+
+        long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), currentDate);
+        return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
     }
 
     private Member getMember(Long memberId) {

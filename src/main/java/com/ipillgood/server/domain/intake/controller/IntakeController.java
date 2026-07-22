@@ -27,6 +27,15 @@ public class IntakeController implements IntakeApi {
     private final IntakeService intakeService;
 
     @Override
+    @GetMapping("/today")
+    public ApiResponse<IntakeResponse.TodayIntakeStatus> getTodayIntakeStatus(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        IntakeResponse.TodayIntakeStatus response = intakeService.getTodayIntakeStatus(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
     @GetMapping("/active-products")
     public ApiResponse<IntakeResponse.ActiveProducts> getActiveProducts(
             @AuthenticationPrincipal Long memberId

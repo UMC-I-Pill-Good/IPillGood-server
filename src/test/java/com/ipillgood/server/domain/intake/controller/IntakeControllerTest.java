@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -36,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class IntakeControllerTest {
 
+    private static final String TODAY_STATUS_URL = "/api/v1/intake/today";
     private static final String ACTIVE_PRODUCTS_URL = "/api/v1/intake/active-products";
     private static final String COMPATIBILITY_CHECKS_URL = "/api/v1/intake/compatibility-checks";
     private static final long MEMBER_ID = 1L;
@@ -122,6 +124,167 @@ class IntakeControllerTest {
         accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
         emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER");
         onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER");
+    }
+
+    @Test
+    @DisplayName("인증 없이 오늘 복용 상태를 조회하면 401을 반환한다")
+    void getTodayIntakeStatus_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(TODAY_STATUS_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 오늘 복용 상태를 조회할 수 없다")
+    void getTodayIntakeStatus_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("오늘 복용 예정 영양제가 없으면 빈 오늘 상태를 반환한다")
+    void getTodayIntakeStatus_withNoScheduledProducts_returnsEmptyStatus() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.scheduledCount").value(0))
+                .andExpect(jsonPath("$.result.takenCount").value(0))
+                .andExpect(jsonPath("$.result.allCompleted").value(false))
+                .andExpect(jsonPath("$.result.missedNoticeVisible").value(false))
+                .andExpect(jsonPath("$.result.autoPopupShown").value(false))
+                .andExpect(jsonPath("$.result.autoPopupRequired").value(false))
+                .andExpect(jsonPath("$.result.scheduledProducts.length()").value(0));
+
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("오늘 기록이 없으면 복용 예정 영양제를 모두 미섭취 상태로 반환하고 기록을 생성하지 않는다")
+    void getTodayIntakeStatus_withoutRecords_returnsScheduledProductsAsUntaken() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.scheduledCount").value(3))
+                .andExpect(jsonPath("$.result.takenCount").value(0))
+                .andExpect(jsonPath("$.result.allCompleted").value(false))
+                .andExpect(jsonPath("$.result.missedNoticeVisible").value(true))
+                .andExpect(jsonPath("$.result.autoPopupShown").value(false))
+                .andExpect(jsonPath("$.result.autoPopupRequired").value(true))
+                .andExpect(jsonPath("$.result.scheduledProducts.length()").value(3))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].activeProductId", contains(20, 10, 11)))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].memberProductId", contains(7, 1, 2)))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].productId", contains(106, 100, 101)))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].taken", contains(false, false, false)))
+                .andExpect(jsonPath("$.result.scheduledProducts[0].takenAt").value(nullValue()))
+                .andExpect(jsonPath("$.result.scheduledProducts[1].takenAt").value(nullValue()))
+                .andExpect(jsonPath("$.result.scheduledProducts[2].takenAt").value(nullValue()));
+
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("일부 섭취 기록이 있으면 오늘 완료 수와 영양제별 섭취 상태를 반영한다")
+    void getTodayIntakeStatus_withPartialRecords_returnsTakenState() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertTodayIntakeDay(1L, MEMBER_ID, currentDate, null);
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.scheduledCount").value(3))
+                .andExpect(jsonPath("$.result.takenCount").value(1))
+                .andExpect(jsonPath("$.result.allCompleted").value(false))
+                .andExpect(jsonPath("$.result.missedNoticeVisible").value(true))
+                .andExpect(jsonPath("$.result.autoPopupShown").value(false))
+                .andExpect(jsonPath("$.result.autoPopupRequired").value(true))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].activeProductId", contains(20, 10, 11)))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].taken", contains(true, false, false)))
+                .andExpect(jsonPath("$.result.scheduledProducts[0].takenAt")
+                        .value(currentDate + "T07:30:00"))
+                .andExpect(jsonPath("$.result.scheduledProducts[1].takenAt").value(nullValue()))
+                .andExpect(jsonPath("$.result.scheduledProducts[2].takenAt").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("오늘 예정 영양제를 모두 섭취했으면 전체 완료 상태로 반환한다")
+    void getTodayIntakeStatus_withAllCompletedRecords_returnsAllCompleted() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertTodayIntakeDay(1L, MEMBER_ID, currentDate, null);
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+        insertTodayIntakeRecord(2L, 1L, 10L, 100L, true, currentDate + " 08:30:00");
+        insertTodayIntakeRecord(3L, 1L, 11L, 101L, true, currentDate + " 09:30:00");
+
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.scheduledCount").value(3))
+                .andExpect(jsonPath("$.result.takenCount").value(3))
+                .andExpect(jsonPath("$.result.allCompleted").value(true))
+                .andExpect(jsonPath("$.result.missedNoticeVisible").value(false))
+                .andExpect(jsonPath("$.result.autoPopupShown").value(false))
+                .andExpect(jsonPath("$.result.autoPopupRequired").value(false))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].taken", contains(true, true, true)));
+    }
+
+    @Test
+    @DisplayName("오늘 자동 팝업 노출 기록이 있으면 자동 팝업 필요 여부를 false로 반환한다")
+    void getTodayIntakeStatus_withAutoPopupShown_returnsPopupShownState() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertTodayIntakeDay(1L, MEMBER_ID, currentDate, currentDate + " 10:00:00");
+
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.scheduledCount").value(3))
+                .andExpect(jsonPath("$.result.takenCount").value(0))
+                .andExpect(jsonPath("$.result.allCompleted").value(false))
+                .andExpect(jsonPath("$.result.missedNoticeVisible").value(true))
+                .andExpect(jsonPath("$.result.autoPopupShown").value(true))
+                .andExpect(jsonPath("$.result.autoPopupRequired").value(false));
+    }
+
+    @Test
+    @DisplayName("주기 복용 영양제는 오늘 주기에 맞는 상품만 예정 목록에 포함한다")
+    void getTodayIntakeStatus_withPeriodicProducts_returnsOnlyScheduledProducts() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+
+        mockMvc.perform(get(TODAY_STATUS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.scheduledCount").value(2))
+                .andExpect(jsonPath("$.result.takenCount").value(0))
+                .andExpect(jsonPath("$.result.allCompleted").value(false))
+                .andExpect(jsonPath("$.result.scheduledProducts.length()").value(2))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].activeProductId", contains(20, 10)))
+                .andExpect(jsonPath("$.result.scheduledProducts[*].activeProductId", not(hasItem(11))));
     }
 
     @Test
@@ -1248,6 +1411,43 @@ class IntakeControllerTest {
         );
     }
 
+    private void changeActiveProductFrequency(
+            Long activeProductId,
+            String frequency,
+            int frequencyIntervalDays,
+            LocalDate scheduleAnchorOn
+    ) {
+        jdbcTemplate.update("""
+                        UPDATE member_active_product
+                        SET frequency = ?,
+                            frequency_interval_days = ?,
+                            schedule_anchor_on = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        """,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn,
+                activeProductId
+        );
+        jdbcTemplate.update("""
+                        UPDATE member_active_product_schedule_history
+                        SET frequency = ?,
+                            frequency_interval_days = ?,
+                            schedule_anchor_on = ?,
+                            effective_from = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE member_active_product_id = ?
+                          AND effective_to IS NULL
+                        """,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn,
+                scheduleAnchorOn,
+                activeProductId
+        );
+    }
+
     private void insertIntakeDay(Long id, Long memberId, String intakeOn) {
         jdbcTemplate.update("""
                         INSERT INTO intake_day (
@@ -1266,6 +1466,32 @@ class IntakeControllerTest {
                 id,
                 memberId,
                 intakeOn
+        );
+    }
+
+    private void insertTodayIntakeDay(
+            Long id,
+            Long memberId,
+            LocalDate intakeOn,
+            String autoPopupShownAt
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_day (
+                            id,
+                            member_id,
+                            intake_on,
+                            auto_popup_shown_at,
+                            all_completed,
+                            completed_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, false, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                intakeOn,
+                autoPopupShownAt
         );
     }
 
@@ -1289,6 +1515,37 @@ class IntakeControllerTest {
                 intakeDayId,
                 memberActiveProductId,
                 productId
+        );
+    }
+
+    private void insertTodayIntakeRecord(
+            Long id,
+            Long intakeDayId,
+            Long memberActiveProductId,
+            Long productId,
+            boolean taken,
+            String takenAt
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO intake_record (
+                            id,
+                            intake_day_id,
+                            member_active_product_id,
+                            product_id,
+                            scheduled,
+                            taken,
+                            taken_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, true, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                intakeDayId,
+                memberActiveProductId,
+                productId,
+                taken,
+                takenAt
         );
     }
 

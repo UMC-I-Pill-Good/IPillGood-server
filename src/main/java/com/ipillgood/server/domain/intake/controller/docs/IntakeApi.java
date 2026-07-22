@@ -17,6 +17,70 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface IntakeApi {
 
     @Operation(
+            summary = "오늘 복용 상태 조회",
+            description = "홈에서 사용할 오늘 복용 예정/완료 상태와 자동 팝업 필요 여부를 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "오늘 복용 상태 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "scheduledCount": 2,
+                                                "takenCount": 1,
+                                                "allCompleted": false,
+                                                "missedNoticeVisible": true,
+                                                "autoPopupShown": false,
+                                                "autoPopupRequired": true,
+                                                "scheduledProducts": [
+                                                  {
+                                                    "activeProductId": 7,
+                                                    "memberProductId": 15,
+                                                    "productId": 112,
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                    "taken": true,
+                                                    "takenAt": "2026-07-21T08:45:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.TodayIntakeStatus> getTodayIntakeStatus(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
             summary = "섭취 중 영양제 목록 조회",
             description = "홈에서 표시할 현재 섭취 중 영양제 카드 목록을 활성 등록 순서로 조회합니다."
     )
