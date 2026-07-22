@@ -4,6 +4,8 @@ import com.ipillgood.server.domain.auth.dto.AuthRequest;
 import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -52,5 +54,14 @@ public interface AuthApi {
                     - 신규 사용자라면 회원가입 필요합니다. (signupRequired=true)
                     이메일 제공에 동의하지 않은 경우 로그인에 실패합니다. (AUTH400_10)
                     """)
-    ApiResponse<AuthResponse.SocialLogin> socialLogin(String provider, @Valid AuthRequest.SocialLogin request);
+    ApiResponse<AuthResponse.SocialLogin> socialLogin(
+            @Parameter(
+                    description = "소셜 제공자입니다.",
+                    schema = @Schema(
+                            allowableValues = {"KAKAO", "NAVER"},
+                            defaultValue = "KAKAO"
+                    )
+            )
+            String provider,
+            @Valid AuthRequest.SocialLogin request);
 }
