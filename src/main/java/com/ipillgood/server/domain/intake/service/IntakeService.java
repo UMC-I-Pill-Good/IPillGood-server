@@ -30,8 +30,8 @@ import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,16 +74,14 @@ public class IntakeService {
     private final IntakeDayRepository intakeDayRepository;
     private final IntakeRecordRepository intakeRecordRepository;
     private final ActiveProductStopService activeProductStopService;
-
-    @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String storagePublicBaseUrl;
+    private final S3Service s3Service;
 
     public IntakeResponse.ActiveProducts getActiveProducts(Long memberId) {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
         List<ActiveProductRow> activeProducts = memberActiveProductRepository.findActiveProductRows(memberId);
-        return IntakeConverter.toActiveProducts(activeProducts, storagePublicBaseUrl);
+        return IntakeConverter.toActiveProducts(activeProducts, s3Service::getPublicUrl);
     }
 
     public IntakeResponse.TodayIntakeStatus getTodayIntakeStatus(Long memberId) {
@@ -337,7 +335,7 @@ public class IntakeService {
         ActiveProductRow activeProductRow = memberActiveProductRepository
                 .findActiveProductRow(memberId, activeProduct.getId())
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
-        return IntakeConverter.toRegisterActiveProduct(activeProduct, activeProductRow, storagePublicBaseUrl);
+        return IntakeConverter.toRegisterActiveProduct(activeProduct, activeProductRow, s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -373,7 +371,7 @@ public class IntakeService {
         return IntakeConverter.toUpdateActiveProductSettings(
                 activeProductSettingsRow,
                 currentDate,
-                storagePublicBaseUrl
+                s3Service::getPublicUrl
         );
     }
 

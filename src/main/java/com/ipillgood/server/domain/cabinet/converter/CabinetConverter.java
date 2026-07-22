@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 public class CabinetConverter {
 
@@ -37,10 +38,10 @@ public class CabinetConverter {
             Boolean hasNext,
             List<CabinetProductCandidateRow> rows,
             Map<Long, List<String>> tagsByProductId,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         List<CabinetResponse.ProductCandidate> products = rows.stream()
-                .map(row -> toProductCandidate(row, tagsByProductId.getOrDefault(row.productId(), List.of()), imageBaseUrl))
+                .map(row -> toProductCandidate(row, tagsByProductId.getOrDefault(row.productId(), List.of()), imageUrlResolver))
                 .toList();
 
         return CabinetResponse.ProductCandidates.builder()
@@ -57,10 +58,10 @@ public class CabinetConverter {
     public static CabinetResponse.ProductList toProductList(
             String memberNickname,
             List<CabinetProductRow> rows,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         List<CabinetResponse.ProductSummary> products = rows.stream()
-                .map(row -> toProductSummary(row, imageBaseUrl))
+                .map(row -> toProductSummary(row, imageUrlResolver))
                 .toList();
 
         return CabinetResponse.ProductList.builder()
@@ -72,10 +73,10 @@ public class CabinetConverter {
 
     public static CabinetResponse.AddProducts toAddProducts(
             List<CabinetAddedProductRow> rows,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         List<CabinetResponse.AddedProduct> addedProducts = rows.stream()
-                .map(row -> toAddedProduct(row, imageBaseUrl))
+                .map(row -> toAddedProduct(row, imageUrlResolver))
                 .toList();
 
         return CabinetResponse.AddProducts.builder()
@@ -123,7 +124,7 @@ public class CabinetConverter {
             CabinetProductDetailRow detailRow,
             List<CabinetProductIngredientKeywordRow> ingredientRows,
             LocalDate currentDate,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         Long activeProductId = detailRow.activeProductId();
 
@@ -132,10 +133,10 @@ public class CabinetConverter {
                 .productId(detailRow.productId())
                 .brand(detailRow.brand())
                 .productName(detailRow.productName())
-                .thumbnailImageUrl(toDetailThumbnailImageUrl(ingredientRows, imageBaseUrl))
+                .thumbnailImageUrl(toDetailThumbnailImageUrl(ingredientRows, imageUrlResolver))
                 .isActiveIntake(activeProductId != null)
                 .hasMyReview(detailRow.hasMyReview())
-                .ingredients(toProductIngredients(ingredientRows, imageBaseUrl))
+                .ingredients(toProductIngredients(ingredientRows, imageUrlResolver))
                 .activeProduct(toActiveProduct(detailRow, currentDate))
                 .build();
     }
@@ -153,7 +154,7 @@ public class CabinetConverter {
     private static CabinetResponse.ProductCandidate toProductCandidate(
             CabinetProductCandidateRow row,
             List<String> ingredientTags,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         boolean isOwned = Boolean.TRUE.equals(row.isOwned());
 
@@ -161,7 +162,7 @@ public class CabinetConverter {
                 .productId(row.productId())
                 .brand(row.brand())
                 .productName(row.productName())
-                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageUrlResolver))
                 .averageRating(row.averageRating())
                 .reviewCount(row.reviewCount() == null ? 0 : row.reviewCount().intValue())
                 .ingredientTags(ingredientTags)
@@ -188,7 +189,7 @@ public class CabinetConverter {
 
     private static CabinetResponse.ProductSummary toProductSummary(
             CabinetProductRow row,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         Long activeProductId = row.activeProductId();
 
@@ -196,42 +197,51 @@ public class CabinetConverter {
                 .memberProductId(row.memberProductId())
                 .productId(row.productId())
                 .productName(row.productName())
-                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageUrlResolver))
                 .isActiveIntake(activeProductId != null)
                 .activeProductId(activeProductId)
                 .addedAt(row.addedAt())
                 .build();
     }
 
-    private static String toThumbnailImageUrl(CabinetProductRow row, String imageBaseUrl) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    private static String toThumbnailImageUrl(
+            CabinetProductRow row,
+            Function<String, String> imageUrlResolver
+    ) {
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
-    private static String toThumbnailImageUrl(CabinetProductCandidateRow row, String imageBaseUrl) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    private static String toThumbnailImageUrl(
+            CabinetProductCandidateRow row,
+            Function<String, String> imageUrlResolver
+    ) {
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
     private static CabinetResponse.AddedProduct toAddedProduct(
             CabinetAddedProductRow row,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return CabinetResponse.AddedProduct.builder()
                 .memberProductId(row.memberProductId())
                 .productId(row.productId())
                 .brand(row.brand())
                 .productName(row.productName())
-                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageUrlResolver))
                 .addedAt(row.addedAt())
                 .build();
     }
 
-    private static String toThumbnailImageUrl(CabinetAddedProductRow row, String imageBaseUrl) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    private static String toThumbnailImageUrl(
+            CabinetAddedProductRow row,
+            Function<String, String> imageUrlResolver
+    ) {
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
     private static List<CabinetResponse.ProductIngredient> toProductIngredients(
             List<CabinetProductIngredientKeywordRow> rows,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         Map<Long, ProductIngredientAccumulator> ingredientsById = new LinkedHashMap<>();
         for (CabinetProductIngredientKeywordRow row : rows) {
@@ -256,7 +266,7 @@ public class CabinetConverter {
                 .map(accumulator -> CabinetResponse.ProductIngredient.builder()
                         .ingredientId(accumulator.ingredientId())
                         .name(accumulator.name())
-                        .imageUrl(toImageUrl(imageBaseUrl, accumulator.imageKey()))
+                        .imageUrl(imageUrlResolver.apply(accumulator.imageKey()))
                         .description(accumulator.description())
                         .effectTags(accumulator.effectTags())
                         .build())
@@ -295,7 +305,7 @@ public class CabinetConverter {
 
     private static String toDetailThumbnailImageUrl(
             List<CabinetProductIngredientKeywordRow> rows,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         Map<Long, String> imageKeysByIngredientId = new LinkedHashMap<>();
         for (CabinetProductIngredientKeywordRow row : rows) {
@@ -305,34 +315,24 @@ public class CabinetConverter {
         String imageKey = imageKeysByIngredientId.size() == 1
                 ? imageKeysByIngredientId.values().iterator().next()
                 : randomMultiIngredientImageKey();
-        return toImageUrl(imageBaseUrl, imageKey);
+        return imageUrlResolver.apply(imageKey);
     }
 
-    private static String toThumbnailImageUrl(Long ingredientCount, String singleIngredientImageKey, String imageBaseUrl) {
+    private static String toThumbnailImageUrl(
+            Long ingredientCount,
+            String singleIngredientImageKey,
+            Function<String, String> imageUrlResolver
+    ) {
         String imageKey = ingredientCount != null && ingredientCount == 1L
                 ? singleIngredientImageKey
                 : randomMultiIngredientImageKey();
-        return toImageUrl(imageBaseUrl, imageKey);
+        return imageUrlResolver.apply(imageKey);
     }
 
     private static String randomMultiIngredientImageKey() {
         int imageNumber = ThreadLocalRandom.current()
                 .nextInt(MULTI_INGREDIENT_THUMBNAIL_MIN, MULTI_INGREDIENT_THUMBNAIL_MAX + 1);
         return "ingredients/other" + imageNumber + ".png";
-    }
-
-    private static String toImageUrl(String imageBaseUrl, String imageKey) {
-        if (imageBaseUrl == null || imageBaseUrl.isBlank() || imageKey == null || imageKey.isBlank()) {
-            return null;
-        }
-
-        String normalizedBaseUrl = imageBaseUrl.endsWith("/")
-                ? imageBaseUrl.substring(0, imageBaseUrl.length() - 1)
-                : imageBaseUrl;
-        String normalizedImageKey = imageKey.startsWith("/")
-                ? imageKey.substring(1)
-                : imageKey;
-        return normalizedBaseUrl + "/" + normalizedImageKey;
     }
 
     private record ProductIngredientAccumulator(

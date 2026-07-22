@@ -10,6 +10,7 @@ import com.ipillgood.server.domain.ingredient.entity.IngredientEffect;
 import com.ipillgood.server.domain.ingredient.entity.enums.ContraindicationType;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class IngredientConverter {
 
@@ -18,23 +19,23 @@ public class IngredientConverter {
 
     public static IngredientResponse.IngredientList toIngredientList(
             List<Ingredient> ingredients,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return IngredientResponse.IngredientList.builder()
                 .ingredients(ingredients.stream()
-                        .map(ingredient -> toIngredientSummary(ingredient, imageBaseUrl))
+                        .map(ingredient -> toIngredientSummary(ingredient, imageUrlResolver))
                         .toList())
                 .build();
     }
 
     private static IngredientResponse.IngredientSummary toIngredientSummary(
             Ingredient ingredient,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return IngredientResponse.IngredientSummary.builder()
                 .ingredientId(ingredient.getId())
                 .name(ingredient.getName())
-                .imageUrl(toImageUrl(imageBaseUrl, ingredient.getImageKey()))
+                .imageUrl(imageUrlResolver.apply(ingredient.getImageKey()))
                 .build();
     }
 
@@ -45,13 +46,13 @@ public class IngredientConverter {
             List<IngredientCombination> combinations,
             boolean hasCabinetProduct,
             List<AlternativeFood> alternativeFoods,
-            String imageBaseUrl
+            Function<String, String> imageUrlResolver
     ) {
         return IngredientResponse.IngredientDetail.builder()
                 .ingredientId(ingredient.getId())
                 .name(ingredient.getName())
                 .description(ingredient.getDescription())
-                .imageUrl(toImageUrl(imageBaseUrl, ingredient.getImageKey()))
+                .imageUrl(imageUrlResolver.apply(ingredient.getImageKey()))
                 .effects(effects.stream()
                         .map(IngredientEffect::getEffect)
                         .toList())
@@ -91,16 +92,6 @@ public class IngredientConverter {
                 .name(alternativeFood.getName())
                 .contentPer100g(alternativeFood.getContentPer100g())
                 .build();
-    }
-
-    private static String toImageUrl(String imageBaseUrl, String imageKey) {
-        String normalizedBaseUrl = imageBaseUrl.endsWith("/")
-                ? imageBaseUrl.substring(0, imageBaseUrl.length() - 1)
-                : imageBaseUrl;
-        String normalizedImageKey = imageKey.startsWith("/")
-                ? imageKey.substring(1)
-                : imageKey;
-        return normalizedBaseUrl + "/" + normalizedImageKey;
     }
 
     public static IngredientResponse.ContraindicationList toContraindicationList(

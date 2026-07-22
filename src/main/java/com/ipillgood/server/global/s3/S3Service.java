@@ -67,7 +67,18 @@ public class S3Service {
     }
 
     public String getPublicUrl(String key) {
-        return s3Properties.publicBaseUrl() + "/" + key;
+        String publicBaseUrl = s3Properties.publicBaseUrl();
+        if (publicBaseUrl == null || publicBaseUrl.isBlank() || key == null || key.isBlank()) {
+            return null;
+        }
+
+        String normalizedBaseUrl = publicBaseUrl.endsWith("/")
+                ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1)
+                : publicBaseUrl;
+        String normalizedKey = key.startsWith("/")
+                ? key.substring(1)
+                : key;
+        return normalizedBaseUrl + "/" + normalizedKey;
     }
 
     public void delete(String key) {
