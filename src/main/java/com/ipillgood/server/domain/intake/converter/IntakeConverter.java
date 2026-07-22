@@ -1,9 +1,11 @@
 package com.ipillgood.server.domain.intake.converter;
 
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
+import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -11,6 +13,7 @@ public class IntakeConverter {
 
     private static final int MULTI_INGREDIENT_THUMBNAIL_MIN = 1;
     private static final int MULTI_INGREDIENT_THUMBNAIL_MAX = 4;
+    private static final DateTimeFormatter INTAKE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private IntakeConverter() {
     }
@@ -26,6 +29,24 @@ public class IntakeConverter {
         return IntakeResponse.ActiveProducts.builder()
                 .totalCount(activeProducts.size())
                 .activeProducts(activeProducts)
+                .build();
+    }
+
+    public static IntakeResponse.RegisterActiveProduct toRegisterActiveProduct(
+            MemberActiveProduct activeProduct,
+            ActiveProductRow row,
+            String imageBaseUrl
+    ) {
+        return IntakeResponse.RegisterActiveProduct.builder()
+                .activeProductId(row.activeProductId())
+                .memberProductId(row.memberProductId())
+                .productId(row.productId())
+                .productName(row.productName())
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .notificationEnabled(activeProduct.isNotificationEnabled())
+                .intakeTime(activeProduct.getIntakeTime().format(INTAKE_TIME_FORMATTER))
+                .frequency(activeProduct.getFrequency().name())
+                .frequencyLabel(activeProduct.getFrequency().getLabel())
                 .build();
     }
 

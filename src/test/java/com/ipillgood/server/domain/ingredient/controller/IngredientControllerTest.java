@@ -232,6 +232,7 @@ class IngredientControllerTest {
         jdbcTemplate.update("DELETE FROM product_review");
         jdbcTemplate.update("DELETE FROM intake_record");
         jdbcTemplate.update("DELETE FROM intake_day");
+        jdbcTemplate.update("DELETE FROM member_active_product_schedule_history");
         jdbcTemplate.update("DELETE FROM member_active_product");
         jdbcTemplate.update("DELETE FROM member_product");
         jdbcTemplate.update("DELETE FROM product_ingredient");

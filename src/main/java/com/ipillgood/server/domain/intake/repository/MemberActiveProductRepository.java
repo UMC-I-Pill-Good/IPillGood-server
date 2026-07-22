@@ -36,6 +36,32 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
     List<ActiveProductRow> findActiveProductRows(@Param("memberId") Long memberId);
 
     @Query("""
+            select new com.ipillgood.server.domain.intake.repository.ActiveProductRow(
+                ap.id,
+                mp.id,
+                p.id,
+                p.name,
+                count(pi.id),
+                min(i.imageKey)
+            )
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            left join ProductIngredient pi on pi.product = p
+            left join pi.ingredient i
+            where ap.member.id = :memberId
+              and ap.id = :activeProductId
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            group by ap.id, mp.id, p.id, p.name, ap.createdAt
+            """)
+    Optional<ActiveProductRow> findActiveProductRow(
+            @Param("memberId") Long memberId,
+            @Param("activeProductId") Long activeProductId
+    );
+
+    @Query("""
             select ap
             from MemberActiveProduct ap
             where ap.member.id = :memberId

@@ -39,6 +39,38 @@ public class IntakeResponse {
     ) {
     }
 
+    @Schema(description = "섭취 중 영양제 등록 응답")
+    @Builder
+    public record RegisterActiveProduct(
+            @Schema(description = "생성된 활성 섭취 중 상품 ID", example = "8")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "16")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "124")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "헬로바이오 맥스 비타민C 3000")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl,
+
+            @Schema(description = "개별 복용 알림 ON/OFF 여부", example = "true")
+            Boolean notificationEnabled,
+
+            @Schema(description = "복용 시간", example = "08:30")
+            String intakeTime,
+
+            @Schema(description = "복용 주기 enum", example = "EVERY_DAY")
+            String frequency,
+
+            @Schema(description = "화면에 표시할 복용 주기명", example = "매일")
+            String frequencyLabel
+    ) {
+    }
+
     @Schema(description = "섭취 중 등록 전 병용 금기 확인 응답")
     @Builder
     public record CompatibilityCheck(

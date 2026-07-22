@@ -33,6 +33,16 @@ public class IntakeController implements IntakeApi {
     }
 
     @Override
+    @PostMapping("/active-products")
+    public ApiResponse<IntakeResponse.RegisterActiveProduct> registerActiveProduct(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody(required = false) IntakeRequest.RegisterActiveProduct request
+    ) {
+        IntakeResponse.RegisterActiveProduct response = intakeService.registerActiveProduct(memberId, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, response);
+    }
+
+    @Override
     @PostMapping("/compatibility-checks")
     public ApiResponse<IntakeResponse.CompatibilityCheck> checkCompatibility(
             @AuthenticationPrincipal Long memberId,

@@ -57,6 +57,113 @@ public interface IntakeApi {
     );
 
     @Operation(
+            summary = "섭취 중 영양제 등록",
+            description = "캐비닛 보유 영양제를 섭취 중 영양제로 등록하고 복용 시간과 주기를 저장합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @RequestBody(
+            required = true,
+            description = "섭취 중으로 등록할 회원 캐비닛 상품 ID와 복용 시간, 복용 주기를 전달합니다.",
+            content = @Content(
+                    schema = @Schema(implementation = IntakeRequest.RegisterActiveProduct.class),
+                    examples = @ExampleObject(
+                            value = """
+                                    {
+                                      "memberProductId": 16,
+                                      "intakeTime": "08:30",
+                                      "frequency": "EVERY_DAY"
+                                    }
+                                    """
+                    )
+            )
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "섭취 중 영양제 등록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS201_1",
+                                              "message": "리소스가 성공적으로 생성되었습니다.",
+                                              "result": {
+                                                "activeProductId": 8,
+                                                "memberProductId": 16,
+                                                "productId": 124,
+                                                "productName": "헬로바이오 맥스 비타민C 3000",
+                                                "thumbnailImageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other1.png",
+                                                "notificationEnabled": true,
+                                                "intakeTime": "08:30",
+                                                "frequency": "EVERY_DAY",
+                                                "frequencyLabel": "매일"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "등록/병용 확인 요청 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE400_2",
+                                              "message": "등록/병용 확인 요청이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "등록 대상 캐비닛 상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE404_1",
+                                              "message": "섭취 중으로 등록할 캐비닛 상품을 찾을 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 섭취 중인 영양제",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE409_1",
+                                              "message": "이미 섭취 중인 영양제입니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.RegisterActiveProduct> registerActiveProduct(
+            @Parameter(hidden = true)
+            Long memberId,
+            IntakeRequest.RegisterActiveProduct request
+    );
+
+    @Operation(
             summary = "섭취 중 등록 전 병용 금기 확인",
             description = "새로 등록하려는 영양제와 현재 섭취 중 영양제 간 주의 또는 금기 성분 조합을 확인합니다."
     )
