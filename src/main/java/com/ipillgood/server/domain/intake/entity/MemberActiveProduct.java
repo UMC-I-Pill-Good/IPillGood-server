@@ -102,6 +102,20 @@ public class MemberActiveProduct extends BaseEntity {
         return reviewPromptDismissedAt;
     }
 
+    public void changeIntakeTime(LocalTime intakeTime) {
+        this.intakeTime = intakeTime;
+    }
+
+    public void changeNotificationEnabled(boolean notificationEnabled) {
+        this.notificationEnabled = notificationEnabled;
+    }
+
+    public void changeFrequency(IntakeFrequency frequency, LocalDate scheduleAnchorOn) {
+        this.frequency = frequency;
+        this.frequencyIntervalDays = frequency.getIntervalDays();
+        this.scheduleAnchorOn = scheduleAnchorOn;
+    }
+
     public void markStopped(LocalDate stoppedOn) {
         this.stoppedOn = stoppedOn;
     }

@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +42,18 @@ public class IntakeController implements IntakeApi {
     ) {
         IntakeResponse.RegisterActiveProduct response = intakeService.registerActiveProduct(memberId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, response);
+    }
+
+    @Override
+    @PatchMapping("/active-products/{activeProductId}")
+    public ApiResponse<IntakeResponse.UpdateActiveProductSettings> updateActiveProductSettings(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable String activeProductId,
+            @RequestBody(required = false) IntakeRequest.UpdateActiveProductSettings request
+    ) {
+        IntakeResponse.UpdateActiveProductSettings response =
+                intakeService.updateActiveProductSettings(memberId, activeProductId, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 
     @Override

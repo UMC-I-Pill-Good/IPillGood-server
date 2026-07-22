@@ -15,6 +15,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
@@ -23,6 +25,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -419,6 +422,273 @@ class IntakeControllerTest {
                 currentDate
         );
         assertEquals(1, scheduleHistoryCount);
+    }
+
+    @Test
+    @DisplayName("인증 없이 섭취 중 영양제 설정 변경을 요청하면 401을 반환한다")
+    void updateActiveProductSettings_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 섭취 중 영양제 설정을 변경할 수 없다")
+    void updateActiveProductSettings_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("복용 시간과 개별 알림만 변경하면 주기 기준일과 이력은 유지한다")
+    void updateActiveProductSettings_withTimeAndNotification_updatesOnlyRequestedSettings() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        int intakeDayCount = toIntakeDayCount(LocalDate.of(2026, 7, 1), currentDate);
+
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "intakeTime": "21:00",
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.activeProductId").value(10))
+                .andExpect(jsonPath("$.result.memberProductId").value(1))
+                .andExpect(jsonPath("$.result.productId").value(100))
+                .andExpect(jsonPath("$.result.brand").value("테스트브랜드"))
+                .andExpect(jsonPath("$.result.productName").value("비타민 D 제품"))
+                .andExpect(jsonPath("$.result.thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/1.png"))
+                .andExpect(jsonPath("$.result.startedOn").value("2026-07-01"))
+                .andExpect(jsonPath("$.result.intakeDayCount").value(intakeDayCount))
+                .andExpect(jsonPath("$.result.notificationEnabled").value(false))
+                .andExpect(jsonPath("$.result.intakeTime").value("21:00"))
+                .andExpect(jsonPath("$.result.frequency").value("EVERY_DAY"))
+                .andExpect(jsonPath("$.result.frequencyLabel").value("매일"))
+                .andExpect(jsonPath("$.result.frequencyIntervalDays").value(1))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value("2026-07-01"));
+
+        assertEquals(LocalTime.of(21, 0), findIntakeTime(10L));
+        assertEquals(false, findNotificationEnabled(10L));
+        assertEquals("EVERY_DAY", findActiveProductFrequency(10L));
+        assertEquals((short) 1, findFrequencyIntervalDays(10L));
+        assertEquals(LocalDate.of(2026, 7, 1), findScheduleAnchorOn(10L));
+        assertEquals(1, countScheduleHistories(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+    }
+
+    @Test
+    @DisplayName("복용 주기를 변경하면 기준일을 오늘로 갱신하고 새 주기 이력을 생성한다")
+    void updateActiveProductSettings_withDifferentFrequency_updatesAnchorAndCreatesHistory() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "EVERY_2_DAYS"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.activeProductId").value(10))
+                .andExpect(jsonPath("$.result.frequency").value("EVERY_2_DAYS"))
+                .andExpect(jsonPath("$.result.frequencyLabel").value("2일에 한 번"))
+                .andExpect(jsonPath("$.result.frequencyIntervalDays").value(2))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value(currentDate.toString()));
+
+        assertEquals("EVERY_2_DAYS", findActiveProductFrequency(10L));
+        assertEquals((short) 2, findFrequencyIntervalDays(10L));
+        assertEquals(currentDate, findScheduleAnchorOn(10L));
+        assertEquals(2, countScheduleHistories(10L));
+        assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
+        assertEquals(1, countActiveScheduleHistories(10L, "EVERY_2_DAYS"));
+    }
+
+    @Test
+    @DisplayName("같은 날짜에 복용 주기를 다시 변경하면 오늘 시작 이력을 새 값으로 갱신한다")
+    void updateActiveProductSettings_withSecondFrequencyChangeOnSameDay_updatesCurrentHistory() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "EVERY_2_DAYS"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "WEEKLY"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.frequency").value("WEEKLY"))
+                .andExpect(jsonPath("$.result.frequencyLabel").value("일주일에 한 번"))
+                .andExpect(jsonPath("$.result.frequencyIntervalDays").value(7))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value(currentDate.toString()));
+
+        assertEquals("WEEKLY", findActiveProductFrequency(10L));
+        assertEquals((short) 7, findFrequencyIntervalDays(10L));
+        assertEquals(currentDate, findScheduleAnchorOn(10L));
+        assertEquals(2, countScheduleHistories(10L));
+        assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
+        assertEquals(1, countActiveScheduleHistories(10L, "WEEKLY"));
+        assertEquals(0, countActiveScheduleHistories(10L, "EVERY_2_DAYS"));
+    }
+
+    @Test
+    @DisplayName("기존 복용 주기와 같은 주기를 요청하면 기준일과 주기 이력을 유지한다")
+    void updateActiveProductSettings_withSameFrequency_keepsAnchorAndHistory() throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "EVERY_DAY"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.frequency").value("EVERY_DAY"))
+                .andExpect(jsonPath("$.result.frequencyIntervalDays").value(1))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value("2026-07-01"));
+
+        assertEquals("EVERY_DAY", findActiveProductFrequency(10L));
+        assertEquals(LocalDate.of(2026, 7, 1), findScheduleAnchorOn(10L));
+        assertEquals(1, countScheduleHistories(10L));
+        assertEquals(1, countActiveScheduleHistories(10L, "EVERY_DAY"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "abc"})
+    @DisplayName("activeProductId가 올바르지 않으면 400을 반환한다")
+    void updateActiveProductSettings_withInvalidActiveProductId_returnsBadRequest(String activeProductId)
+            throws Exception {
+        mockMvc.perform(patch(activeProductUrl(activeProductId))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("섭취 중 영양제 설정 변경 요청 본문이 없으면 400을 반환한다")
+    void updateActiveProductSettings_withoutBody_returnsBadRequest() throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_3"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}",
+            "{\"intakeTime\":null,\"frequency\":null,\"notificationEnabled\":null}"
+    })
+    @DisplayName("설정 변경 요청에 변경 대상 필드가 없으면 400을 반환한다")
+    void updateActiveProductSettings_withoutUpdateFields_returnsBadRequest(String requestBody) throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_3"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"08:30:00", "8:30", "24:00"})
+    @DisplayName("설정 변경 요청의 intakeTime 형식이 올바르지 않으면 400을 반환한다")
+    void updateActiveProductSettings_withInvalidIntakeTime_returnsBadRequest(String intakeTime) throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "intakeTime": "%s"
+                                }
+                                """.formatted(intakeTime)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_3"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("설정 변경 요청의 frequency가 올바르지 않으면 400을 반환한다")
+    void updateActiveProductSettings_withInvalidFrequency_returnsBadRequest() throws Exception {
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "DAILY"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_3"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("설정 변경 대상이 현재 회원의 활성 섭취 중 상품이 아니면 404를 반환한다")
+    void updateActiveProductSettings_withUnavailableActiveProduct_returnsNotFound() throws Exception {
+        for (long activeProductId : new long[]{999L, 12L, 13L, 14L, 15L}) {
+            mockMvc.perform(patch(activeProductUrl(activeProductId))
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                            .contentType("application/json")
+                            .content("""
+                                    {
+                                      "notificationEnabled": false
+                                    }
+                                    """))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("INTAKE404_2"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
     }
 
     @Test
@@ -858,6 +1128,149 @@ class IntakeControllerTest {
                 createdAt,
                 createdAt
         );
+        insertMemberActiveProductScheduleHistory(
+                id,
+                "EVERY_DAY",
+                1,
+                "2026-07-01",
+                "2026-07-01",
+                stoppedOn
+        );
+    }
+
+    private void insertMemberActiveProductScheduleHistory(
+            Long activeProductId,
+            String frequency,
+            int frequencyIntervalDays,
+            String scheduleAnchorOn,
+            String effectiveFrom,
+            String effectiveTo
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_active_product_schedule_history (
+                            member_active_product_id,
+                            frequency,
+                            frequency_interval_days,
+                            schedule_anchor_on,
+                            effective_from,
+                            effective_to,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                activeProductId,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn,
+                effectiveFrom,
+                effectiveTo
+        );
+    }
+
+    private int toIntakeDayCount(LocalDate startedOn, LocalDate currentDate) {
+        long dayCount = ChronoUnit.DAYS.between(startedOn, currentDate) + 1;
+        return (int) Math.max(dayCount, 1);
+    }
+
+    private LocalTime findIntakeTime(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT intake_time FROM member_active_product WHERE id = ?",
+                LocalTime.class,
+                activeProductId
+        );
+    }
+
+    private Boolean findNotificationEnabled(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT notification_enabled FROM member_active_product WHERE id = ?",
+                Boolean.class,
+                activeProductId
+        );
+    }
+
+    private String findActiveProductFrequency(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT frequency FROM member_active_product WHERE id = ?",
+                String.class,
+                activeProductId
+        );
+    }
+
+    private Short findFrequencyIntervalDays(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT frequency_interval_days FROM member_active_product WHERE id = ?",
+                Short.class,
+                activeProductId
+        );
+    }
+
+    private LocalDate findScheduleAnchorOn(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT schedule_anchor_on FROM member_active_product WHERE id = ?",
+                LocalDate.class,
+                activeProductId
+        );
+    }
+
+    private int countScheduleHistories(Long activeProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                        """,
+                Integer.class,
+                activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countActiveScheduleHistories(Long activeProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND effective_to IS NULL
+                        """,
+                Integer.class,
+                activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countActiveScheduleHistories(Long activeProductId, String frequency) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND frequency = ?
+                          AND effective_to IS NULL
+                        """,
+                Integer.class,
+                activeProductId,
+                frequency
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countClosedScheduleHistories(Long activeProductId, String frequency, LocalDate effectiveTo) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND frequency = ?
+                          AND effective_to = ?
+                        """,
+                Integer.class,
+                activeProductId,
+                frequency,
+                effectiveTo
+        );
+        return count == null ? 0 : count;
+    }
+
+    private String activeProductUrl(Object activeProductId) {
+        return ACTIVE_PRODUCTS_URL + "/" + activeProductId;
     }
 
     private String bearerToken(String token) {

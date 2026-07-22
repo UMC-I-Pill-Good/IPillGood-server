@@ -17,6 +17,19 @@ public class IntakeRequest {
     ) {
     }
 
+    @Schema(description = "섭취 중 영양제 설정 변경 요청")
+    public record UpdateActiveProductSettings(
+            @Schema(description = "변경할 복용 시간", example = "21:00")
+            String intakeTime,
+
+            @Schema(description = "변경할 복용 주기 enum", example = "EVERY_2_DAYS")
+            String frequency,
+
+            @Schema(description = "개별 복용 알림 ON/OFF 여부", example = "false")
+            Boolean notificationEnabled
+    ) {
+    }
+
     @Schema(description = "섭취 중 등록 전 병용 금기 확인 요청")
     public record CompatibilityCheck(
             @Schema(description = "섭취 중으로 등록하려는 회원 캐비닛 상품 ID", example = "16")

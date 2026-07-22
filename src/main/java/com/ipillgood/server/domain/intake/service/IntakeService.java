@@ -12,6 +12,7 @@ import com.ipillgood.server.domain.intake.entity.MemberActiveProductScheduleHist
 import com.ipillgood.server.domain.intake.entity.enums.IntakeFrequency;
 import com.ipillgood.server.domain.intake.exception.IntakeException;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
+import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductScheduleHistoryRepository;
@@ -91,6 +92,43 @@ public class IntakeService {
         return IntakeConverter.toRegisterActiveProduct(activeProduct, activeProductRow, storagePublicBaseUrl);
     }
 
+    @Transactional
+    public IntakeResponse.UpdateActiveProductSettings updateActiveProductSettings(
+            Long memberId,
+            String activeProductId,
+            IntakeRequest.UpdateActiveProductSettings request
+    ) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        Long parsedActiveProductId = validateActiveProductId(activeProductId);
+        UpdateActiveProductSettingsRequestValues values = validateUpdateActiveProductSettingsRequest(request);
+        MemberActiveProduct activeProduct = memberActiveProductRepository
+                .findActiveSettingsUpdateTarget(memberId, parsedActiveProductId)
+                .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
+
+        LocalDate currentDate = LocalDate.now();
+        if (values.intakeTime() != null) {
+            activeProduct.changeIntakeTime(values.intakeTime());
+        }
+        if (values.notificationEnabled() != null) {
+            activeProduct.changeNotificationEnabled(values.notificationEnabled());
+        }
+        if (values.frequency() != null && values.frequency() != activeProduct.getFrequency()) {
+            activeProduct.changeFrequency(values.frequency(), currentDate);
+            updateScheduleHistory(activeProduct, currentDate);
+        }
+
+        ActiveProductSettingsRow activeProductSettingsRow = memberActiveProductRepository
+                .findActiveProductSettingsRow(memberId, parsedActiveProductId)
+                .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
+        return IntakeConverter.toUpdateActiveProductSettings(
+                activeProductSettingsRow,
+                currentDate,
+                storagePublicBaseUrl
+        );
+    }
+
     public IntakeResponse.CompatibilityCheck checkCompatibility(
             Long memberId,
             IntakeRequest.CompatibilityCheck request
@@ -112,6 +150,25 @@ public class IntakeService {
         return IntakeConverter.toCompatibilityCheck(conflicts);
     }
 
+    private void updateScheduleHistory(MemberActiveProduct activeProduct, LocalDate currentDate) {
+        memberActiveProductScheduleHistoryRepository.findActiveByActiveProductId(activeProduct.getId())
+                .ifPresentOrElse(
+                        activeHistory -> {
+                            if (currentDate.equals(activeHistory.getEffectiveFrom())) {
+                                activeHistory.changeFrequency(activeProduct.getFrequency(), currentDate);
+                                return;
+                            }
+                            activeHistory.close(currentDate);
+                            memberActiveProductScheduleHistoryRepository.save(
+                                    MemberActiveProductScheduleHistory.createChanged(activeProduct)
+                            );
+                        },
+                        () -> memberActiveProductScheduleHistoryRepository.save(
+                                MemberActiveProductScheduleHistory.createChanged(activeProduct)
+                        )
+                );
+    }
+
     private Member getMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.UNAUTHORIZED));
@@ -128,6 +185,22 @@ public class IntakeService {
             throw new IntakeException(IntakeErrorCode.REGISTRATION_REQUEST_INVALID);
         }
         return request.memberProductId();
+    }
+
+    private Long validateActiveProductId(String activeProductId) {
+        if (activeProductId == null || activeProductId.isBlank()) {
+            throw new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_ID_INVALID);
+        }
+
+        try {
+            long parsedActiveProductId = Long.parseLong(activeProductId.trim());
+            if (parsedActiveProductId < 1) {
+                throw new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_ID_INVALID);
+            }
+            return parsedActiveProductId;
+        } catch (NumberFormatException e) {
+            throw new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_ID_INVALID);
+        }
     }
 
     private RegisterActiveProductRequestValues validateRegisterActiveProductRequest(
@@ -154,6 +227,44 @@ public class IntakeService {
         return new RegisterActiveProductRequestValues(request.memberProductId(), intakeTime, frequency);
     }
 
+    private UpdateActiveProductSettingsRequestValues validateUpdateActiveProductSettingsRequest(
+            IntakeRequest.UpdateActiveProductSettings request
+    ) {
+        if (request == null || (
+                request.intakeTime() == null
+                        && request.frequency() == null
+                        && request.notificationEnabled() == null
+        )) {
+            throw new IntakeException(IntakeErrorCode.SETTINGS_UPDATE_REQUEST_INVALID);
+        }
+
+        LocalTime intakeTime = null;
+        if (request.intakeTime() != null) {
+            if (!INTAKE_TIME_PATTERN.matcher(request.intakeTime()).matches()) {
+                throw new IntakeException(IntakeErrorCode.SETTINGS_UPDATE_REQUEST_INVALID);
+            }
+            intakeTime = LocalTime.parse(request.intakeTime(), INTAKE_TIME_FORMATTER);
+        }
+
+        IntakeFrequency frequency = null;
+        if (request.frequency() != null) {
+            if (request.frequency().isBlank()) {
+                throw new IntakeException(IntakeErrorCode.SETTINGS_UPDATE_REQUEST_INVALID);
+            }
+            try {
+                frequency = IntakeFrequency.valueOf(request.frequency());
+            } catch (IllegalArgumentException e) {
+                throw new IntakeException(IntakeErrorCode.SETTINGS_UPDATE_REQUEST_INVALID);
+            }
+        }
+
+        return new UpdateActiveProductSettingsRequestValues(
+                intakeTime,
+                frequency,
+                request.notificationEnabled()
+        );
+    }
+
     private void validateNotAlreadyActive(Long memberId, Long memberProductId) {
         if (memberActiveProductRepository.existsByMemberIdAndMemberProductIdAndStoppedOnIsNull(
                 memberId,
@@ -167,6 +278,13 @@ public class IntakeService {
             Long memberProductId,
             LocalTime intakeTime,
             IntakeFrequency frequency
+    ) {
+    }
+
+    private record UpdateActiveProductSettingsRequestValues(
+            LocalTime intakeTime,
+            IntakeFrequency frequency,
+            Boolean notificationEnabled
     ) {
     }
 }

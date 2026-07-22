@@ -4,6 +4,7 @@ import com.ipillgood.server.domain.ingredient.entity.enums.CombinationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public class IntakeResponse {
@@ -68,6 +69,53 @@ public class IntakeResponse {
 
             @Schema(description = "화면에 표시할 복용 주기명", example = "매일")
             String frequencyLabel
+    ) {
+    }
+
+    @Schema(description = "섭취 중 영양제 설정 변경 응답")
+    @Builder
+    public record UpdateActiveProductSettings(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "브랜드명", example = "뉴트리코어")
+            String brand,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl,
+
+            @Schema(description = "섭취 중으로 추가한 날짜", example = "2026-07-01")
+            LocalDate startedOn,
+
+            @Schema(description = "N일째 섭취 중 배지에 사용할 섭취 일수", example = "21")
+            Integer intakeDayCount,
+
+            @Schema(description = "개별 복용 알림 ON/OFF 여부", example = "false")
+            Boolean notificationEnabled,
+
+            @Schema(description = "복용 시간", example = "21:00")
+            String intakeTime,
+
+            @Schema(description = "복용 주기 enum", example = "EVERY_2_DAYS")
+            String frequency,
+
+            @Schema(description = "화면에 표시할 복용 주기명", example = "2일에 한 번")
+            String frequencyLabel,
+
+            @Schema(description = "복용 주기 간격 일수", example = "2")
+            Integer frequencyIntervalDays,
+
+            @Schema(description = "복용 예정일 계산 기준일", example = "2026-07-21")
+            LocalDate scheduleAnchorOn
     ) {
     }
 

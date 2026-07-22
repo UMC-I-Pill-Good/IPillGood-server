@@ -73,4 +73,24 @@ public class MemberActiveProductScheduleHistory extends BaseEntity {
                 activeProduct.getScheduleAnchorOn()
         );
     }
+
+    public static MemberActiveProductScheduleHistory createChanged(MemberActiveProduct activeProduct) {
+        return new MemberActiveProductScheduleHistory(
+                activeProduct,
+                activeProduct.getFrequency(),
+                activeProduct.getFrequencyIntervalDays(),
+                activeProduct.getScheduleAnchorOn(),
+                activeProduct.getScheduleAnchorOn()
+        );
+    }
+
+    public void close(LocalDate effectiveTo) {
+        this.effectiveTo = effectiveTo;
+    }
+
+    public void changeFrequency(IntakeFrequency frequency, LocalDate scheduleAnchorOn) {
+        this.frequency = frequency;
+        this.frequencyIntervalDays = frequency.getIntervalDays();
+        this.scheduleAnchorOn = scheduleAnchorOn;
+    }
 }

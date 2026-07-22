@@ -164,6 +164,106 @@ public interface IntakeApi {
     );
 
     @Operation(
+            summary = "섭취 중 영양제 설정 변경",
+            description = "복용 시간, 복용 주기, 개별 알림 설정을 변경하고 현재 설정 정보를 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @RequestBody(
+            required = true,
+            description = "변경할 복용 시간, 복용 주기, 개별 알림 설정 중 하나 이상을 전달합니다.",
+            content = @Content(
+                    schema = @Schema(implementation = IntakeRequest.UpdateActiveProductSettings.class),
+                    examples = @ExampleObject(
+                            value = """
+                                    {
+                                      "intakeTime": "21:00",
+                                      "frequency": "EVERY_2_DAYS",
+                                      "notificationEnabled": false
+                                    }
+                                    """
+                    )
+            )
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "섭취 중 영양제 설정 변경 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "activeProductId": 7,
+                                                "memberProductId": 15,
+                                                "productId": 112,
+                                                "brand": "뉴트리코어",
+                                                "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                "thumbnailImageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png",
+                                                "startedOn": "2026-07-01",
+                                                "intakeDayCount": 21,
+                                                "notificationEnabled": false,
+                                                "intakeTime": "21:00",
+                                                "frequency": "EVERY_2_DAYS",
+                                                "frequencyLabel": "2일에 한 번",
+                                                "frequencyIntervalDays": 2,
+                                                "scheduleAnchorOn": "2026-07-21"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "설정 변경 요청 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE400_3",
+                                              "message": "섭취 중 영양제 설정 변경 요청이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "활성 섭취 중 상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE404_2",
+                                              "message": "활성 섭취 중 상품을 찾을 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.UpdateActiveProductSettings> updateActiveProductSettings(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "설정을 변경할 활성 섭취 중 상품 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "7")
+            )
+            String activeProductId,
+            IntakeRequest.UpdateActiveProductSettings request
+    );
+
+    @Operation(
             summary = "섭취 중 등록 전 병용 금기 확인",
             description = "새로 등록하려는 영양제와 현재 섭취 중 영양제 간 주의 또는 금기 성분 조합을 확인합니다."
     )

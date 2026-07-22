@@ -3,9 +3,12 @@ package com.ipillgood.server.domain.intake.converter;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
+import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -50,6 +53,33 @@ public class IntakeConverter {
                 .build();
     }
 
+    public static IntakeResponse.UpdateActiveProductSettings toUpdateActiveProductSettings(
+            ActiveProductSettingsRow row,
+            LocalDate currentDate,
+            String imageBaseUrl
+    ) {
+        return IntakeResponse.UpdateActiveProductSettings.builder()
+                .activeProductId(row.activeProductId())
+                .memberProductId(row.memberProductId())
+                .productId(row.productId())
+                .brand(row.brand())
+                .productName(row.productName())
+                .thumbnailImageUrl(toThumbnailImageUrl(
+                        row.ingredientCount(),
+                        row.singleIngredientImageKey(),
+                        imageBaseUrl
+                ))
+                .startedOn(row.startedOn())
+                .intakeDayCount(toIntakeDayCount(row.startedOn(), currentDate))
+                .notificationEnabled(row.notificationEnabled())
+                .intakeTime(row.intakeTime() == null ? null : row.intakeTime().format(INTAKE_TIME_FORMATTER))
+                .frequency(row.frequency() == null ? null : row.frequency().name())
+                .frequencyLabel(row.frequency() == null ? null : row.frequency().getLabel())
+                .frequencyIntervalDays(row.frequencyIntervalDays() == null ? null : row.frequencyIntervalDays().intValue())
+                .scheduleAnchorOn(row.scheduleAnchorOn())
+                .build();
+    }
+
     public static IntakeResponse.CompatibilityCheck toCompatibilityCheck(
             List<CompatibilityConflictRow> rows
     ) {
@@ -90,10 +120,23 @@ public class IntakeConverter {
     }
 
     private static String toThumbnailImageUrl(ActiveProductRow row, String imageBaseUrl) {
-        String imageKey = row.ingredientCount() != null && row.ingredientCount() == 1L
-                ? row.singleIngredientImageKey()
+        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageBaseUrl);
+    }
+
+    private static String toThumbnailImageUrl(Long ingredientCount, String singleIngredientImageKey, String imageBaseUrl) {
+        String imageKey = ingredientCount != null && ingredientCount == 1L
+                ? singleIngredientImageKey
                 : randomMultiIngredientImageKey();
         return toImageUrl(imageBaseUrl, imageKey);
+    }
+
+    private static Integer toIntakeDayCount(LocalDate startedOn, LocalDate currentDate) {
+        if (startedOn == null || currentDate == null) {
+            return null;
+        }
+
+        long dayCount = ChronoUnit.DAYS.between(startedOn, currentDate) + 1;
+        return (int) Math.max(dayCount, 1);
     }
 
     private static String randomMultiIngredientImageKey() {
