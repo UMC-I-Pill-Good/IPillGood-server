@@ -4,9 +4,12 @@ import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
 import com.ipillgood.server.domain.intake.entity.IntakeRecord;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeMascotStage;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.intake.repository.DailyTakenProductRow;
 import com.ipillgood.server.domain.intake.repository.TodayIntakeRecordRow;
 import com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow;
 import com.ipillgood.server.domain.product.entity.Product;
@@ -14,6 +17,7 @@ import com.ipillgood.server.domain.product.entity.Product;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +43,75 @@ public class IntakeConverter {
         return IntakeResponse.ActiveProducts.builder()
                 .totalCount(activeProducts.size())
                 .activeProducts(activeProducts)
+                .build();
+    }
+
+    public static IntakeResponse.Calendar toCalendar(
+            YearMonth yearMonth,
+            List<IntakeResponse.CalendarDay> days
+    ) {
+        return IntakeResponse.Calendar.builder()
+                .year(yearMonth.getYear())
+                .month(yearMonth.getMonthValue())
+                .days(days)
+                .build();
+    }
+
+    public static IntakeResponse.CalendarDay toCalendarDay(
+            LocalDate date,
+            boolean allCompleted,
+            IntakeStreakStatus streakStatus,
+            int takenCount,
+            LocalDateTime completedAt
+    ) {
+        boolean hasTakenRecords = takenCount > 0;
+
+        return IntakeResponse.CalendarDay.builder()
+                .date(date)
+                .dayOfMonth(date.getDayOfMonth())
+                .hasTakenRecords(hasTakenRecords)
+                .allCompleted(allCompleted)
+                .streakStatus(streakStatus)
+                .streakIncluded(isStreakIncluded(streakStatus))
+                .selectable(hasTakenRecords)
+                .takenCount(takenCount)
+                .completedAt(completedAt)
+                .build();
+    }
+
+    public static IntakeResponse.DailyTakenProducts toDailyTakenProducts(
+            LocalDate date,
+            List<DailyTakenProductRow> rows
+    ) {
+        List<IntakeResponse.DailyTakenProduct> products = rows.stream()
+                .map(IntakeConverter::toDailyTakenProduct)
+                .toList();
+
+        return IntakeResponse.DailyTakenProducts.builder()
+                .date(date)
+                .takenCount(products.size())
+                .products(products)
+                .build();
+    }
+
+    public static IntakeResponse.IntakeStreak toIntakeStreak(
+            LocalDate currentDate,
+            IntakeStreakStatus currentDateStreakStatus,
+            int streakDays,
+            int activeProductCount,
+            LocalDate lastRoutineDate
+    ) {
+        IntakeMascotStage mascotStage = IntakeMascotStage.fromStreakDays(streakDays);
+
+        return IntakeResponse.IntakeStreak.builder()
+                .currentDate(currentDate)
+                .currentDateStreakStatus(currentDateStreakStatus)
+                .streakDays(streakDays)
+                .mascotStage(mascotStage)
+                .mascotStageLabel(mascotStage.getLabel())
+                .activeProductCount(activeProductCount)
+                .lastRoutineDate(lastRoutineDate)
+                .nextStageThresholdDays(mascotStage.getNextStageThresholdDays())
                 .build();
     }
 
@@ -213,6 +286,17 @@ public class IntakeConverter {
                 .build();
     }
 
+    private static IntakeResponse.DailyTakenProduct toDailyTakenProduct(
+            DailyTakenProductRow row
+    ) {
+        return IntakeResponse.DailyTakenProduct.builder()
+                .activeProductId(row.activeProductId())
+                .productId(row.productId())
+                .productName(row.productName())
+                .takenAt(row.takenAt())
+                .build();
+    }
+
     private static IntakeResponse.TodayIntakeRecord toTodayIntakeRecord(
             TodayScheduledProductRow row,
             IntakeRecord record
@@ -240,6 +324,10 @@ public class IntakeConverter {
                 .targetIngredientName(row.targetIngredientName())
                 .reason(row.reason())
                 .build();
+    }
+
+    private static boolean isStreakIncluded(IntakeStreakStatus status) {
+        return status == IntakeStreakStatus.COMPLETED || status == IntakeStreakStatus.MAINTAINED;
     }
 
     private static String toThumbnailImageUrl(ActiveProductRow row, String imageBaseUrl) {

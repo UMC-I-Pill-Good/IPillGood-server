@@ -12,10 +12,14 @@ import com.ipillgood.server.domain.intake.entity.IntakeRecord;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProductScheduleHistory;
 import com.ipillgood.server.domain.intake.entity.enums.IntakeFrequency;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
 import com.ipillgood.server.domain.intake.exception.IntakeException;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
+import com.ipillgood.server.domain.intake.repository.CalendarScheduleHistoryRow;
+import com.ipillgood.server.domain.intake.repository.CalendarTakenCountRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.intake.repository.DailyTakenProductRow;
 import com.ipillgood.server.domain.intake.repository.IntakeDayRepository;
 import com.ipillgood.server.domain.intake.repository.IntakeRecordRepository;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
@@ -31,10 +35,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -58,6 +64,7 @@ public class IntakeService {
             CombinationType.CONTRAINDICATION
     );
     private static final Pattern INTAKE_TIME_PATTERN = Pattern.compile("^(?:[01]\\d|2[0-3]):[0-5]\\d$");
+    private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
     private static final DateTimeFormatter INTAKE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final MemberRepository memberRepository;
@@ -98,6 +105,117 @@ public class IntakeService {
                 recordsByActiveProductId,
                 autoPopupShown
         );
+    }
+
+    public IntakeResponse.Calendar getIntakeCalendar(Long memberId, String year, String month) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        YearMonth targetMonth = validateCalendarPeriod(year, month);
+        LocalDate startDate = targetMonth.atDay(1);
+        LocalDate endDate = targetMonth.atEndOfMonth();
+        LocalDate currentDate = currentDate();
+
+        Map<LocalDate, IntakeDay> intakeDaysByDate = findIntakeDaysByDate(memberId, startDate, endDate);
+        Map<LocalDate, Integer> takenCountsByDate =
+                intakeRecordRepository.findCalendarTakenCountRows(memberId, startDate, endDate)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                CalendarTakenCountRow::intakeOn,
+                                row -> row.takenCount().intValue(),
+                                (first, ignored) -> first
+                        ));
+        List<CalendarScheduleHistoryRow> scheduleHistoryRows =
+                memberActiveProductScheduleHistoryRepository.findCalendarScheduleHistoryRows(
+                        memberId,
+                        startDate,
+                        endDate
+                );
+
+        List<IntakeResponse.CalendarDay> days = new ArrayList<>();
+        for (int dayOfMonth = 1; dayOfMonth <= targetMonth.lengthOfMonth(); dayOfMonth++) {
+            LocalDate date = targetMonth.atDay(dayOfMonth);
+            IntakeDay intakeDay = intakeDaysByDate.get(date);
+            int takenCount = takenCountsByDate.getOrDefault(date, 0);
+            boolean allCompleted = intakeDay != null && intakeDay.isAllCompleted();
+            IntakeStreakStatus streakStatus = determineStreakStatus(
+                    date,
+                    currentDate,
+                    allCompleted,
+                    scheduleHistoryRows
+            );
+
+            days.add(IntakeConverter.toCalendarDay(
+                    date,
+                    allCompleted,
+                    streakStatus,
+                    takenCount,
+                    intakeDay == null ? null : intakeDay.getCompletedAt()
+            ));
+        }
+
+        return IntakeConverter.toCalendar(targetMonth, days);
+    }
+
+    public IntakeResponse.IntakeStreak getIntakeStreak(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate currentDate = currentDate();
+        int activeProductCount = (int) memberActiveProductRepository.countCurrentActiveProducts(
+                memberId,
+                currentDate
+        );
+        if (activeProductCount == 0) {
+            return IntakeConverter.toIntakeStreak(
+                    currentDate,
+                    IntakeStreakStatus.EXCLUDED,
+                    0,
+                    activeProductCount,
+                    null
+            );
+        }
+
+        List<CalendarScheduleHistoryRow> scheduleHistoryRows =
+                memberActiveProductScheduleHistoryRepository.findStreakScheduleHistoryRows(memberId, currentDate);
+        if (scheduleHistoryRows.isEmpty()) {
+            return IntakeConverter.toIntakeStreak(
+                    currentDate,
+                    IntakeStreakStatus.EXCLUDED,
+                    0,
+                    activeProductCount,
+                    null
+            );
+        }
+
+        LocalDate startDate = scheduleHistoryRows.stream()
+                .map(CalendarScheduleHistoryRow::startedOn)
+                .min(LocalDate::compareTo)
+                .orElse(currentDate);
+        Map<LocalDate, IntakeDay> intakeDaysByDate = findIntakeDaysByDate(memberId, startDate, currentDate);
+
+        StreakCalculation calculation = calculateIntakeStreak(
+                currentDate,
+                startDate,
+                intakeDaysByDate,
+                scheduleHistoryRows
+        );
+        return IntakeConverter.toIntakeStreak(
+                currentDate,
+                calculation.currentDateStreakStatus(),
+                calculation.streakDays(),
+                activeProductCount,
+                calculation.lastRoutineDate()
+        );
+    }
+
+    public IntakeResponse.DailyTakenProducts getDailyTakenProducts(Long memberId, String date) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate targetDate = validateDailyTakenDate(date);
+        List<DailyTakenProductRow> rows = intakeRecordRepository.findDailyTakenProductRows(memberId, targetDate);
+        return IntakeConverter.toDailyTakenProducts(targetDate, rows);
     }
 
     @Transactional
@@ -322,6 +440,122 @@ public class IntakeService {
                 .toList();
     }
 
+    private Map<LocalDate, IntakeDay> findIntakeDaysByDate(
+            Long memberId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        return intakeDayRepository.findByMemberIdAndIntakeOnBetweenOrderByIntakeOnAsc(
+                        memberId,
+                        startDate,
+                        endDate
+                )
+                .stream()
+                .collect(Collectors.toMap(
+                        IntakeDay::getIntakeOn,
+                        Function.identity(),
+                        (first, ignored) -> first
+                ));
+    }
+
+    private StreakCalculation calculateIntakeStreak(
+            LocalDate currentDate,
+            LocalDate startDate,
+            Map<LocalDate, IntakeDay> intakeDaysByDate,
+            List<CalendarScheduleHistoryRow> scheduleHistoryRows
+    ) {
+        IntakeDay currentIntakeDay = intakeDaysByDate.get(currentDate);
+        IntakeStreakStatus currentDateStreakStatus = determineStreakStatus(
+                currentDate,
+                currentDate,
+                currentIntakeDay != null && currentIntakeDay.isAllCompleted(),
+                scheduleHistoryRows
+        );
+
+        int streakDays = 0;
+        LocalDate lastRoutineDate = null;
+        LocalDate date = currentDate;
+        if (currentDateStreakStatus == IntakeStreakStatus.PENDING) {
+            date = currentDate.minusDays(1);
+        } else if (isStreakIncluded(currentDateStreakStatus)) {
+            streakDays++;
+            lastRoutineDate = currentDate;
+            date = currentDate.minusDays(1);
+        } else {
+            return new StreakCalculation(currentDateStreakStatus, 0, null);
+        }
+
+        while (!date.isBefore(startDate)) {
+            IntakeDay intakeDay = intakeDaysByDate.get(date);
+            IntakeStreakStatus streakStatus = determineStreakStatus(
+                    date,
+                    currentDate,
+                    intakeDay != null && intakeDay.isAllCompleted(),
+                    scheduleHistoryRows
+            );
+            if (!isStreakIncluded(streakStatus)) {
+                break;
+            }
+
+            streakDays++;
+            if (lastRoutineDate == null) {
+                lastRoutineDate = date;
+            }
+            date = date.minusDays(1);
+        }
+
+        return new StreakCalculation(currentDateStreakStatus, streakDays, lastRoutineDate);
+    }
+
+    private IntakeStreakStatus determineStreakStatus(
+            LocalDate date,
+            LocalDate currentDate,
+            boolean allCompleted,
+            List<CalendarScheduleHistoryRow> scheduleHistoryRows
+    ) {
+        if (date.isAfter(currentDate)) {
+            return IntakeStreakStatus.UPCOMING;
+        }
+
+        boolean hasActiveRoutine = false;
+        boolean hasScheduledRoutine = false;
+        for (CalendarScheduleHistoryRow row : scheduleHistoryRows) {
+            if (!isRoutineActiveOn(row, date)) {
+                continue;
+            }
+
+            hasActiveRoutine = true;
+            if (isScheduledOn(row, date)) {
+                hasScheduledRoutine = true;
+            }
+        }
+
+        if (!hasActiveRoutine) {
+            return IntakeStreakStatus.EXCLUDED;
+        }
+        if (!hasScheduledRoutine) {
+            return IntakeStreakStatus.MAINTAINED;
+        }
+        if (allCompleted) {
+            return IntakeStreakStatus.COMPLETED;
+        }
+        if (date.equals(currentDate)) {
+            return IntakeStreakStatus.PENDING;
+        }
+        return IntakeStreakStatus.BROKEN;
+    }
+
+    private boolean isStreakIncluded(IntakeStreakStatus status) {
+        return status == IntakeStreakStatus.COMPLETED || status == IntakeStreakStatus.MAINTAINED;
+    }
+
+    private boolean isRoutineActiveOn(CalendarScheduleHistoryRow row, LocalDate date) {
+        return !date.isBefore(row.startedOn())
+                && (row.stoppedOn() == null || date.isBefore(row.stoppedOn()))
+                && !date.isBefore(row.effectiveFrom())
+                && (row.effectiveTo() == null || date.isBefore(row.effectiveTo()));
+    }
+
     private void validateTodayPopupTarget(
             List<TodayScheduledProductRow> scheduledRows,
             Map<Long, TodayIntakeRecordRow> recordsByActiveProductId
@@ -437,6 +671,60 @@ public class IntakeService {
 
         long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), currentDate);
         return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+    }
+
+    private boolean isScheduledOn(CalendarScheduleHistoryRow row, LocalDate date) {
+        if (row.scheduleAnchorOn() == null || row.frequencyIntervalDays() == null
+                || row.frequencyIntervalDays() < 1) {
+            return false;
+        }
+
+        long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), date);
+        return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+    }
+
+    private YearMonth validateCalendarPeriod(String year, String month) {
+        int parsedYear = parseCalendarInteger(year);
+        int parsedMonth = parseCalendarInteger(month);
+        if (parsedYear < 1 || parsedMonth < 1 || parsedMonth > 12) {
+            throw new IntakeException(IntakeErrorCode.CALENDAR_PERIOD_INVALID);
+        }
+
+        try {
+            return YearMonth.of(parsedYear, parsedMonth);
+        } catch (DateTimeException e) {
+            throw new IntakeException(IntakeErrorCode.CALENDAR_PERIOD_INVALID);
+        }
+    }
+
+    private int parseCalendarInteger(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IntakeException(IntakeErrorCode.CALENDAR_PERIOD_INVALID);
+        }
+
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            throw new IntakeException(IntakeErrorCode.CALENDAR_PERIOD_INVALID);
+        }
+    }
+
+    private LocalDate validateDailyTakenDate(String date) {
+        if (date == null || date.isBlank() || !DATE_PATTERN.matcher(date).matches()) {
+            throw new IntakeException(IntakeErrorCode.DATE_REQUEST_INVALID);
+        }
+
+        LocalDate parsedDate;
+        try {
+            parsedDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeException e) {
+            throw new IntakeException(IntakeErrorCode.DATE_REQUEST_INVALID);
+        }
+
+        if (parsedDate.getYear() < 1 || parsedDate.isAfter(currentDate())) {
+            throw new IntakeException(IntakeErrorCode.DATE_REQUEST_INVALID);
+        }
+        return parsedDate;
     }
 
     private LocalDate currentDate() {
@@ -563,6 +851,13 @@ public class IntakeService {
             LocalTime intakeTime,
             IntakeFrequency frequency,
             Boolean notificationEnabled
+    ) {
+    }
+
+    private record StreakCalculation(
+            IntakeStreakStatus currentDateStreakStatus,
+            int streakDays,
+            LocalDate lastRoutineDate
     ) {
     }
 }

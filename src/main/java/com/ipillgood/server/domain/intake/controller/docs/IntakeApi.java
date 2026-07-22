@@ -81,6 +81,229 @@ public interface IntakeApi {
     );
 
     @Operation(
+            summary = "복용 캘린더 조회",
+            description = "월별 복용 완료 상태와 연속 섭취 포함 여부를 날짜별로 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "복용 캘린더 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "year": 2026,
+                                                "month": 7,
+                                                "days": [
+                                                  {
+                                                    "date": "2026-07-21",
+                                                    "dayOfMonth": 21,
+                                                    "hasTakenRecords": true,
+                                                    "allCompleted": false,
+                                                    "streakStatus": "PENDING",
+                                                    "streakIncluded": false,
+                                                    "selectable": true,
+                                                    "takenCount": 1,
+                                                    "completedAt": null
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "캘린더 조회 기간 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE400_5",
+                                              "message": "복용 캘린더 조회 기간이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.Calendar> getIntakeCalendar(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "조회할 연도입니다.",
+                    schema = @Schema(type = "integer", example = "2026")
+            )
+            String year,
+            @Parameter(
+                    description = "조회할 월이며 1부터 12까지 입력합니다.",
+                    schema = @Schema(type = "integer", example = "7")
+            )
+            String month
+    );
+
+    @Operation(
+            summary = "날짜별 섭취 완료 목록 조회",
+            description = "특정 날짜에 실제 섭취 완료한 영양제 목록을 조회합니다. 오늘 이후 날짜는 조회할 수 없습니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "날짜별 섭취 완료 목록 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "date": "2026-07-21",
+                                                "takenCount": 2,
+                                                "products": [
+                                                  {
+                                                    "activeProductId": 7,
+                                                    "productId": 112,
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                    "takenAt": "2026-07-21T08:45:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "날짜 요청 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE400_6",
+                                              "message": "날짜 요청이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.DailyTakenProducts> getDailyTakenProducts(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "조회할 날짜입니다. yyyy-MM-dd 형식으로 입력합니다.",
+                    schema = @Schema(type = "string", example = "2026-07-21")
+            )
+            String date
+    );
+
+    @Operation(
+            summary = "연속 섭취일 조회",
+            description = "연속 섭취일과 마스코트 성장 단계를 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "연속 섭취일 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "currentDateStreakStatus": "COMPLETED",
+                                                "streakDays": 15,
+                                                "mascotStage": "FLOWER",
+                                                "mascotStageLabel": "꽃",
+                                                "activeProductCount": 2,
+                                                "lastRoutineDate": "2026-07-21",
+                                                "nextStageThresholdDays": 30
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.IntakeStreak> getIntakeStreak(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
             summary = "오늘 복용 팝업 노출 기록",
             description = "홈 자동 팝업을 실제 노출한 뒤 오늘의 자동 팝업 노출 이력을 기록합니다."
     )
