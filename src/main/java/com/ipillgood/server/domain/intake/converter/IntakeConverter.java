@@ -1,0 +1,97 @@
+package com.ipillgood.server.domain.intake.converter;
+
+import com.ipillgood.server.domain.intake.dto.IntakeResponse;
+import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
+import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class IntakeConverter {
+
+    private static final int MULTI_INGREDIENT_THUMBNAIL_MIN = 1;
+    private static final int MULTI_INGREDIENT_THUMBNAIL_MAX = 4;
+
+    private IntakeConverter() {
+    }
+
+    public static IntakeResponse.ActiveProducts toActiveProducts(
+            List<ActiveProductRow> rows,
+            String imageBaseUrl
+    ) {
+        List<IntakeResponse.ActiveProductSummary> activeProducts = rows.stream()
+                .map(row -> toActiveProductSummary(row, imageBaseUrl))
+                .toList();
+
+        return IntakeResponse.ActiveProducts.builder()
+                .totalCount(activeProducts.size())
+                .activeProducts(activeProducts)
+                .build();
+    }
+
+    public static IntakeResponse.CompatibilityCheck toCompatibilityCheck(
+            List<CompatibilityConflictRow> rows
+    ) {
+        List<IntakeResponse.CompatibilityConflict> conflicts = rows.stream()
+                .map(IntakeConverter::toCompatibilityConflict)
+                .toList();
+
+        return IntakeResponse.CompatibilityCheck.builder()
+                .hasConflicts(!conflicts.isEmpty())
+                .conflicts(conflicts)
+                .build();
+    }
+
+    private static IntakeResponse.ActiveProductSummary toActiveProductSummary(
+            ActiveProductRow row,
+            String imageBaseUrl
+    ) {
+        return IntakeResponse.ActiveProductSummary.builder()
+                .activeProductId(row.activeProductId())
+                .memberProductId(row.memberProductId())
+                .productId(row.productId())
+                .productName(row.productName())
+                .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .build();
+    }
+
+    private static IntakeResponse.CompatibilityConflict toCompatibilityConflict(
+            CompatibilityConflictRow row
+    ) {
+        return IntakeResponse.CompatibilityConflict.builder()
+                .combinationType(row.combinationType())
+                .currentIngredientId(row.currentIngredientId())
+                .currentIngredientName(row.currentIngredientName())
+                .targetIngredientId(row.targetIngredientId())
+                .targetIngredientName(row.targetIngredientName())
+                .reason(row.reason())
+                .build();
+    }
+
+    private static String toThumbnailImageUrl(ActiveProductRow row, String imageBaseUrl) {
+        String imageKey = row.ingredientCount() != null && row.ingredientCount() == 1L
+                ? row.singleIngredientImageKey()
+                : randomMultiIngredientImageKey();
+        return toImageUrl(imageBaseUrl, imageKey);
+    }
+
+    private static String randomMultiIngredientImageKey() {
+        int imageNumber = ThreadLocalRandom.current()
+                .nextInt(MULTI_INGREDIENT_THUMBNAIL_MIN, MULTI_INGREDIENT_THUMBNAIL_MAX + 1);
+        return "ingredients/other" + imageNumber + ".png";
+    }
+
+    private static String toImageUrl(String imageBaseUrl, String imageKey) {
+        if (imageBaseUrl == null || imageBaseUrl.isBlank() || imageKey == null || imageKey.isBlank()) {
+            return null;
+        }
+
+        String normalizedBaseUrl = imageBaseUrl.endsWith("/")
+                ? imageBaseUrl.substring(0, imageBaseUrl.length() - 1)
+                : imageBaseUrl;
+        String normalizedImageKey = imageKey.startsWith("/")
+                ? imageKey.substring(1)
+                : imageKey;
+        return normalizedBaseUrl + "/" + normalizedImageKey;
+    }
+}

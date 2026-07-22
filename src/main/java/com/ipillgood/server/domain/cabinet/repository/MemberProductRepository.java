@@ -219,6 +219,20 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
     );
 
     @Query("""
+            select mp
+            from MemberProduct mp
+            join fetch mp.product p
+            where mp.member.id = :memberId
+              and mp.id = :memberProductId
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    Optional<MemberProduct> findActiveIntakeRegistrationTarget(
+            @Param("memberId") Long memberId,
+            @Param("memberProductId") Long memberProductId
+    );
+
+    @Query("""
             select new com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow(
                 i.id,
                 i.name,
