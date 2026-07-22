@@ -61,6 +61,22 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
     );
 
     @Query("""
+            select count(ap.id)
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            where ap.member.id = :memberId
+              and ap.startedOn <= :currentDate
+              and (ap.stoppedOn is null or :currentDate < ap.stoppedOn)
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    long countCurrentActiveProducts(
+            @Param("memberId") Long memberId,
+            @Param("currentDate") LocalDate currentDate
+    );
+
+    @Query("""
             select ap
             from MemberActiveProduct ap
             join fetch ap.memberProduct mp

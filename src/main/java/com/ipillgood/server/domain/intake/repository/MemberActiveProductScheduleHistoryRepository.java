@@ -46,4 +46,26 @@ public interface MemberActiveProductScheduleHistoryRepository
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    @Query("""
+            select new com.ipillgood.server.domain.intake.repository.CalendarScheduleHistoryRow(
+                ap.id,
+                ap.startedOn,
+                ap.stoppedOn,
+                history.scheduleAnchorOn,
+                history.frequencyIntervalDays,
+                history.effectiveFrom,
+                history.effectiveTo
+            )
+            from MemberActiveProductScheduleHistory history
+            join history.memberActiveProduct ap
+            where ap.member.id = :memberId
+              and ap.startedOn <= :currentDate
+              and history.effectiveFrom <= :currentDate
+            order by ap.startedOn asc, ap.id asc, history.effectiveFrom asc, history.id asc
+            """)
+    List<CalendarScheduleHistoryRow> findStreakScheduleHistoryRows(
+            @Param("memberId") Long memberId,
+            @Param("currentDate") LocalDate currentDate
+    );
 }

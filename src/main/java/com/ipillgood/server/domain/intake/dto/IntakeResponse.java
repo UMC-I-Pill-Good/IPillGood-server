@@ -1,6 +1,7 @@
 package com.ipillgood.server.domain.intake.dto;
 
 import com.ipillgood.server.domain.ingredient.entity.enums.CombinationType;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeMascotStage;
 import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -116,6 +117,35 @@ public class IntakeResponse {
 
             @Schema(description = "섭취 완료 일시", example = "2026-07-21T08:45:00")
             LocalDateTime takenAt
+    ) {
+    }
+
+    @Schema(description = "연속 섭취일 조회 응답")
+    @Builder
+    public record IntakeStreak(
+            @Schema(description = "서비스 기준 현재 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "서비스 기준 현재 날짜의 연속 섭취 판단 상태")
+            IntakeStreakStatus currentDateStreakStatus,
+
+            @Schema(description = "연속 섭취일", example = "15")
+            Integer streakDays,
+
+            @Schema(description = "마스코트 성장 단계 enum")
+            IntakeMascotStage mascotStage,
+
+            @Schema(description = "화면에 표시할 성장 단계명", example = "꽃")
+            String mascotStageLabel,
+
+            @Schema(description = "현재 활성 섭취 중 영양제 수", example = "2")
+            Integer activeProductCount,
+
+            @Schema(description = "연속 섭취일에 마지막으로 포함된 날짜", example = "2026-07-21")
+            LocalDate lastRoutineDate,
+
+            @Schema(description = "다음 성장 단계까지 필요한 기준 연속 섭취일", example = "30")
+            Integer nextStageThresholdDays
     ) {
     }
 

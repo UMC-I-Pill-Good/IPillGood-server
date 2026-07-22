@@ -59,6 +59,15 @@ public class IntakeController implements IntakeApi {
     }
 
     @Override
+    @GetMapping("/streak")
+    public ApiResponse<IntakeResponse.IntakeStreak> getIntakeStreak(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        IntakeResponse.IntakeStreak response = intakeService.getIntakeStreak(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
     @PatchMapping("/today/popup-shown")
     public ApiResponse<IntakeResponse.TodayPopupShown> recordTodayPopupShown(
             @AuthenticationPrincipal Long memberId

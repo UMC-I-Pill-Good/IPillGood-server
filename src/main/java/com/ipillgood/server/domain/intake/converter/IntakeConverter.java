@@ -4,6 +4,7 @@ import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
 import com.ipillgood.server.domain.intake.entity.IntakeRecord;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeMascotStage;
 import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
@@ -90,6 +91,27 @@ public class IntakeConverter {
                 .date(date)
                 .takenCount(products.size())
                 .products(products)
+                .build();
+    }
+
+    public static IntakeResponse.IntakeStreak toIntakeStreak(
+            LocalDate currentDate,
+            IntakeStreakStatus currentDateStreakStatus,
+            int streakDays,
+            int activeProductCount,
+            LocalDate lastRoutineDate
+    ) {
+        IntakeMascotStage mascotStage = IntakeMascotStage.fromStreakDays(streakDays);
+
+        return IntakeResponse.IntakeStreak.builder()
+                .currentDate(currentDate)
+                .currentDateStreakStatus(currentDateStreakStatus)
+                .streakDays(streakDays)
+                .mascotStage(mascotStage)
+                .mascotStageLabel(mascotStage.getLabel())
+                .activeProductCount(activeProductCount)
+                .lastRoutineDate(lastRoutineDate)
+                .nextStageThresholdDays(mascotStage.getNextStageThresholdDays())
                 .build();
     }
 

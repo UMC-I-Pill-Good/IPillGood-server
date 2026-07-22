@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +47,7 @@ class IntakeControllerTest {
     private static final String TODAY_STATUS_URL = "/api/v1/intake/today";
     private static final String CALENDAR_URL = "/api/v1/intake/calendar";
     private static final String DAILY_TAKEN_PRODUCTS_URL_PREFIX = "/api/v1/intake/days";
+    private static final String STREAK_URL = "/api/v1/intake/streak";
     private static final String TODAY_POPUP_SHOWN_URL = "/api/v1/intake/today/popup-shown";
     private static final String TODAY_RECORDS_URL = "/api/v1/intake/today/records";
     private static final String ACTIVE_PRODUCTS_URL = "/api/v1/intake/active-products";
@@ -439,6 +441,199 @@ class IntakeControllerTest {
                         .value("UPCOMING"))
                 .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(upcomingOn.getDayOfMonth() - 1))
                         .value(false));
+    }
+
+    @Test
+    @DisplayName("인증 없이 연속 섭취일을 조회하면 401을 반환한다")
+    void getIntakeStreak_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(STREAK_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 연속 섭취일을 조회할 수 없다")
+    void getIntakeStreak_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("활성 섭취 중 영양제가 없으면 연속 섭취일을 초기 상태로 반환하고 기록을 생성하지 않는다")
+    void getIntakeStreak_withNoActiveProducts_returnsExcludedAndDoesNotCreateRecords() throws Exception {
+        LocalDate currentDate = currentDate();
+        int beforeIntakeDayCount = countIntakeDays();
+        int beforeIntakeRecordCount = countIntakeRecords();
+
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.currentDateStreakStatus").value("EXCLUDED"))
+                .andExpect(jsonPath("$.result.streakDays").value(0))
+                .andExpect(jsonPath("$.result.mascotStage").value("SEED"))
+                .andExpect(jsonPath("$.result.mascotStageLabel").value("씨앗"))
+                .andExpect(jsonPath("$.result.activeProductCount").value(0))
+                .andExpect(jsonPath("$.result.lastRoutineDate").value(nullValue()))
+                .andExpect(jsonPath("$.result.nextStageThresholdDays").value(7));
+
+        assertEquals(beforeIntakeDayCount, countIntakeDays());
+        assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("오늘 예정 영양제를 모두 완료했으면 오늘을 연속 섭취일에 포함한다")
+    void getIntakeStreak_withTodayCompleted_includesToday() throws Exception {
+        LocalDate currentDate = currentDate();
+        insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+        insertCompletedRoutineDays(EMPTY_MEMBER_ID, 30L, 109L, currentDate, 1, 301L, 401L);
+
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.currentDateStreakStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.result.streakDays").value(1))
+                .andExpect(jsonPath("$.result.mascotStage").value("SEED"))
+                .andExpect(jsonPath("$.result.activeProductCount").value(1))
+                .andExpect(jsonPath("$.result.lastRoutineDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.nextStageThresholdDays").value(7));
+    }
+
+    @Test
+    @DisplayName("오늘 예정 영양제를 아직 완료하지 않았으면 어제까지의 연속 섭취일을 반환한다")
+    void getIntakeStreak_withTodayPending_excludesTodayAndKeepsPreviousStreak() throws Exception {
+        LocalDate currentDate = currentDate();
+        LocalDate yesterday = currentDate.minusDays(1);
+        insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+        insertCompletedRoutineDays(EMPTY_MEMBER_ID, 30L, 109L, yesterday, 2, 301L, 401L);
+
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDateStreakStatus").value("PENDING"))
+                .andExpect(jsonPath("$.result.streakDays").value(2))
+                .andExpect(jsonPath("$.result.mascotStage").value("SEED"))
+                .andExpect(jsonPath("$.result.activeProductCount").value(1))
+                .andExpect(jsonPath("$.result.lastRoutineDate").value(yesterday.toString()))
+                .andExpect(jsonPath("$.result.nextStageThresholdDays").value(7));
+    }
+
+    @Test
+    @DisplayName("오늘 예정 영양제가 없으면 오늘을 연속 섭취 유지일에 포함한다")
+    void getIntakeStreak_withNoScheduledProductsToday_includesMaintainedToday() throws Exception {
+        LocalDate currentDate = currentDate();
+        LocalDate scheduledOn = currentDate.minusDays(1);
+        insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+        changeActiveProductFrequency(30L, "EVERY_2_DAYS", 2, scheduledOn);
+        insertCompletedRoutineDays(EMPTY_MEMBER_ID, 30L, 109L, scheduledOn, 1, 301L, 401L);
+
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDateStreakStatus").value("MAINTAINED"))
+                .andExpect(jsonPath("$.result.streakDays").value(2))
+                .andExpect(jsonPath("$.result.mascotStage").value("SEED"))
+                .andExpect(jsonPath("$.result.activeProductCount").value(1))
+                .andExpect(jsonPath("$.result.lastRoutineDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.nextStageThresholdDays").value(7));
+    }
+
+    @Test
+    @DisplayName("과거 예정일 미완료가 있으면 그 날짜에서 연속 섭취일이 끊긴다")
+    void getIntakeStreak_withPastBrokenDate_stopsAtBrokenDate() throws Exception {
+        LocalDate currentDate = currentDate();
+        LocalDate oldCompletedOn = currentDate.minusDays(3);
+        insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+        insertCompletedRoutineDays(EMPTY_MEMBER_ID, 30L, 109L, currentDate, 2, 301L, 401L);
+        insertCalendarIntakeDay(303L, EMPTY_MEMBER_ID, oldCompletedOn, true, oldCompletedOn + " 08:00:00");
+        insertTodayIntakeRecord(403L, 303L, 30L, 109L, true, oldCompletedOn + " 08:00:00");
+
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDateStreakStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.result.streakDays").value(2))
+                .andExpect(jsonPath("$.result.activeProductCount").value(1))
+                .andExpect(jsonPath("$.result.lastRoutineDate").value(currentDate.toString()));
+    }
+
+    @Test
+    @DisplayName("연속 섭취일은 복용 주기 변경 이력 기준으로 과거 예정일을 판단한다")
+    void getIntakeStreak_withScheduleHistory_usesHistoricalSchedule() throws Exception {
+        LocalDate currentDate = currentDate();
+        LocalDate scheduleChangedOn = currentDate.minusDays(1);
+        insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+        changeActiveProductFrequencyPreservingHistory(
+                30L,
+                "EVERY_2_DAYS",
+                2,
+                scheduleChangedOn
+        );
+        insertCompletedRoutineDays(EMPTY_MEMBER_ID, 30L, 109L, scheduleChangedOn, 1, 301L, 401L);
+
+        mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDateStreakStatus").value("MAINTAINED"))
+                .andExpect(jsonPath("$.result.streakDays").value(2))
+                .andExpect(jsonPath("$.result.activeProductCount").value(1))
+                .andExpect(jsonPath("$.result.lastRoutineDate").value(currentDate.toString()));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "0,SEED,씨앗,7",
+            "6,SEED,씨앗,7",
+            "7,SPROUT,새싹,15",
+            "14,SPROUT,새싹,15",
+            "15,FLOWER,꽃,30",
+            "29,FLOWER,꽃,30",
+            "30,FRUIT,열매,31",
+            "31,TREE,나무,NULL"
+    }, nullValues = "NULL")
+    @DisplayName("연속 섭취일 경계값에 맞는 마스코트 성장 단계를 반환한다")
+    void getIntakeStreak_returnsMascotStageByStreakDays(
+            int streakDays,
+            String expectedMascotStage,
+            String expectedMascotStageLabel,
+            Integer expectedNextStageThresholdDays
+    ) throws Exception {
+        LocalDate currentDate = currentDate();
+        if (streakDays > 0) {
+            LocalDate startedOn = currentDate.minusDays(streakDays - 1L);
+            insertMemberActiveProduct(30L, 16L, EMPTY_MEMBER_ID, null, "2026-07-01 09:00:00");
+            moveActiveProductStartAndCurrentSchedule(30L, startedOn);
+            insertCompletedRoutineDays(EMPTY_MEMBER_ID, 30L, 109L, currentDate, streakDays, 301L, 401L);
+        }
+
+        var resultActions = mockMvc.perform(get(STREAK_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.currentDate").value(currentDate.toString()))
+                .andExpect(jsonPath("$.result.streakDays").value(streakDays))
+                .andExpect(jsonPath("$.result.mascotStage").value(expectedMascotStage))
+                .andExpect(jsonPath("$.result.mascotStageLabel").value(expectedMascotStageLabel));
+
+        if (expectedNextStageThresholdDays == null) {
+            resultActions.andExpect(jsonPath("$.result.nextStageThresholdDays").value(nullValue()));
+            return;
+        }
+        resultActions.andExpect(jsonPath("$.result.nextStageThresholdDays")
+                .value(expectedNextStageThresholdDays));
     }
 
     @Test
@@ -2224,6 +2419,62 @@ class IntakeControllerTest {
                 scheduleAnchorOn.toString(),
                 null
         );
+    }
+
+    private void moveActiveProductStartAndCurrentSchedule(Long activeProductId, LocalDate startedOn) {
+        jdbcTemplate.update("""
+                        UPDATE member_active_product
+                        SET started_on = ?,
+                            schedule_anchor_on = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        """,
+                startedOn,
+                startedOn,
+                activeProductId
+        );
+        jdbcTemplate.update("""
+                        UPDATE member_active_product_schedule_history
+                        SET schedule_anchor_on = ?,
+                            effective_from = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE member_active_product_id = ?
+                          AND effective_to IS NULL
+                        """,
+                startedOn,
+                startedOn,
+                activeProductId
+        );
+    }
+
+    private void insertCompletedRoutineDays(
+            Long memberId,
+            Long activeProductId,
+            Long productId,
+            LocalDate endDate,
+            int days,
+            Long firstIntakeDayId,
+            Long firstRecordId
+    ) {
+        for (int offset = 0; offset < days; offset++) {
+            LocalDate intakeOn = endDate.minusDays(offset);
+            long intakeDayId = firstIntakeDayId + offset;
+            insertCalendarIntakeDay(
+                    intakeDayId,
+                    memberId,
+                    intakeOn,
+                    true,
+                    intakeOn + " 08:00:00"
+            );
+            insertTodayIntakeRecord(
+                    firstRecordId + offset,
+                    intakeDayId,
+                    activeProductId,
+                    productId,
+                    true,
+                    intakeOn + " 08:00:00"
+            );
+        }
     }
 
     private void insertIntakeDay(Long id, Long memberId, String intakeOn) {

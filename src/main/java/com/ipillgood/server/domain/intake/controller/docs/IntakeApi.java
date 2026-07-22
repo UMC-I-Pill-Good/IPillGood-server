@@ -249,6 +249,61 @@ public interface IntakeApi {
     );
 
     @Operation(
+            summary = "연속 섭취일 조회",
+            description = "연속 섭취일과 마스코트 성장 단계를 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "연속 섭취일 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "currentDateStreakStatus": "COMPLETED",
+                                                "streakDays": 15,
+                                                "mascotStage": "FLOWER",
+                                                "mascotStageLabel": "꽃",
+                                                "activeProductCount": 2,
+                                                "lastRoutineDate": "2026-07-21",
+                                                "nextStageThresholdDays": 30
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.IntakeStreak> getIntakeStreak(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
             summary = "오늘 복용 팝업 노출 기록",
             description = "홈 자동 팝업을 실제 노출한 뒤 오늘의 자동 팝업 노출 이력을 기록합니다."
     )
