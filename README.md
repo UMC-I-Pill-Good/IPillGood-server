@@ -1,4 +1,4 @@
-# 💊 IPillGood Client
+# 💊 IPillGood Server
 
 <p align="center">
   <img width="100%" alt="아필굿 배너" src="https://github.com/user-attachments/assets/2a35db81-a847-4106-b1f4-cbe670963a8e" />
