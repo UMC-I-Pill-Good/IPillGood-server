@@ -2,16 +2,21 @@ package com.ipillgood.server.domain.intake.converter;
 
 import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
 import com.ipillgood.server.domain.intake.dto.IntakeResponse;
+import com.ipillgood.server.domain.intake.entity.IntakeRecord;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.ActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.ActiveProductSettingsRow;
 import com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow;
+import com.ipillgood.server.domain.intake.repository.TodayIntakeRecordRow;
+import com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow;
 import com.ipillgood.server.domain.product.entity.Product;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class IntakeConverter {
@@ -34,6 +39,74 @@ public class IntakeConverter {
         return IntakeResponse.ActiveProducts.builder()
                 .totalCount(activeProducts.size())
                 .activeProducts(activeProducts)
+                .build();
+    }
+
+    public static IntakeResponse.TodayIntakeStatus toTodayIntakeStatus(
+            LocalDate currentDate,
+            List<TodayScheduledProductRow> scheduledRows,
+            Map<Long, TodayIntakeRecordRow> recordsByActiveProductId,
+            boolean autoPopupShown
+    ) {
+        List<IntakeResponse.TodayScheduledProduct> scheduledProducts = scheduledRows.stream()
+                .map(row -> toTodayScheduledProduct(row, recordsByActiveProductId.get(row.activeProductId())))
+                .toList();
+
+        int scheduledCount = scheduledProducts.size();
+        int takenCount = (int) scheduledProducts.stream()
+                .filter(product -> Boolean.TRUE.equals(product.taken()))
+                .count();
+        boolean allCompleted = scheduledCount > 0 && takenCount == scheduledCount;
+        boolean missedNoticeVisible = scheduledCount > 0 && !allCompleted;
+        boolean autoPopupRequired = missedNoticeVisible && !autoPopupShown;
+
+        return IntakeResponse.TodayIntakeStatus.builder()
+                .currentDate(currentDate)
+                .scheduledCount(scheduledCount)
+                .takenCount(takenCount)
+                .allCompleted(allCompleted)
+                .missedNoticeVisible(missedNoticeVisible)
+                .autoPopupShown(autoPopupShown)
+                .autoPopupRequired(autoPopupRequired)
+                .scheduledProducts(scheduledProducts)
+                .build();
+    }
+
+    public static IntakeResponse.TodayPopupShown toTodayPopupShown(
+            LocalDate currentDate,
+            LocalDateTime autoPopupShownAt
+    ) {
+        return IntakeResponse.TodayPopupShown.builder()
+                .currentDate(currentDate)
+                .autoPopupShown(autoPopupShownAt != null)
+                .autoPopupShownAt(autoPopupShownAt)
+                .build();
+    }
+
+    public static IntakeResponse.SaveTodayIntakeRecords toSaveTodayIntakeRecords(
+            LocalDate currentDate,
+            List<TodayScheduledProductRow> scheduledRows,
+            Map<Long, IntakeRecord> recordsByProductId,
+            LocalDateTime completedAt
+    ) {
+        List<IntakeResponse.TodayIntakeRecord> records = scheduledRows.stream()
+                .map(row -> toTodayIntakeRecord(row, recordsByProductId.get(row.productId())))
+                .toList();
+
+        int scheduledCount = records.size();
+        int takenCount = (int) records.stream()
+                .filter(record -> Boolean.TRUE.equals(record.taken()))
+                .count();
+        boolean allCompleted = scheduledCount > 0 && takenCount == scheduledCount;
+
+        return IntakeResponse.SaveTodayIntakeRecords.builder()
+                .currentDate(currentDate)
+                .scheduledCount(scheduledCount)
+                .takenCount(takenCount)
+                .allCompleted(allCompleted)
+                .completedAt(completedAt)
+                .missedNoticeVisible(scheduledCount > 0 && !allCompleted)
+                .records(records)
                 .build();
     }
 
@@ -121,6 +194,38 @@ public class IntakeConverter {
                 .productId(row.productId())
                 .productName(row.productName())
                 .thumbnailImageUrl(toThumbnailImageUrl(row, imageBaseUrl))
+                .build();
+    }
+
+    private static IntakeResponse.TodayScheduledProduct toTodayScheduledProduct(
+            TodayScheduledProductRow row,
+            TodayIntakeRecordRow record
+    ) {
+        boolean taken = record != null && Boolean.TRUE.equals(record.taken());
+
+        return IntakeResponse.TodayScheduledProduct.builder()
+                .activeProductId(row.activeProductId())
+                .memberProductId(row.memberProductId())
+                .productId(row.productId())
+                .productName(row.productName())
+                .taken(taken)
+                .takenAt(taken ? record.takenAt() : null)
+                .build();
+    }
+
+    private static IntakeResponse.TodayIntakeRecord toTodayIntakeRecord(
+            TodayScheduledProductRow row,
+            IntakeRecord record
+    ) {
+        boolean taken = record != null && record.isTaken();
+
+        return IntakeResponse.TodayIntakeRecord.builder()
+                .activeProductId(row.activeProductId())
+                .productId(row.productId())
+                .productName(row.productName())
+                .scheduled(true)
+                .taken(taken)
+                .takenAt(taken ? record.getTakenAt() : null)
                 .build();
     }
 

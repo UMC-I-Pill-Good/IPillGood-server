@@ -17,6 +17,251 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface IntakeApi {
 
     @Operation(
+            summary = "오늘 복용 상태 조회",
+            description = "홈에서 사용할 오늘 복용 예정/완료 상태와 자동 팝업 필요 여부를 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "오늘 복용 상태 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "scheduledCount": 2,
+                                                "takenCount": 1,
+                                                "allCompleted": false,
+                                                "missedNoticeVisible": true,
+                                                "autoPopupShown": false,
+                                                "autoPopupRequired": true,
+                                                "scheduledProducts": [
+                                                  {
+                                                    "activeProductId": 7,
+                                                    "memberProductId": 15,
+                                                    "productId": 112,
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                    "taken": true,
+                                                    "takenAt": "2026-07-21T08:45:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.TodayIntakeStatus> getTodayIntakeStatus(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
+            summary = "오늘 복용 팝업 노출 기록",
+            description = "홈 자동 팝업을 실제 노출한 뒤 오늘의 자동 팝업 노출 이력을 기록합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "오늘 복용 팝업 노출 기록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "autoPopupShown": true,
+                                                "autoPopupShownAt": "2026-07-21T09:00:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "오늘 복용 팝업 노출 대상 아님",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE409_2",
+                                              "message": "오늘 복용 팝업 노출 대상이 아닙니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.TodayPopupShown> recordTodayPopupShown(
+            @Parameter(hidden = true)
+            Long memberId
+    );
+
+    @Operation(
+            summary = "오늘 복용 체크 저장",
+            description = "오늘 복용 예정 영양제의 체크 상태를 저장하고 저장 결과를 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @RequestBody(
+            required = true,
+            description = "오늘 섭취 완료로 저장할 활성 섭취 중 상품 ID 목록을 전달합니다.",
+            content = @Content(
+                    schema = @Schema(implementation = IntakeRequest.SaveTodayIntakeRecords.class),
+                    examples = @ExampleObject(
+                            value = """
+                                    {
+                                      "takenActiveProductIds": [
+                                        7
+                                      ]
+                                    }
+                                    """
+                    )
+            )
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "오늘 복용 체크 저장 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "요청이 성공적으로 처리되었습니다.",
+                                              "result": {
+                                                "currentDate": "2026-07-21",
+                                                "scheduledCount": 2,
+                                                "takenCount": 1,
+                                                "allCompleted": false,
+                                                "completedAt": null,
+                                                "missedNoticeVisible": true,
+                                                "records": [
+                                                  {
+                                                    "activeProductId": 7,
+                                                    "productId": 112,
+                                                    "productName": "뉴트리코어 유기농 비타민D 1000IU",
+                                                    "scheduled": true,
+                                                    "taken": true,
+                                                    "takenAt": "2026-07-21T08:45:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "오늘 복용 체크 요청 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE400_4",
+                                              "message": "오늘 복용 체크 요청이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "활성 섭취 중 상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE404_2",
+                                              "message": "활성 섭취 중 상품을 찾을 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<IntakeResponse.SaveTodayIntakeRecords> saveTodayIntakeRecords(
+            @Parameter(hidden = true)
+            Long memberId,
+            IntakeRequest.SaveTodayIntakeRecords request
+    );
+
+    @Operation(
             summary = "섭취 중 영양제 목록 조회",
             description = "홈에서 표시할 현재 섭취 중 영양제 카드 목록을 활성 등록 순서로 조회합니다."
     )

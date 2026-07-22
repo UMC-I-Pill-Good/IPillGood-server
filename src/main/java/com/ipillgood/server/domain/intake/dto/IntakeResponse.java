@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class IntakeResponse {
@@ -37,6 +38,121 @@ public class IntakeResponse {
 
             @Schema(description = "카드에 표시할 썸네일 이미지 URL")
             String thumbnailImageUrl
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 상태 조회 응답")
+    @Builder
+    public record TodayIntakeStatus(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 복용 예정 영양제 수", example = "2")
+            Integer scheduledCount,
+
+            @Schema(description = "오늘 실제 섭취 완료한 영양제 수", example = "1")
+            Integer takenCount,
+
+            @Schema(description = "오늘 복용 예정 영양제를 모두 완료했는지 여부", example = "false")
+            Boolean allCompleted,
+
+            @Schema(description = "홈 미섭취 안내 박스 노출 여부", example = "true")
+            Boolean missedNoticeVisible,
+
+            @Schema(description = "오늘 자동 팝업 노출 기록 존재 여부", example = "false")
+            Boolean autoPopupShown,
+
+            @Schema(description = "홈 첫 진입 시 자동 팝업을 노출해야 하는지 여부", example = "true")
+            Boolean autoPopupRequired,
+
+            @Schema(description = "오늘 복용 예정 영양제 목록")
+            List<TodayScheduledProduct> scheduledProducts
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 예정 영양제 항목")
+    @Builder
+    public record TodayScheduledProduct(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "오늘 섭취 완료 여부", example = "true")
+            Boolean taken,
+
+            @Schema(description = "오늘 섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 팝업 노출 기록 응답")
+    @Builder
+    public record TodayPopupShown(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 자동 팝업 노출 기록 존재 여부", example = "true")
+            Boolean autoPopupShown,
+
+            @Schema(description = "자동 팝업 노출 기록 일시", example = "2026-07-21T09:00:00")
+            LocalDateTime autoPopupShownAt
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 체크 저장 응답")
+    @Builder
+    public record SaveTodayIntakeRecords(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 복용 예정 영양제 수", example = "2")
+            Integer scheduledCount,
+
+            @Schema(description = "오늘 실제 섭취 완료한 영양제 수", example = "1")
+            Integer takenCount,
+
+            @Schema(description = "오늘 복용 예정 영양제를 모두 완료했는지 여부", example = "false")
+            Boolean allCompleted,
+
+            @Schema(description = "전체 완료 일시", example = "2026-07-21T21:05:00")
+            LocalDateTime completedAt,
+
+            @Schema(description = "홈 미섭취 안내 박스 노출 여부", example = "true")
+            Boolean missedNoticeVisible,
+
+            @Schema(description = "오늘 복용 예정 영양제별 저장 결과")
+            List<TodayIntakeRecord> records
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 체크 저장 항목")
+    @Builder
+    public record TodayIntakeRecord(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "오늘 복용 예정 여부", example = "true")
+            Boolean scheduled,
+
+            @Schema(description = "오늘 섭취 완료 여부", example = "true")
+            Boolean taken,
+
+            @Schema(description = "오늘 섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
     ) {
     }
 

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,46 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
             order by ap.createdAt asc, ap.id asc
             """)
     List<ActiveProductRow> findActiveProductRows(@Param("memberId") Long memberId);
+
+    @Query("""
+            select new com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow(
+                ap.id,
+                mp.id,
+                p.id,
+                p.name,
+                ap.scheduleAnchorOn,
+                ap.frequencyIntervalDays
+            )
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            where ap.member.id = :memberId
+              and ap.startedOn <= :currentDate
+              and (ap.stoppedOn is null or :currentDate < ap.stoppedOn)
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            order by ap.createdAt asc, ap.id asc
+            """)
+    List<TodayScheduledProductRow> findTodayScheduleCandidateRows(
+            @Param("memberId") Long memberId,
+            @Param("currentDate") LocalDate currentDate
+    );
+
+    @Query("""
+            select ap
+            from MemberActiveProduct ap
+            join fetch ap.memberProduct mp
+            join fetch mp.product p
+            where ap.member.id = :memberId
+              and ap.id in :activeProductIds
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    List<MemberActiveProduct> findActiveTodayRecordTargets(
+            @Param("memberId") Long memberId,
+            @Param("activeProductIds") Collection<Long> activeProductIds
+    );
 
     @Query("""
             select new com.ipillgood.server.domain.intake.repository.ActiveProductRow(
