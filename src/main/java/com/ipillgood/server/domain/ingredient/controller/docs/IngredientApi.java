@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -93,10 +94,47 @@ public interface IngredientApi {
                                             """
                             )
                     )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "영양성분 ID 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INGREDIENT400_1",
+                                              "message": "영양성분 ID가 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "영양성분 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INGREDIENT404_1",
+                                              "message": "영양성분을 찾을 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     ApiResponse<IngredientResponse.IngredientDetail> getIngredient(
-            @Parameter(description = "조회할 영양성분 ID")
+            @Parameter(
+                    description = "조회할 영양성분 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "2")
+            )
             Long ingredientId,
 
             @Parameter(hidden = true)
