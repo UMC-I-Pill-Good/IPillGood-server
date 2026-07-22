@@ -135,7 +135,7 @@ public class AuthService {
         // 4. 리프레시 토큰 저장 (재발급 검증용)
         refreshTokenStore.save(member.getId(), refreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toLoginResponse(accessToken, refreshToken);
+        return AuthConverter.toLoginResponse(member, accessToken, refreshToken, jwtProvider.getAccessTokenExpiresIn());
     }
 
     // 토큰 재발급 (Refresh Token Rotation)
@@ -166,7 +166,8 @@ public class AuthService {
         String newRefreshToken = jwtProvider.createRefreshToken(member.getId(), role);
         refreshTokenStore.save(member.getId(), newRefreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toLoginResponse(newAccessToken, newRefreshToken);
+        return AuthConverter.toLoginResponse(member, newAccessToken, newRefreshToken,
+                jwtProvider.getAccessTokenExpiresIn());
     }
 
     // 로그아웃 (저장된 리프레시 토큰 폐기)

@@ -7,7 +7,12 @@ import com.ipillgood.server.domain.member.entity.Role;
 
 public class AuthConverter {
 
-    // 회원가입 - 멤버 엔티티 생성
+    // 응답에 내려주는 토큰 타입 (Authorization 헤더에 "Bearer {accessToken}" 형태로 사용)
+    private static final String TOKEN_TYPE_BEARER = "Bearer";
+
+    /**
+     * 1. 로컬 회원가입 - 멤버 엔티티 생성
+     */
     public static Member toMember(AuthRequest.SignUp request, String encodedPassword) {
         return Member.builder()
                 .nickname(request.nickname())
@@ -18,7 +23,9 @@ public class AuthConverter {
                 .build();
     }
 
-    // 회원가입 - 멤버 엔티티 -> DTO 변환
+    /**
+     * 1. 로컬 회원가입 - 멤버 엔티티 -> DTO 변환
+     */
     public static AuthResponse.SignUp toSignUpResponse(Member member) {
         return AuthResponse.SignUp.builder()
                 .memberId(member.getId())
@@ -31,11 +38,60 @@ public class AuthConverter {
                 .build();
     }
 
-    // 로그인 - 발급된 토큰 -> DTO 변환
-    public static AuthResponse.Login toLoginResponse(String accessToken, String refreshToken) {
+    /**
+     * 2. 로컬 로그인 - 발급된 토큰 -> DTO 변환
+     */
+    public static AuthResponse.Login toLoginResponse(Member member, String accessToken,
+                                                     String refreshToken, long expiresIn) {
         return AuthResponse.Login.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .tokenType(TOKEN_TYPE_BEARER)
+                .expiresIn(expiresIn)
+                .memberId(member.getId())
+                .onboardingCompleted(member.getOnboardingCompletedAt() != null)
+                .build();
+    }
+
+    /**
+     * 3. 소셜 로그인 - 이미 연동된 소셜 계정이라 바로 로그인 처리
+     * 로컬 로그인과 동일한 응답 구조 + 판정 플래그 2개만 추가
+     */
+    public static AuthResponse.SocialLogin toSocialLoginResponse(Member member, String accessToken,
+                                                                 String refreshToken, long expiresIn) {
+        return AuthResponse.SocialLogin.builder()
+                .signupRequired(false)
+                .accountLinkRequired(false)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType(TOKEN_TYPE_BEARER)
+                .expiresIn(expiresIn)
+                .memberId(member.getId())
+                .onboardingCompleted(member.getOnboardingCompletedAt() != null)
+                .build();
+    }
+
+    /**
+     * 4. 소셜 로그인 - 완전 신규 사용자 -> 회원가입 필요 (아직 토큰 발급 X)
+     */
+    public static AuthResponse.SocialLogin toSignUpRequiredResponse() {
+        return AuthResponse.SocialLogin.builder()
+                .signupRequired(true)
+                .accountLinkRequired(false)
+                .build();
+    }
+
+    /**
+     * 5. [로컬 이메일이 존재할 때 또는 다른 소셜 이메일이 존재할 때]
+     * 소셜 로그인 - 같은 이메일의 기존 회원이 있어 연동 동의가 필요
+     */
+    public static AuthResponse.SocialLogin toAccountLinkRequiredResponse(String accountLinkToken) {
+        return AuthResponse.SocialLogin.builder()
+                .signupRequired(false)
+                .accountLinkRequired(true)
+
+                // 연동 요청에 쓸 임시 토큰
+                .accountLinkToken(accountLinkToken)
                 .build();
     }
 }

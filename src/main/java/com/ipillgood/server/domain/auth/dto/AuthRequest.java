@@ -66,4 +66,14 @@ public class AuthRequest {
             String refreshToken
     ) {
     }
+
+    /**
+     * 소셜 로그인 요청
+     * 이메일은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회함
+     */
+    public record SocialLogin(
+            @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
+            String providerAccessToken
+    ) {
+    }
 }

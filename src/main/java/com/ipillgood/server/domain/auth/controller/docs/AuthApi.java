@@ -43,4 +43,14 @@ public interface AuthApi {
             @NotBlank(message = "올바른 이메일 형식이 아닙니다.")
             @Email(message = "올바른 이메일 형식이 아닙니다.")
             String email);
+
+    @Operation(summary = "소셜 로그인",
+            description = """
+                    소셜 액세스 토큰을 검증하고 사용자 상태에 따라 세 경우로 응답합니다.
+                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken, refreshToken 발급)
+                    - 같은 이메일의 기존 회원이 존재하면 연동 동의 필요합니다. (accountLinkRequired=true + accountLinkToken 발급)
+                    - 신규 사용자라면 회원가입 필요합니다. (signupRequired=true)
+                    이메일 제공에 동의하지 않은 경우 로그인에 실패합니다. (AUTH400_10)
+                    """)
+    ApiResponse<AuthResponse.SocialLogin> socialLogin(String provider, @Valid AuthRequest.SocialLogin request);
 }
