@@ -111,6 +111,34 @@ public class ConditionResponse {
     ) {
     }
 
+    @Schema(description = "컨디션 팝업 자동 노출 기록 응답")
+    @Builder
+    public record PopupAutoShown(
+            @Schema(description = "컨디션 팝업 로그 ID", example = "1")
+            Long popupLogId,
+
+            @Schema(description = "주 시작일", example = "2026-07-20")
+            LocalDate weekStartOn,
+
+            @Schema(description = "자동 노출 일시", example = "2026-07-26T09:00:00")
+            LocalDateTime autoShownAt
+    ) {
+    }
+
+    @Schema(description = "컨디션 팝업 닫힘 기록 응답")
+    @Builder
+    public record PopupDismissed(
+            @Schema(description = "컨디션 팝업 로그 ID", example = "1")
+            Long popupLogId,
+
+            @Schema(description = "주 시작일", example = "2026-07-20")
+            LocalDate weekStartOn,
+
+            @Schema(description = "닫힘 일시", example = "2026-07-26T09:05:00")
+            LocalDateTime dismissedAt
+    ) {
+    }
+
     @Schema(description = "주차별 컨디션 요약")
     @Builder
     public record WeeklySummary(

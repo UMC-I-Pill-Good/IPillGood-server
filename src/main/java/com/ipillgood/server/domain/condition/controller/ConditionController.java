@@ -9,6 +9,7 @@ import com.ipillgood.server.global.apiPayload.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,6 +38,22 @@ public class ConditionController implements ConditionControllerDocs {
             @RequestBody ConditionRequest.SaveWeeklyRecord request) {
         ConditionResponse.Detail response = conditionService.saveWeeklyRecord(memberId, request);
         return ApiResponse.onSuccess(ConditionSuccessCode.WEEKLY_RECORD_SAVE_SUCCESS, response);
+    }
+
+    @Override
+    @PatchMapping("/popup-logs/auto-shown")
+    public ApiResponse<ConditionResponse.PopupAutoShown> recordPopupAutoShown(
+            @AuthenticationPrincipal Long memberId) {
+        ConditionResponse.PopupAutoShown response = conditionService.recordPopupAutoShown(memberId);
+        return ApiResponse.onSuccess(ConditionSuccessCode.POPUP_AUTO_SHOWN_SUCCESS, response);
+    }
+
+    @Override
+    @PatchMapping("/popup-logs/current-week/dismissed")
+    public ApiResponse<ConditionResponse.PopupDismissed> recordPopupDismissed(
+            @AuthenticationPrincipal Long memberId) {
+        ConditionResponse.PopupDismissed response = conditionService.recordPopupDismissed(memberId);
+        return ApiResponse.onSuccess(ConditionSuccessCode.POPUP_DISMISSED_SUCCESS, response);
     }
 
     @Override

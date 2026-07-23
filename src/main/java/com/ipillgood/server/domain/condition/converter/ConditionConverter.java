@@ -51,6 +51,22 @@ public class ConditionConverter {
                 .build();
     }
 
+    public static ConditionResponse.PopupAutoShown toPopupAutoShown(ConditionPopupLog popupLog) {
+        return ConditionResponse.PopupAutoShown.builder()
+                .popupLogId(popupLog.getId())
+                .weekStartOn(popupLog.getWeekStartOn())
+                .autoShownAt(popupLog.getAutoShownAt())
+                .build();
+    }
+
+    public static ConditionResponse.PopupDismissed toPopupDismissed(ConditionPopupLog popupLog) {
+        return ConditionResponse.PopupDismissed.builder()
+                .popupLogId(popupLog.getId())
+                .weekStartOn(popupLog.getWeekStartOn())
+                .dismissedAt(popupLog.getDismissedAt())
+                .build();
+    }
+
     public static ConditionResponse.WeeklySummary toWeeklySummary(ConditionWeeklyRecord record) {
         return ConditionResponse.WeeklySummary.builder()
                 .recordId(record.getId())

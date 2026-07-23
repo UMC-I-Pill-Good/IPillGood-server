@@ -108,6 +108,250 @@ public interface ConditionControllerDocs {
     ApiResponse<ConditionResponse.CurrentWeek> getCurrentWeek(Long memberId);
 
     @Operation(
+            summary = "컨디션 팝업 자동 노출 기록",
+            description = "일요일 컨디션 페이지 첫 접속 시 자동 노출된 팝업을 기록합니다. "
+                    + "같은 주에 이미 기록이 있으면 최초 노출 시각을 그대로 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "컨디션 팝업 자동 노출 기록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "성공 응답",
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "컨디션 팝업 자동 노출 기록에 성공했습니다.",
+                                              "result": {
+                                                "popupLogId": 1,
+                                                "weekStartOn": "2026-07-20",
+                                                "autoShownAt": "2026-07-26T09:00:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "일요일이 아닌 요청",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION400_2",
+                                              "message": "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증이 필요합니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "인증 필요",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON401_1",
+                                              "message": "인증이 필요합니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문을 완료해야 이용할 수 있습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "온보딩 미완료",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION403_2",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 이번 주 컨디션 체크를 완료했습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "이미 완료됨",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION409_1",
+                                              "message": "이미 이번 주 컨디션 체크를 완료했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "서버 내부 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "서버 오류",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON500_1",
+                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ConditionResponse.PopupAutoShown> recordPopupAutoShown(Long memberId);
+
+    @Operation(
+            summary = "컨디션 팝업 닫힘 기록",
+            description = "컨디션 체크 안내 팝업의 닫기(X) 클릭을 기록합니다. "
+                    + "같은 주에 이미 기록이 있으면 최초 닫힘 시각을 그대로 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "컨디션 팝업 닫힘 기록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "성공 응답",
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "컨디션 팝업 닫힘 기록에 성공했습니다.",
+                                              "result": {
+                                                "popupLogId": 1,
+                                                "weekStartOn": "2026-07-20",
+                                                "dismissedAt": "2026-07-26T09:05:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "일요일이 아닌 요청",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION400_2",
+                                              "message": "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증이 필요합니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "인증 필요",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON401_1",
+                                              "message": "인증이 필요합니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문을 완료해야 이용할 수 있습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "온보딩 미완료",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION403_2",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 이번 주 컨디션 체크를 완료했습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "이미 완료됨",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION409_1",
+                                              "message": "이미 이번 주 컨디션 체크를 완료했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "서버 내부 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "서버 오류",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON500_1",
+                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ConditionResponse.PopupDismissed> recordPopupDismissed(Long memberId);
+
+    @Operation(
             summary = "주간 컨디션 체크 저장",
             description = "일요일 주간 컨디션 체크 입력값과 계산 점수를 저장합니다."
     )
