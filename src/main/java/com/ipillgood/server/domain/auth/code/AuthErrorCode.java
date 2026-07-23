@@ -18,7 +18,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH400_6", "비밀번호가 일치하지 않습니다."),
     KAKAO_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_7", "카카오 로그인에 실패했습니다. 다시 시도해주세요."),
     NAVER_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_8", "네이버 로그인에 실패했습니다. 다시 시도해주세요."),
-    REQUIRED_TERMS_NOT_AGREED(HttpStatus.BAD_REQUEST, "AUTH400_9", "필수 항목에 동의해주세요."),
+    // AUTH400_9(필수 약관 미동의)는 PolicyErrorCode에 위치
     SOCIAL_EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "AUTH400_10", "소셜 계정 이메일을 확인할 수 없습니다. 이메일 제공에 동의해주세요."),
     UNSUPPORTED_SOCIAL_PROVIDER(HttpStatus.BAD_REQUEST, "AUTH400_11", "지원하지 않는 소셜 로그인입니다."),
 
@@ -28,7 +28,8 @@ public enum AuthErrorCode implements BaseErrorCode {
 
     // 409 CONFLICT - 중복/계정 충돌
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH409_1", "이미 사용 중인 이메일입니다. 해당 이메일로 로그인해 주세요."),
-    SOCIAL_ACCOUNT_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH409_2", "이미 해당 이메일로 [카카오/네이버] 계정이 존재해요. 해당 소셜 계정으로 로그인해 주세요."),
+    SOCIAL_ACCOUNT_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH409_2",
+            "이미 해당 이메일로 [카카오/네이버] 계정이 존재해요. 해당 소셜 계정으로 로그인해 주세요."),
     ACCOUNT_LINK_REQUIRED(HttpStatus.CONFLICT, "AUTH409_3", "이미 해당 이메일로 가입된 계정이 있어요. 기존 계정에 [카카오/네이버] 로그인을 연동하시겠어요?"),
     DUPLICATE_USERNAME(HttpStatus.CONFLICT, "AUTH409_4", "이미 사용 중인 아이디입니다."),
     ;
