@@ -374,6 +374,155 @@ class NotificationControllerTest {
     }
 
     @Test
+    @DisplayName("인증 없이 복용 전체 알림 설정을 변경하면 401을 반환한다")
+    void updateIntakePushSetting_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "intakePushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 복용 전체 알림 설정을 변경할 수 없다")
+    void updateIntakePushSetting_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "intakePushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("설정 행이 없으면 생성한 뒤 복용 전체 알림 설정을 변경한다")
+    void updateIntakePushSetting_withoutSetting_createsSettingAndReturnsUpdatedValue() throws Exception {
+        int beforeSettingCount = countMemberNotificationSettings();
+
+        mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "intakePushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(true))
+                .andExpect(jsonPath("$.result.intakePushEnabled").value(false));
+
+        assertEquals(beforeSettingCount + 1, countMemberNotificationSettings());
+        assertEquals(Boolean.TRUE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.FALSE, findIntakePushEnabled(MEMBER_ID));
+    }
+
+    @Test
+    @DisplayName("기존 설정 행이 있으면 복용 전체 알림 설정만 true로 변경한다")
+    void updateIntakePushSetting_withExistingSetting_updatesIntakePushEnabledToTrueOnly() throws Exception {
+        insertMemberNotificationSetting(MEMBER_ID, false, false);
+
+        mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "intakePushEnabled": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(false))
+                .andExpect(jsonPath("$.result.intakePushEnabled").value(true));
+
+        assertEquals(1, countMemberNotificationSettings());
+        assertEquals(Boolean.FALSE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.TRUE, findIntakePushEnabled(MEMBER_ID));
+    }
+
+    @Test
+    @DisplayName("기존 설정 행이 있으면 복용 전체 알림 설정만 false로 변경한다")
+    void updateIntakePushSetting_withExistingSetting_updatesIntakePushEnabledToFalseOnly() throws Exception {
+        insertMemberNotificationSetting(MEMBER_ID, true, true);
+
+        mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "intakePushEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(true))
+                .andExpect(jsonPath("$.result.intakePushEnabled").value(false));
+
+        assertEquals(1, countMemberNotificationSettings());
+        assertEquals(Boolean.TRUE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.FALSE, findIntakePushEnabled(MEMBER_ID));
+    }
+
+    @Test
+    @DisplayName("복용 전체 알림 설정 변경 요청 본문이 없으면 400을 반환한다")
+    void updateIntakePushSetting_withoutBody_returnsBadRequest() throws Exception {
+        mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION400_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("복용 전체 알림 설정 변경 요청의 intakePushEnabled가 Boolean이 아니면 400을 반환한다")
+    void updateIntakePushSetting_withInvalidIntakePushEnabled_returnsBadRequest() throws Exception {
+        List<String> invalidBodies = List.of(
+                "{}",
+                "null",
+                """
+                        {
+                          "intakePushEnabled": null
+                        }
+                        """,
+                """
+                        {
+                          "intakePushEnabled": "false"
+                        }
+                        """,
+                """
+                        {
+                          "intakePushEnabled": 1
+                        }
+                        """
+        );
+
+        for (String invalidBody : invalidBodies) {
+            mockMvc.perform(patch(INTAKE_NOTIFICATION_SETTINGS_URL)
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(invalidBody))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("NOTIFICATION400_2"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
+    @Test
     @DisplayName("인증 없이 푸시 토큰을 등록하면 401을 반환한다")
     void registerPushToken_withoutToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(post(PUSH_TOKEN_URL)

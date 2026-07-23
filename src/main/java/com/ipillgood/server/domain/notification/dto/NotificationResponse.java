@@ -34,6 +34,17 @@ public class NotificationResponse {
     ) {
     }
 
+    @Schema(description = "복용 전체 알림 변경 응답")
+    @Builder
+    public record IntakePushSetting(
+            @Schema(description = "앱 전체 푸시 알림 ON/OFF 여부", example = "true")
+            Boolean pushEnabled,
+
+            @Schema(description = "복용 전체 알림 ON/OFF 여부", example = "false")
+            Boolean intakePushEnabled
+    ) {
+    }
+
     @Schema(description = "복용 알림 설정 섭취 중 영양제 항목")
     @Builder
     public record IntakeNotificationActiveProduct(

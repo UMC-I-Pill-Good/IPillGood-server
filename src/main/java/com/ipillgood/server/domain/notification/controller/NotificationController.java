@@ -49,4 +49,17 @@ public class NotificationController implements NotificationApi {
         NotificationResponse.AppPushSetting response = notificationService.updateAppPushSetting(memberId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
+
+    @Override
+    @PatchMapping("/intake")
+    public ApiResponse<NotificationResponse.IntakePushSetting> updateIntakePushSetting(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody(required = false) NotificationRequest.UpdateIntakePushSetting request
+    ) {
+        NotificationResponse.IntakePushSetting response = notificationService.updateIntakePushSetting(
+                memberId,
+                request
+        );
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
 }

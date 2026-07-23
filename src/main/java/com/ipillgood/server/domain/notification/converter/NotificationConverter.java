@@ -17,6 +17,16 @@ public class NotificationConverter {
                 .build();
     }
 
+    public static NotificationResponse.IntakePushSetting toIntakePushSetting(
+            boolean pushEnabled,
+            boolean intakePushEnabled
+    ) {
+        return NotificationResponse.IntakePushSetting.builder()
+                .pushEnabled(pushEnabled)
+                .intakePushEnabled(intakePushEnabled)
+                .build();
+    }
+
     public static NotificationResponse.IntakeNotificationSettings toIntakeNotificationSettings(
             boolean pushEnabled,
             boolean intakePushEnabled,

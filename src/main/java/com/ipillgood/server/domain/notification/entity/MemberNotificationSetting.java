@@ -49,4 +49,8 @@ public class MemberNotificationSetting extends BaseEntity {
     public void changePushEnabled(boolean pushEnabled) {
         this.pushEnabled = pushEnabled;
     }
+
+    public void changeIntakePushEnabled(boolean intakePushEnabled) {
+        this.intakePushEnabled = intakePushEnabled;
+    }
 }

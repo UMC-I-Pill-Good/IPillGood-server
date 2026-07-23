@@ -91,6 +91,27 @@ public class NotificationService {
     }
 
     @Transactional
+    public NotificationResponse.IntakePushSetting updateIntakePushSetting(
+            Long memberId,
+            NotificationRequest.UpdateIntakePushSetting request
+    ) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        boolean intakePushEnabled = validateUpdateIntakePushSettingRequest(request);
+        MemberNotificationSetting setting = memberNotificationSettingRepository.findById(memberId)
+                .orElseGet(() -> memberNotificationSettingRepository.save(
+                        MemberNotificationSetting.createDefault(member)
+                ));
+        setting.changeIntakePushEnabled(intakePushEnabled);
+
+        return NotificationConverter.toIntakePushSetting(
+                setting.isPushEnabled(),
+                setting.isIntakePushEnabled()
+        );
+    }
+
+    @Transactional
     public NotificationResponse.PushTokenRegistration registerPushToken(
             Long memberId,
             NotificationRequest.RegisterPushToken request
@@ -141,6 +162,15 @@ public class NotificationService {
             throw new NotificationException(NotificationErrorCode.APP_PUSH_SETTING_REQUEST_INVALID);
         }
         return pushEnabled;
+    }
+
+    private boolean validateUpdateIntakePushSettingRequest(NotificationRequest.UpdateIntakePushSetting request) {
+        if (request == null
+                || request.intakePushEnabled() == null
+                || !(request.intakePushEnabled() instanceof Boolean intakePushEnabled)) {
+            throw new NotificationException(NotificationErrorCode.INTAKE_PUSH_SETTING_REQUEST_INVALID);
+        }
+        return intakePushEnabled;
     }
 
     private RegisterPushTokenRequestValues validateRegisterPushTokenRequest(
