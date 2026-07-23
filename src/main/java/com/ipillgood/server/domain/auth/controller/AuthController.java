@@ -103,6 +103,17 @@ public class AuthController implements AuthApi {
         return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_SIGNUP_SUCCESS, response);
     }
 
+    // 소셜 계정 연동
+    @Override
+    @PostMapping("/social/{provider}/link")
+    public ApiResponse<AuthResponse.SocialLink> socialLink(
+            @PathVariable String provider,
+            @Valid @RequestBody AuthRequest.SocialLink request) {
+
+        AuthResponse.SocialLink response = socialAuthService.link(toSocialProvider(provider), request);
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LINK_SUCCESS, response);
+    }
+
     /**
      * URL의 {provider} 문자열을 SocialProvider enum으로 변환해주는 메서드
      * "kakao", "KAKAO" 등 대소문자 모두 허용.

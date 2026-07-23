@@ -10,6 +10,7 @@ import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.auth.store.AccountLinkTokenStore;
 import com.ipillgood.server.domain.auth.store.PendingSocialLink;
 import com.ipillgood.server.domain.member.entity.Member;
+import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.service.MemberService;
 import com.ipillgood.server.domain.policy.service.PolicyService;
@@ -112,6 +113,46 @@ public class SocialAuthService {
         policyService.agreeToPolicies(member, request.policyAgreements());
 
         return AuthConverter.toSocialSignUpResponse(member, provider);
+    }
+
+    /**
+     * 소셜 계정 연동 요청 시 실행
+     * 임시 토큰의 기존 회원에 소셜 계정을 붙이고 로그인 토큰을 발급
+     */
+    @Transactional
+    public AuthResponse.SocialLink link(SocialProvider provider, AuthRequest.SocialLink request) {
+
+        // 1. 임시 토큰에서 연동 대기 정보를 꺼냄 (없거나 만료됐으면 실패)
+        PendingSocialLink pending = accountLinkTokenStore.consume(request.accountLinkToken())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID));
+
+        // 2. URL provider와 토큰에 담긴 provider가 다르면 차단
+        // 로그인, 회원가입과 다르게 연동 처리는 토큰 속 provider 값을 진실로 판단
+        if (pending.provider() != provider) {
+            throw new AuthException(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID);
+        }
+
+        // 3. 연동 대상 회원 조회
+        Member member = memberService.findById(pending.memberId())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID));
+
+        // 4. 이미 연동된 소셜 계정이면 중복 연동 차단 (같은 토큰으로 동시 요청 방어)
+        if (memberService.isSocialAccountLinked(provider, pending.providerUserId())) {
+            throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
+        }
+
+        // 5. 기존 회원에 소셜 계정 연동
+        MemberSocialAccount socialAccount = memberService.linkSocialAccount(
+                member, provider, pending.providerUserId(), pending.providerEmail());
+
+        // 6. 연동 즉시 로그인 처리 - 토큰 발급 후 재발급 검증용으로 저장
+        String role = member.getRole().name();
+        String accessToken = jwtProvider.createAccessToken(member.getId(), role);
+        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role);
+        refreshTokenStore.save(member.getId(), refreshToken, jwtProvider.getRefreshTokenValidity());
+
+        return AuthConverter.toSocialLinkResponse(member, socialAccount, accessToken, refreshToken,
+                jwtProvider.getAccessTokenExpiresIn());
     }
 
     /**

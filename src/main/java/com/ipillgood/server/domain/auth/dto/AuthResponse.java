@@ -70,4 +70,22 @@ public class AuthResponse {
             LocalDateTime createdAt
     ) {
     }
+
+    /**
+     * 소셜 계정 연동 응답
+     * 연동 즉시 로그인 처리하므로 로그인 토큰을 함께 발급
+     */
+    @Builder
+    public record SocialLink(
+            Boolean linked,
+            SocialProvider provider,
+            LocalDateTime linkedAt,
+            String accessToken,
+            String refreshToken,
+            String tokenType,
+            Long expiresIn,
+            Long memberId,
+            Boolean onboardingCompleted
+    ) {
+    }
 }

@@ -88,4 +88,14 @@ public class AuthRequest {
             List<PolicyRequest.Agreement> policyAgreements
     ) {
     }
+
+    /**
+     * 소셜 계정 연동 요청
+     * 연동 대상 회원·소셜 정보는 임시 토큰이 들고 있으므로 토큰만 받음
+     */
+    public record SocialLink(
+            @NotBlank(message = "계정 연동 토큰이 필요합니다.")
+            String accountLinkToken
+    ) {
+    }
 }

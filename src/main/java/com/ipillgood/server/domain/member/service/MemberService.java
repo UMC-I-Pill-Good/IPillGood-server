@@ -59,6 +59,14 @@ public class MemberService {
     }
 
     /**
+     * 소셜 계정 연동 시 실행
+     * 연동 대상 회원을 ID로 조회
+     */
+    public Optional<Member> findById(Long memberId) {
+        return memberRepository.findById(memberId);
+    }
+
+    /**
      * 소셜 회원가입 시 실행
      * 회원과 소셜 계정 연동 정보를 함께 생성
      */
@@ -82,9 +90,9 @@ public class MemberService {
      * 로컬 가입 회원에 소셜을 연동하거나, 다른 소셜 계정을 추가할 때 사용
      */
     @Transactional
-    public void linkSocialAccount(Member member, SocialProvider provider,
-                                  String providerUserId, String providerEmail) {
-        memberSocialAccountRepository.save(
+    public MemberSocialAccount linkSocialAccount(Member member, SocialProvider provider,
+                                                 String providerUserId, String providerEmail) {
+        return memberSocialAccountRepository.save(
                 MemberSocialAccount.of(member, provider, providerUserId, providerEmail));
     }
 }

@@ -82,4 +82,21 @@ public interface AuthApi {
             )
             String provider,
             @Valid AuthRequest.SocialSignUp request);
+
+    @Operation(summary = "소셜 계정 연동",
+            description = """
+                    소셜 로그인 중 발급받은 임시 토큰으로 기존 회원에 소셜 계정을 연동합니다.
+                    연동 즉시 로그인 처리되어 토큰을 함께 발급합니다.
+                    임시 토큰이 만료·위조되었거나 URL의 제공자와 다르면 실패합니다. (AUTH401_3)
+                    """)
+    ApiResponse<AuthResponse.SocialLink> socialLink(
+            @Parameter(
+                    description = "소셜 제공자입니다.",
+                    schema = @Schema(
+                            allowableValues = {"KAKAO", "NAVER"},
+                            defaultValue = "KAKAO"
+                    )
+            )
+            String provider,
+            @Valid AuthRequest.SocialLink request);
 }

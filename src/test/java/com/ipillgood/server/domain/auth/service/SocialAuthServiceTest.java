@@ -106,6 +106,12 @@ class SocialAuthServiceTest {
         return new AuthRequest.SocialSignUp("access-token", agreements);
     }
 
+    // 연동 대기 정보를 저장하고 임시 토큰을 발급 (연동 요청 직전 상태 재현)
+    private String issueLinkToken(Member member, SocialProvider provider) {
+        return accountLinkTokenStore.issue(new PendingSocialLink(
+                member.getId(), provider, PROVIDER_USER_ID, EMAIL));
+    }
+
     @Test
     @DisplayName("이미 연동된 소셜 계정이면 로그인 토큰을 발급한다")
     void login_returnsTokensWhenSocialAccountLinked() {
@@ -242,6 +248,64 @@ class SocialAuthServiceTest {
                 () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
 
         assertEquals(AuthErrorCode.DUPLICATE_EMAIL.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("임시 토큰으로 기존 회원에 소셜 계정을 연동하고 로그인 토큰을 발급한다")
+    void link_linksAccountAndIssuesTokens() {
+        Member member = saveLocalMember();
+        String token = issueLinkToken(member, SocialProvider.KAKAO);
+
+        AuthResponse.SocialLink response = socialAuthService.link(
+                SocialProvider.KAKAO, new AuthRequest.SocialLink(token));
+
+        // 연동 결과 + 로그인 토큰이 함께 응답된다
+        assertTrue(response.linked());
+        assertEquals(SocialProvider.KAKAO, response.provider());
+        assertNotNull(response.linkedAt());
+        assertNotNull(response.accessToken());
+        assertEquals(member.getId(), response.memberId());
+
+        // 소셜 계정이 실제로 연동되고, 리프레시 토큰이 저장된다
+        assertTrue(memberSocialAccountRepository
+                .existsByProviderAndProviderUserId(SocialProvider.KAKAO, PROVIDER_USER_ID));
+        assertEquals(response.refreshToken(), refreshTokenStore.find(member.getId()).orElse(null));
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 임시 토큰이면 연동에 실패한다")
+    void link_throwsWhenTokenInvalid() {
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.link(SocialProvider.KAKAO, new AuthRequest.SocialLink("unknown-token")));
+
+        assertEquals(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("URL 제공자와 토큰의 제공자가 다르면 연동에 실패한다")
+    void link_throwsWhenProviderMismatch() {
+        Member member = saveLocalMember();
+        String token = issueLinkToken(member, SocialProvider.KAKAO);
+
+        // 토큰은 KAKAO인데 URL은 NAVER로 요청 -> 불일치
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.link(SocialProvider.NAVER, new AuthRequest.SocialLink(token)));
+
+        assertEquals(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("이미 연동된 소셜 계정이면 연동에 실패한다")
+    void link_throwsWhenSocialAccountAlreadyExists() {
+        Member member = saveLocalMember();
+        memberSocialAccountRepository.save(
+                MemberSocialAccount.of(member, SocialProvider.KAKAO, PROVIDER_USER_ID, EMAIL));
+        String token = issueLinkToken(member, SocialProvider.KAKAO);
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.link(SocialProvider.KAKAO, new AuthRequest.SocialLink(token)));
+
+        assertEquals(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS.getCode(), exception.getCode().getCode());
     }
 
     /**

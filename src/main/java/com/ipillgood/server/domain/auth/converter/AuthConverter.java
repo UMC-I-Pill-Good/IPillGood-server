@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.auth.converter;
 import com.ipillgood.server.domain.auth.dto.AuthRequest;
 import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.member.entity.Member;
+import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.Role;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 
@@ -109,6 +110,25 @@ public class AuthConverter {
                 .profileImageKey(member.getProfileImageKey())
                 .onboardingCompleted(member.getOnboardingCompletedAt() != null)
                 .createdAt(member.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 소셜 계정 연동 - 연동 결과 + 발급된 로그인 토큰 -> DTO 변환
+     * 연동 즉시 로그인 처리하므로 토큰을 함께 담음
+     */
+    public static AuthResponse.SocialLink toSocialLinkResponse(Member member, MemberSocialAccount socialAccount,
+                                                               String accessToken, String refreshToken, long expiresIn) {
+        return AuthResponse.SocialLink.builder()
+                .linked(true)
+                .provider(socialAccount.getProvider())
+                .linkedAt(socialAccount.getLinkedAt())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType(TOKEN_TYPE_BEARER)
+                .expiresIn(expiresIn)
+                .memberId(member.getId())
+                .onboardingCompleted(member.getOnboardingCompletedAt() != null)
                 .build();
     }
 }
