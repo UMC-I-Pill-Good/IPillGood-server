@@ -135,7 +135,7 @@ public class AuthService {
         memberRepository.findByEmail(email).ifPresent(member -> {
 
             // 1. 소셜 계정 존재
-            if (member.getPassword() == null) {
+            if (member.isSocialOnly()) {
                 throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
             }
 

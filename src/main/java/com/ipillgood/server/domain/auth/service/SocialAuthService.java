@@ -103,9 +103,16 @@ public class SocialAuthService {
         }
 
         // 4. 이미 사용 중인 이메일이면 차단 - 비정상적인 signUp 호출 (정상 흐름은 로그인 단계에서 연동으로 안내됨)
-        if (memberService.existsByEmail(profile.email())) {
+        memberService.findByEmail(profile.email()).ifPresent(member -> {
+
+            // 소셜 전용 계정이면 해당 소셜로 로그인하도록 안내
+            if (member.isSocialOnly()) {
+                throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+
+            // 로컬 계정이면 해당 이메일로 로그인하도록 안내
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
-        }
+        });
 
         // 5. 회원 + 소셜 계정 저장 후 약관 동의 이력 저장
         Member member = memberService.createSocialMember(
