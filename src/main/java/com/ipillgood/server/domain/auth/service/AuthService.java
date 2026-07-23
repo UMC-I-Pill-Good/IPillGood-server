@@ -42,10 +42,8 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.DUPLICATE_USERNAME);
         }
 
-        // 3. 이메일 중복 확인
-        if (memberRepository.existsByEmail(request.email())) {
-            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
-        }
+        // 3. 이메일 중복 확인 - 기존 계정이 로컬/소셜인지에 따라 다르게 안내
+        validateEmailAvailable(request.email());
 
         // 4. 비밀번호 암호화 + 회원 저장
         String encodedPassword = passwordEncoder.encode(request.password());
@@ -125,8 +123,24 @@ public class AuthService {
 
     // 이메일 중복확인
     public void checkEmailDuplicate(String email) {
-        if (memberRepository.existsByEmail(email)) {
+        validateEmailAvailable(email);
+    }
+
+    /**
+     * 이미 가입된 이메일인 경우, 기존 계정의 종류에 따라 다른 방식으로 안내
+     * 1. 소셜 전용 계정(비밀번호 없음): 해당 소셜 계정으로 로그인 안내 (AUTH409_2)
+     * 2. 로컬 계정(비밀번호 보유): 해당 이메일로 로그인 안내 (AUTH409_1)
+     */
+    private void validateEmailAvailable(String email) {
+        memberRepository.findByEmail(email).ifPresent(member -> {
+
+            // 1. 소셜 계정 존재
+            if (member.getPassword() == null) {
+                throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+
+            // 2. 로컬 계정 존재
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
-        }
+        });
     }
 }
