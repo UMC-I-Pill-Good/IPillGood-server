@@ -47,4 +47,32 @@ public class MemberPushToken extends BaseEntity {
 
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
+
+    private MemberPushToken(Member member, PushPlatform platform, String token, LocalDateTime lastSeenAt) {
+        this.member = member;
+        this.platform = platform;
+        this.token = token;
+        this.active = true;
+        this.lastSeenAt = lastSeenAt;
+    }
+
+    public static MemberPushToken create(
+            Member member,
+            PushPlatform platform,
+            String token,
+            LocalDateTime lastSeenAt
+    ) {
+        return new MemberPushToken(member, platform, token, lastSeenAt);
+    }
+
+    public void renew(Member member, PushPlatform platform, LocalDateTime lastSeenAt) {
+        this.member = member;
+        this.platform = platform;
+        this.active = true;
+        this.lastSeenAt = lastSeenAt;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }
