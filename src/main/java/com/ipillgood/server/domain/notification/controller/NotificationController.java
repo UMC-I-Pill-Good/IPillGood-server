@@ -31,6 +31,16 @@ public class NotificationController implements NotificationApi {
     }
 
     @Override
+    @GetMapping("/intake")
+    public ApiResponse<NotificationResponse.IntakeNotificationSettings> getIntakeNotificationSettings(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        NotificationResponse.IntakeNotificationSettings response =
+                notificationService.getIntakeNotificationSettings(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
     @PatchMapping("/me")
     public ApiResponse<NotificationResponse.AppPushSetting> updateAppPushSetting(
             @AuthenticationPrincipal Long memberId,

@@ -1,5 +1,7 @@
 package com.ipillgood.server.domain.notification.service;
 
+import com.ipillgood.server.domain.intake.repository.IntakeNotificationActiveProductRow;
+import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.notification.code.NotificationErrorCode;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +30,14 @@ import java.time.ZoneId;
 public class NotificationService {
 
     private static final boolean DEFAULT_PUSH_ENABLED = true;
+    private static final boolean DEFAULT_INTAKE_PUSH_ENABLED = true;
     private static final int MAX_PUSH_TOKEN_LENGTH = 512;
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MemberRepository memberRepository;
     private final MemberNotificationSettingRepository memberNotificationSettingRepository;
     private final MemberPushTokenRepository memberPushTokenRepository;
+    private final MemberActiveProductRepository memberActiveProductRepository;
 
     public NotificationResponse.AppPushSetting getAppPushSetting(Long memberId) {
         Member member = getMember(memberId);
@@ -42,6 +47,29 @@ public class NotificationService {
                 .map(MemberNotificationSetting::isPushEnabled)
                 .orElse(DEFAULT_PUSH_ENABLED);
         return NotificationConverter.toAppPushSetting(pushEnabled);
+    }
+
+    public NotificationResponse.IntakeNotificationSettings getIntakeNotificationSettings(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        NotificationSettingValues settingValues = memberNotificationSettingRepository.findById(memberId)
+                .map(setting -> new NotificationSettingValues(
+                        setting.isPushEnabled(),
+                        setting.isIntakePushEnabled()
+                ))
+                .orElseGet(() -> new NotificationSettingValues(
+                        DEFAULT_PUSH_ENABLED,
+                        DEFAULT_INTAKE_PUSH_ENABLED
+                ));
+        List<IntakeNotificationActiveProductRow> activeProductRows =
+                memberActiveProductRepository.findIntakeNotificationActiveProductRows(memberId);
+
+        return NotificationConverter.toIntakeNotificationSettings(
+                settingValues.pushEnabled(),
+                settingValues.intakePushEnabled(),
+                activeProductRows
+        );
     }
 
     @Transactional
@@ -140,6 +168,12 @@ public class NotificationService {
     private record RegisterPushTokenRequestValues(
             PushPlatform platform,
             String token
+    ) {
+    }
+
+    private record NotificationSettingValues(
+            boolean pushEnabled,
+            boolean intakePushEnabled
     ) {
     }
 }

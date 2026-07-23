@@ -32,9 +32,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class NotificationControllerTest {
 
     private static final String APP_PUSH_SETTING_URL = "/api/v1/notification-settings/me";
+    private static final String INTAKE_NOTIFICATION_SETTINGS_URL = "/api/v1/notification-settings/intake";
     private static final String PUSH_TOKEN_URL = "/api/v1/push-tokens";
     private static final long MEMBER_ID = 1L;
     private static final long ONBOARDING_INCOMPLETE_MEMBER_ID = 2L;
+    private static final long OTHER_MEMBER_ID = 3L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -117,6 +119,113 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
                 .andExpect(jsonPath("$.result.pushEnabled").value(true));
+    }
+
+    @Test
+    @DisplayName("인증 없이 복용 알림 설정을 통합 조회하면 401을 반환한다")
+    void getIntakeNotificationSettings_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(INTAKE_NOTIFICATION_SETTINGS_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 복용 알림 설정을 통합 조회할 수 없다")
+    void getIntakeNotificationSettings_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("설정 행과 섭취 중 영양제가 없으면 기본값과 빈 목록을 반환하고 설정 행을 생성하지 않는다")
+    void getIntakeNotificationSettings_withoutSettingAndActiveProducts_returnsDefaultWithoutCreatingSetting()
+            throws Exception {
+        int beforeSettingCount = countMemberNotificationSettings();
+
+        mockMvc.perform(get(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(true))
+                .andExpect(jsonPath("$.result.intakePushEnabled").value(true))
+                .andExpect(jsonPath("$.result.activeProductCount").value(0))
+                .andExpect(jsonPath("$.result.activeProducts").isArray())
+                .andExpect(jsonPath("$.result.activeProducts.length()").value(0));
+
+        assertEquals(beforeSettingCount, countMemberNotificationSettings());
+    }
+
+    @Test
+    @DisplayName("설정 행이 있으면 저장된 앱 푸시와 복용 전체 알림 값을 반환한다")
+    void getIntakeNotificationSettings_withExistingSetting_returnsSavedSettings() throws Exception {
+        insertMemberNotificationSetting(MEMBER_ID, false, false);
+
+        mockMvc.perform(get(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(false))
+                .andExpect(jsonPath("$.result.intakePushEnabled").value(false))
+                .andExpect(jsonPath("$.result.activeProductCount").value(0))
+                .andExpect(jsonPath("$.result.activeProducts.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("활성 섭취 중 영양제의 개별 알림 설정을 정렬해 반환하고 비활성 대상은 제외한다")
+    void getIntakeNotificationSettings_withActiveProducts_returnsSortedActiveProductSettings() throws Exception {
+        insertMember(OTHER_MEMBER_ID, "다른회원", "2026-07-01 00:00:00");
+        insertMemberNotificationSetting(MEMBER_ID, true, false);
+
+        insertProduct(112L, "뉴트리코어 유기농 비타민D 1000IU", null);
+        insertProduct(124L, "헬로바이오 맥스 비타민C 3000", null);
+        insertProduct(130L, "중단된 제품", null);
+        insertProduct(131L, "삭제된 캐비닛 제품", null);
+        insertProduct(132L, "삭제된 상품", "2026-07-02 00:00:00");
+        insertProduct(133L, "다른 회원 제품", null);
+
+        insertMemberProduct(15L, MEMBER_ID, 112L, null);
+        insertMemberProduct(16L, MEMBER_ID, 124L, null);
+        insertMemberProduct(17L, MEMBER_ID, 130L, null);
+        insertMemberProduct(18L, MEMBER_ID, 131L, "2026-07-02 00:00:00");
+        insertMemberProduct(19L, MEMBER_ID, 132L, null);
+        insertMemberProduct(20L, OTHER_MEMBER_ID, 133L, null);
+
+        insertActiveProduct(22L, MEMBER_ID, 15L, null, true, "08:30", "2026-07-01 10:00:00");
+        insertActiveProduct(20L, MEMBER_ID, 16L, null, false, "21:00", "2026-07-02 10:00:00");
+        insertActiveProduct(23L, MEMBER_ID, 17L, "2026-07-10", true, "09:00", "2026-07-03 10:00:00");
+        insertActiveProduct(24L, MEMBER_ID, 18L, null, true, "10:00", "2026-07-04 10:00:00");
+        insertActiveProduct(25L, MEMBER_ID, 19L, null, true, "11:00", "2026-07-05 10:00:00");
+        insertActiveProduct(26L, OTHER_MEMBER_ID, 20L, null, true, "12:00", "2026-07-06 10:00:00");
+
+        mockMvc.perform(get(INTAKE_NOTIFICATION_SETTINGS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.pushEnabled").value(true))
+                .andExpect(jsonPath("$.result.intakePushEnabled").value(false))
+                .andExpect(jsonPath("$.result.activeProductCount").value(2))
+                .andExpect(jsonPath("$.result.activeProducts.length()").value(2))
+                .andExpect(jsonPath("$.result.activeProducts[0].activeProductId").value(22))
+                .andExpect(jsonPath("$.result.activeProducts[0].memberProductId").value(15))
+                .andExpect(jsonPath("$.result.activeProducts[0].productId").value(112))
+                .andExpect(jsonPath("$.result.activeProducts[0].productName")
+                        .value("뉴트리코어 유기농 비타민D 1000IU"))
+                .andExpect(jsonPath("$.result.activeProducts[0].notificationEnabled").value(true))
+                .andExpect(jsonPath("$.result.activeProducts[0].intakeTime").value("08:30"))
+                .andExpect(jsonPath("$.result.activeProducts[1].activeProductId").value(20))
+                .andExpect(jsonPath("$.result.activeProducts[1].memberProductId").value(16))
+                .andExpect(jsonPath("$.result.activeProducts[1].productId").value(124))
+                .andExpect(jsonPath("$.result.activeProducts[1].productName")
+                        .value("헬로바이오 맥스 비타민C 3000"))
+                .andExpect(jsonPath("$.result.activeProducts[1].notificationEnabled").value(false))
+                .andExpect(jsonPath("$.result.activeProducts[1].intakeTime").value("21:00"));
     }
 
     @Test
@@ -625,6 +734,10 @@ class NotificationControllerTest {
         jdbcTemplate.update("DELETE FROM notification_delivery_log");
         jdbcTemplate.update("DELETE FROM member_push_token");
         jdbcTemplate.update("DELETE FROM member_notification_setting");
+        jdbcTemplate.update("DELETE FROM member_active_product_schedule_history");
+        jdbcTemplate.update("DELETE FROM member_active_product");
+        jdbcTemplate.update("DELETE FROM member_product");
+        jdbcTemplate.update("DELETE FROM product");
         jdbcTemplate.update("DELETE FROM member");
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY TRUE");
     }
@@ -674,6 +787,85 @@ class NotificationControllerTest {
                 memberId,
                 pushEnabled,
                 intakePushEnabled
+        );
+    }
+
+    private void insertProduct(Long id, String name, String deletedAt) {
+        jdbcTemplate.update("""
+                        INSERT INTO product (
+                            id,
+                            name,
+                            brand,
+                            description,
+                            purchase_url,
+                            mfds_certified,
+                            deleted_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, '테스트브랜드', '테스트 설명', 'https://example.com/products',
+                                true, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                name,
+                deletedAt
+        );
+    }
+
+    private void insertMemberProduct(Long id, Long memberId, Long productId, String deletedAt) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_product (
+                            id,
+                            member_id,
+                            product_id,
+                            added_at,
+                            deleted_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                productId,
+                deletedAt
+        );
+    }
+
+    private void insertActiveProduct(
+            Long id,
+            Long memberId,
+            Long memberProductId,
+            String stoppedOn,
+            boolean notificationEnabled,
+            String intakeTime,
+            String createdAt
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_active_product (
+                            id,
+                            member_id,
+                            member_product_id,
+                            started_on,
+                            stopped_on,
+                            intake_time,
+                            frequency,
+                            frequency_interval_days,
+                            schedule_anchor_on,
+                            notification_enabled,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, '2026-07-01', ?, ?, 'EVERY_DAY', 1, '2026-07-01',
+                                ?, ?, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                memberProductId,
+                stoppedOn,
+                intakeTime,
+                notificationEnabled,
+                createdAt
         );
     }
 
