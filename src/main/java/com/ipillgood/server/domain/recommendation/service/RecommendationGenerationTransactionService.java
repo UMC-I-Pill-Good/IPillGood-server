@@ -8,7 +8,9 @@ import com.ipillgood.server.domain.ingredient.repository.ContraindicationReposit
 import com.ipillgood.server.domain.ingredient.repository.IngredientEffectRepository;
 import com.ipillgood.server.domain.ingredient.repository.IngredientRepository;
 import com.ipillgood.server.domain.recommendation.entity.Recommendation;
+import com.ipillgood.server.domain.recommendation.entity.RecommendationFeedbackCycle;
 import com.ipillgood.server.domain.recommendation.entity.RecommendationItem;
+import com.ipillgood.server.domain.recommendation.repository.RecommendationFeedbackCycleRepository;
 import com.ipillgood.server.domain.recommendation.repository.RecommendationItemRepository;
 import com.ipillgood.server.domain.recommendation.repository.RecommendationRepository;
 import com.ipillgood.server.domain.survey.entity.SurveyResponse;
@@ -38,9 +40,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecommendationGenerationTransactionService {
 
     private static final int MAX_RECOMMENDATION_ITEMS = 3;
+    private static final int FEEDBACK_CYCLE_INTERVAL_DAYS = 30;
 
     private final RecommendationRepository recommendationRepository;
     private final RecommendationItemRepository recommendationItemRepository;
+    private final RecommendationFeedbackCycleRepository recommendationFeedbackCycleRepository;
     private final SurveyContraindicationSelectionRepository surveyContraindicationSelectionRepository;
     private final SurveyOnboardingConcernSelectionRepository surveyOnboardingConcernSelectionRepository;
     private final SurveyCurrentIngredientSelectionRepository surveyCurrentIngredientSelectionRepository;
@@ -160,6 +164,12 @@ public class RecommendationGenerationTransactionService {
         if (recommendation.getSurveyResponse().getSubmissionType() == SurveySubmissionType.INITIAL) {
             recommendation.getMember().completeOnboarding(completedAt);
         }
+
+        recommendationFeedbackCycleRepository.save(RecommendationFeedbackCycle.builder()
+                .member(recommendation.getMember())
+                .recommendation(recommendation)
+                .cycleDueOn(completedAt.toLocalDate().plusDays(FEEDBACK_CYCLE_INTERVAL_DAYS))
+                .build());
     }
 
     @Transactional

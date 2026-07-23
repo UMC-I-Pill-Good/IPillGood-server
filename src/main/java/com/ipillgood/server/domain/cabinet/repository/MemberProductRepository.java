@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -159,6 +160,32 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
     List<CabinetProductRow> findActiveCabinetProducts(@Param("memberId") Long memberId);
 
     @Query("""
+            select new com.ipillgood.server.domain.cabinet.repository.CabinetReviewPromptRow(
+                ap.id,
+                p.id,
+                p.name
+            )
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            left join ProductReview pr on pr.product = p
+                and pr.member.id = :memberId
+                and pr.deletedAt is null
+            where ap.member.id = :memberId
+              and ap.stoppedOn is null
+              and ap.startedOn <= :dueStartedOn
+              and ap.reviewPromptDismissedAt is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+              and pr.id is null
+            order by ap.startedOn asc, p.name asc, ap.id asc
+            """)
+    List<CabinetReviewPromptRow> findDueReviewPrompts(
+            @Param("memberId") Long memberId,
+            @Param("dueStartedOn") LocalDate dueStartedOn
+    );
+
+    @Query("""
             select new com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow(
                 mp.id,
                 p.id,
@@ -187,6 +214,20 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
                 ap.intakeTime, ap.frequency, ap.frequencyIntervalDays, ap.scheduleAnchorOn
             """)
     Optional<CabinetProductDetailRow> findActiveCabinetProductDetail(
+            @Param("memberId") Long memberId,
+            @Param("memberProductId") Long memberProductId
+    );
+
+    @Query("""
+            select mp
+            from MemberProduct mp
+            join fetch mp.product p
+            where mp.member.id = :memberId
+              and mp.id = :memberProductId
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            """)
+    Optional<MemberProduct> findActiveIntakeRegistrationTarget(
             @Param("memberId") Long memberId,
             @Param("memberProductId") Long memberProductId
     );

@@ -55,4 +55,43 @@ public class IntakeRecord extends BaseEntity {
 
     @Column(name = "taken_at")
     private LocalDateTime takenAt;
+
+    private IntakeRecord(IntakeDay intakeDay, MemberActiveProduct memberActiveProduct, Product product) {
+        this.intakeDay = intakeDay;
+        this.memberActiveProduct = memberActiveProduct;
+        this.product = product;
+        this.scheduled = true;
+    }
+
+    public static IntakeRecord createScheduled(IntakeDay intakeDay, MemberActiveProduct memberActiveProduct) {
+        return new IntakeRecord(
+                intakeDay,
+                memberActiveProduct,
+                memberActiveProduct.getMemberProduct().getProduct()
+        );
+    }
+
+    public void saveTodayState(MemberActiveProduct memberActiveProduct, boolean taken, LocalDateTime takenAt) {
+        this.memberActiveProduct = memberActiveProduct;
+        this.product = memberActiveProduct.getMemberProduct().getProduct();
+        this.scheduled = true;
+
+        if (taken) {
+            markTaken(takenAt);
+            return;
+        }
+        markUntaken();
+    }
+
+    private void markTaken(LocalDateTime takenAt) {
+        if (!taken || this.takenAt == null) {
+            this.takenAt = takenAt;
+        }
+        this.taken = true;
+    }
+
+    private void markUntaken() {
+        this.taken = false;
+        this.takenAt = null;
+    }
 }

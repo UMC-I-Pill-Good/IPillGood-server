@@ -16,12 +16,16 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,6 +37,8 @@ class CabinetControllerTest {
 
     private static final String CABINET_PRODUCTS_URL = "/api/v1/cabinet/products";
     private static final String CABINET_PRODUCT_CANDIDATES_URL = "/api/v1/cabinet/product-candidates";
+    private static final String CABINET_REVIEW_PROMPTS_URL = "/api/v1/cabinet/review-prompts";
+    private static final String CABINET_REVIEW_PROMPTS_DUE_URL = CABINET_REVIEW_PROMPTS_URL + "/due";
     private static final long MEMBER_ID = 1L;
     private static final long OTHER_MEMBER_ID = 2L;
     private static final long EMPTY_MEMBER_ID = 3L;
@@ -50,6 +56,7 @@ class CabinetControllerTest {
     private String accessToken;
     private String emptyMemberAccessToken;
     private String onboardingIncompleteAccessToken;
+    private String defaultActiveProductStartedOn;
 
     @BeforeEach
     void setUp() {
@@ -59,6 +66,7 @@ class CabinetControllerTest {
         insertMember(OTHER_MEMBER_ID, "다른회원", "2026-07-01 00:00:00");
         insertMember(EMPTY_MEMBER_ID, "빈회원", "2026-07-01 00:00:00");
         insertMember(ONBOARDING_INCOMPLETE_MEMBER_ID, "미완료", null);
+        defaultActiveProductStartedOn = LocalDate.now().minusDays(20).toString();
 
         insertIngredient(1L, "종합비타민", "ingredients/1.png");
         insertIngredient(2L, "비타민 D", "ingredients/2.png");
@@ -146,6 +154,22 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("인증 없이 후기 작성 유도 대상을 조회하면 401을 반환한다")
+    void getDueReviewPrompts_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(CABINET_REVIEW_PROMPTS_DUE_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("인증 없이 후기 작성 유도 배너 닫힘을 기록하면 401을 반환한다")
+    void dismissReviewPrompt_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(patch(reviewPromptDismissedUrl(10L)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
     @DisplayName("인증 없이 캐비닛 추가 후보를 검색하면 401을 반환한다")
     void getProductCandidates_withoutToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL))
@@ -202,6 +226,28 @@ class CabinetControllerTest {
     @DisplayName("온보딩을 완료하지 않은 회원은 캐비닛 개별 영양제를 조회할 수 없다")
     void getProduct_withoutCompletedOnboarding_returnsForbidden() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCTS_URL + "/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 후기 작성 유도 대상을 조회할 수 없다")
+    void getDueReviewPrompts_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(get(CABINET_REVIEW_PROMPTS_DUE_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 후기 작성 유도 배너 닫힘을 기록할 수 없다")
+    void dismissReviewPrompt_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(patch(reviewPromptDismissedUrl(10L))
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.isSuccess").value(false))
@@ -421,6 +467,162 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("후기 작성 유도 대상만 정렬해서 조회한다")
+    void getDueReviewPrompts_returnsEligiblePromptsOrdered() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        String olderStartedOn = currentDate.minusDays(31).toString();
+        String exactDueStartedOn = currentDate.minusDays(30).toString();
+        String notDueStartedOn = currentDate.minusDays(29).toString();
+        String currentDateText = currentDate.toString();
+
+        insertProduct(200L, "A Older Product", "테스트브랜드", null);
+        insertProduct(201L, "B Deleted Review Product", "테스트브랜드", null);
+        insertProduct(202L, "C Other Review Product", "테스트브랜드", null);
+        insertProduct(203L, "Z Same Product", "테스트브랜드", null);
+        insertProduct(204L, "Z Same Product", "테스트브랜드", null);
+        insertProduct(205L, "Not Due Product", "테스트브랜드", null);
+        insertProduct(206L, "Stopped Product", "테스트브랜드", null);
+        insertProduct(207L, "Deleted Cabinet Product", "테스트브랜드", null);
+        insertProduct(208L, "Deleted Product", "테스트브랜드", "2026-07-01 00:00:00");
+        insertProduct(209L, "Dismissed Product", "테스트브랜드", null);
+        insertProduct(210L, "My Review Product", "테스트브랜드", null);
+
+        insertMemberProduct(20L, MEMBER_ID, 200L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(21L, MEMBER_ID, 201L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(22L, MEMBER_ID, 202L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(23L, MEMBER_ID, 203L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(24L, MEMBER_ID, 204L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(25L, MEMBER_ID, 205L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(26L, MEMBER_ID, 206L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(27L, MEMBER_ID, 207L, "2026-06-01 10:00:00", "2026-07-01 00:00:00");
+        insertMemberProduct(28L, MEMBER_ID, 208L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(29L, MEMBER_ID, 209L, "2026-06-01 10:00:00", null);
+        insertMemberProduct(30L, MEMBER_ID, 210L, "2026-06-01 10:00:00", null);
+
+        insertMemberActiveProduct(20L, 20L, MEMBER_ID, olderStartedOn, null, null);
+        insertMemberActiveProduct(21L, 21L, MEMBER_ID, olderStartedOn, null, null);
+        insertMemberActiveProduct(22L, 22L, MEMBER_ID, olderStartedOn, null, null);
+        insertMemberActiveProduct(23L, 23L, MEMBER_ID, exactDueStartedOn, null, null);
+        insertMemberActiveProduct(24L, 24L, MEMBER_ID, exactDueStartedOn, null, null);
+        insertMemberActiveProduct(25L, 25L, MEMBER_ID, notDueStartedOn, null, null);
+        insertMemberActiveProduct(26L, 26L, MEMBER_ID, olderStartedOn, currentDateText, null);
+        insertMemberActiveProduct(27L, 27L, MEMBER_ID, olderStartedOn, null, null);
+        insertMemberActiveProduct(28L, 28L, MEMBER_ID, olderStartedOn, null, null);
+        insertMemberActiveProduct(29L, 29L, MEMBER_ID, olderStartedOn, null, "2026-07-20 09:00:00");
+        insertMemberActiveProduct(30L, 30L, MEMBER_ID, olderStartedOn, null, null);
+
+        insertProductReview(3001L, 201L, MEMBER_ID, 5, "2026-07-20 00:00:00");
+        insertProductReview(3002L, 202L, OTHER_MEMBER_ID, 5, null);
+        insertProductReview(3003L, 210L, MEMBER_ID, 5, null);
+
+        mockMvc.perform(get(CABINET_REVIEW_PROMPTS_DUE_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.duePrompts.length()").value(5))
+                .andExpect(jsonPath("$.result.duePrompts[*].activeProductId", contains(20, 21, 22, 23, 24)))
+                .andExpect(jsonPath("$.result.duePrompts[*].productId", contains(200, 201, 202, 203, 204)))
+                .andExpect(jsonPath("$.result.duePrompts[*].productName", contains(
+                        "A Older Product",
+                        "B Deleted Review Product",
+                        "C Other Review Product",
+                        "Z Same Product",
+                        "Z Same Product"
+                )));
+    }
+
+    @Test
+    @DisplayName("후기 작성 유도 대상이 없으면 빈 목록을 반환한다")
+    void getDueReviewPrompts_withNoDuePrompts_returnsEmptyList() throws Exception {
+        mockMvc.perform(get(CABINET_REVIEW_PROMPTS_DUE_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.duePrompts.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("후기 작성 유도 배너 닫힘을 기록한다")
+    void dismissReviewPrompt_withActiveProduct_recordsDismissedAt() throws Exception {
+        assertNull(findReviewPromptDismissedAt(10L));
+
+        mockMvc.perform(patch(reviewPromptDismissedUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.result.activeProductId").value(10))
+                .andExpect(jsonPath("$.result.dismissedAt")
+                        .value(matchesPattern("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?")));
+
+        assertNotNull(findReviewPromptDismissedAt(10L));
+    }
+
+    @Test
+    @DisplayName("이미 닫힘 기록된 후기 작성 유도 배너는 기존 닫힘 일시를 반환한다")
+    void dismissReviewPrompt_withAlreadyDismissedProduct_returnsExistingDismissedAt() throws Exception {
+        LocalDateTime existingDismissedAt = LocalDateTime.of(2026, 7, 20, 9, 0);
+        jdbcTemplate.update(
+                "UPDATE member_active_product SET review_prompt_dismissed_at = ? WHERE id = ?",
+                existingDismissedAt,
+                10L
+        );
+
+        mockMvc.perform(patch(reviewPromptDismissedUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.activeProductId").value(10))
+                .andExpect(jsonPath("$.result.dismissedAt").value("2026-07-20T09:00:00"));
+
+        assertEquals(existingDismissedAt, findReviewPromptDismissedAt(10L));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1"})
+    @DisplayName("activeProductId가 1 미만이면 400을 반환한다")
+    void dismissReviewPrompt_withInvalidActiveProductId_returnsBadRequest(String activeProductId) throws Exception {
+        mockMvc.perform(patch(reviewPromptDismissedUrl(activeProductId))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CABINET400_4"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("activeProductId가 숫자 형식이 아니면 공통 400을 반환한다")
+    void dismissReviewPrompt_withNonNumericActiveProductId_returnsCommonBadRequest() throws Exception {
+        mockMvc.perform(patch(reviewPromptDismissedUrl("abc"))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("닫힘 기록 대상이 활성 섭취 중 상품이 아니면 404를 반환한다")
+    void dismissReviewPrompt_withUnavailableActiveProduct_returnsNotFound() throws Exception {
+        insertMemberActiveProduct(30L, 3L, MEMBER_ID, null);
+        insertMemberActiveProduct(31L, 4L, MEMBER_ID, null);
+        insertMemberActiveProduct(32L, 5L, OTHER_MEMBER_ID, null);
+
+        for (long activeProductId : new long[]{999L, 11L, 30L, 31L, 32L}) {
+            mockMvc.perform(patch(reviewPromptDismissedUrl(activeProductId))
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("CABINET404_3"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
+    @Test
     @DisplayName("섭취 중인 캐비닛 개별 영양제를 조회한다")
     void getProduct_withActiveIntake_returnsProductDetail() throws Exception {
         mockMvc.perform(get(CABINET_PRODUCTS_URL + "/1")
@@ -444,14 +646,14 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.ingredients[0].description").value("성분 설명"))
                 .andExpect(jsonPath("$.result.ingredients[0].effectTags", contains("뼈 건강", "면역")))
                 .andExpect(jsonPath("$.result.activeProduct.activeProductId").value(10))
-                .andExpect(jsonPath("$.result.activeProduct.startedOn").value("2026-07-01"))
+                .andExpect(jsonPath("$.result.activeProduct.startedOn").value(defaultActiveProductStartedOn))
                 .andExpect(jsonPath("$.result.activeProduct.intakeDayCount").value(21))
                 .andExpect(jsonPath("$.result.activeProduct.notificationEnabled").value(true))
                 .andExpect(jsonPath("$.result.activeProduct.intakeTime").value("09:00"))
                 .andExpect(jsonPath("$.result.activeProduct.frequency").value("EVERY_DAY"))
                 .andExpect(jsonPath("$.result.activeProduct.frequencyLabel").value("매일"))
                 .andExpect(jsonPath("$.result.activeProduct.frequencyIntervalDays").value(1))
-                .andExpect(jsonPath("$.result.activeProduct.scheduleAnchorOn").value("2026-07-01"));
+                .andExpect(jsonPath("$.result.activeProduct.scheduleAnchorOn").value(defaultActiveProductStartedOn));
     }
 
     @Test
@@ -515,6 +717,9 @@ class CabinetControllerTest {
     @Test
     @DisplayName("캐비닛 영양제를 복수 삭제하고 활성 섭취 상품을 중단한다")
     void deleteProducts_withValidMemberProducts_returnsOk() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
+                defaultActiveProductStartedOn, null);
         insertIntakeDay(1L, MEMBER_ID, "2026-07-20");
         insertIntakeRecord(1L, 1L, 10L, 100L);
         int beforeIntakeDayCount = countIntakeDays();
@@ -547,7 +752,9 @@ class CabinetControllerTest {
         assertEquals(1, countDeletedMemberProduct(2L));
         assertEquals(0, countActiveMemberProducts(MEMBER_ID, 100L));
         assertEquals(0, countActiveMemberProducts(MEMBER_ID, 101L));
-        assertEquals(LocalDate.now(), findStoppedOn(10L));
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(0, countActiveScheduleHistories(10L));
+        assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
         assertEquals(beforeIntakeDayCount, countIntakeDays());
         assertEquals(beforeIntakeRecordCount, countIntakeRecords());
     }
@@ -564,6 +771,10 @@ class CabinetControllerTest {
     })
     @DisplayName("캐비닛 삭제 상품 ID 목록이 올바르지 않으면 400을 반환하고 삭제하지 않는다")
     void deleteProducts_withInvalidMemberProductIds_returnsBadRequest(String requestBody) throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
+                defaultActiveProductStartedOn, null);
+
         mockMvc.perform(delete(CABINET_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -575,6 +786,8 @@ class CabinetControllerTest {
 
         assertEquals(0, countDeletedMemberProduct(1L));
         assertEquals(0, countStoppedActiveProduct(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+        assertEquals(0, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
     }
 
     @ParameterizedTest
@@ -586,6 +799,10 @@ class CabinetControllerTest {
     })
     @DisplayName("삭제할 수 없는 캐비닛 상품이 포함되면 404를 반환하고 일부만 삭제하지 않는다")
     void deleteProducts_withUnavailableMemberProduct_returnsNotFound(String requestBody) throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
+                defaultActiveProductStartedOn, null);
+
         mockMvc.perform(delete(CABINET_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -597,6 +814,8 @@ class CabinetControllerTest {
 
         assertEquals(0, countDeletedMemberProduct(1L));
         assertEquals(0, countStoppedActiveProduct(10L));
+        assertEquals(1, countActiveScheduleHistories(10L));
+        assertEquals(0, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
     }
 
     @ParameterizedTest
@@ -712,6 +931,7 @@ class CabinetControllerTest {
         jdbcTemplate.update("DELETE FROM product_review");
         jdbcTemplate.update("DELETE FROM intake_record");
         jdbcTemplate.update("DELETE FROM intake_day");
+        jdbcTemplate.update("DELETE FROM member_active_product_schedule_history");
         jdbcTemplate.update("DELETE FROM member_active_product");
         jdbcTemplate.update("DELETE FROM member_product");
         jdbcTemplate.update("DELETE FROM product_ingredient");
@@ -870,6 +1090,17 @@ class CabinetControllerTest {
     }
 
     private void insertMemberActiveProduct(Long id, Long memberProductId, Long memberId, String stoppedOn) {
+        insertMemberActiveProduct(id, memberProductId, memberId, defaultActiveProductStartedOn, stoppedOn, null);
+    }
+
+    private void insertMemberActiveProduct(
+            Long id,
+            Long memberProductId,
+            Long memberId,
+            String startedOn,
+            String stoppedOn,
+            String reviewPromptDismissedAt
+    ) {
         jdbcTemplate.update("""
                         INSERT INTO member_active_product (
                             id,
@@ -882,16 +1113,50 @@ class CabinetControllerTest {
                             frequency_interval_days,
                             schedule_anchor_on,
                             notification_enabled,
+                            review_prompt_dismissed_at,
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, '2026-07-01', ?, '09:00:00', 'EVERY_DAY', 1,
-                                '2026-07-01', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, ?, ?, ?, '09:00:00', 'EVERY_DAY', 1,
+                                ?, true, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 memberProductId,
                 memberId,
-                stoppedOn
+                startedOn,
+                stoppedOn,
+                startedOn,
+                reviewPromptDismissedAt
+        );
+    }
+
+    private void insertMemberActiveProductScheduleHistory(
+            Long activeProductId,
+            String frequency,
+            int frequencyIntervalDays,
+            String scheduleAnchorOn,
+            String effectiveFrom,
+            String effectiveTo
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_active_product_schedule_history (
+                            member_active_product_id,
+                            frequency,
+                            frequency_interval_days,
+                            schedule_anchor_on,
+                            effective_from,
+                            effective_to,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                activeProductId,
+                frequency,
+                frequencyIntervalDays,
+                scheduleAnchorOn,
+                effectiveFrom,
+                effectiveTo
         );
     }
 
@@ -1040,6 +1305,46 @@ class CabinetControllerTest {
         );
     }
 
+    private int countActiveScheduleHistories(Long activeProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND effective_to IS NULL
+                        """,
+                Integer.class,
+                activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countClosedScheduleHistories(Long activeProductId, String frequency, LocalDate effectiveTo) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product_schedule_history
+                        WHERE member_active_product_id = ?
+                          AND frequency = ?
+                          AND effective_to = ?
+                        """,
+                Integer.class,
+                activeProductId,
+                frequency,
+                effectiveTo
+        );
+        return count == null ? 0 : count;
+    }
+
+    private LocalDateTime findReviewPromptDismissedAt(Long activeProductId) {
+        return jdbcTemplate.queryForObject("""
+                        SELECT review_prompt_dismissed_at
+                        FROM member_active_product
+                        WHERE id = ?
+                        """,
+                LocalDateTime.class,
+                activeProductId
+        );
+    }
+
     private int countIntakeDays() {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM intake_day", Integer.class);
         return count == null ? 0 : count;
@@ -1052,5 +1357,9 @@ class CabinetControllerTest {
 
     private String bearerToken(String token) {
         return "Bearer " + token;
+    }
+
+    private String reviewPromptDismissedUrl(Object activeProductId) {
+        return CABINET_REVIEW_PROMPTS_URL + "/" + activeProductId + "/dismissed";
     }
 }

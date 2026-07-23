@@ -51,4 +51,33 @@ public class IntakeDay extends BaseEntity {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    private IntakeDay(Member member, LocalDate intakeOn) {
+        this.member = member;
+        this.intakeOn = intakeOn;
+    }
+
+    public static IntakeDay create(Member member, LocalDate intakeOn) {
+        return new IntakeDay(member, intakeOn);
+    }
+
+    public LocalDateTime markAutoPopupShown(LocalDateTime shownAt) {
+        if (autoPopupShownAt == null) {
+            autoPopupShownAt = shownAt;
+        }
+        return autoPopupShownAt;
+    }
+
+    public void changeCompletion(boolean allCompleted, LocalDateTime completedAt) {
+        if (allCompleted) {
+            if (!this.allCompleted || this.completedAt == null) {
+                this.completedAt = completedAt;
+            }
+            this.allCompleted = true;
+            return;
+        }
+
+        this.allCompleted = false;
+        this.completedAt = null;
+    }
 }

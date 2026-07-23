@@ -12,19 +12,21 @@ import com.ipillgood.server.domain.cabinet.repository.CabinetProductCandidateTag
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductDetailRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKeywordRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
+import com.ipillgood.server.domain.cabinet.repository.CabinetReviewPromptRow;
 import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
+import com.ipillgood.server.domain.intake.service.ActiveProductStopService;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.domain.product.repository.ProductRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,14 +51,14 @@ public class CabinetService {
     private static final int DEFAULT_PRODUCT_CANDIDATE_SIZE = 20;
     private static final int MAX_PRODUCT_CANDIDATE_SIZE = 100;
     private static final int MAX_PRODUCT_CANDIDATE_KEYWORD_LENGTH = 100;
+    private static final int REVIEW_PROMPT_DUE_DAYS = 30;
 
     private final MemberRepository memberRepository;
     private final MemberProductRepository memberProductRepository;
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final ProductRepository productRepository;
-
-    @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String storagePublicBaseUrl;
+    private final ActiveProductStopService activeProductStopService;
+    private final S3Service s3Service;
 
     public CabinetResponse.ProductCandidates getProductCandidates(
             Long memberId,
@@ -88,7 +90,7 @@ public class CabinetService {
                 candidatePage.hasNext(),
                 candidatePage.getContent(),
                 tagsByProductId,
-                storagePublicBaseUrl
+                s3Service::getPublicUrl
         );
     }
 
@@ -97,7 +99,31 @@ public class CabinetService {
         validateOnboardingCompleted(member);
 
         List<CabinetProductRow> products = memberProductRepository.findActiveCabinetProducts(memberId);
-        return CabinetConverter.toProductList(member.getNickname(), products, storagePublicBaseUrl);
+        return CabinetConverter.toProductList(member.getNickname(), products, s3Service::getPublicUrl);
+    }
+
+    public CabinetResponse.ReviewPrompts getDueReviewPrompts(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        LocalDate dueStartedOn = LocalDate.now().minusDays(REVIEW_PROMPT_DUE_DAYS);
+        List<CabinetReviewPromptRow> reviewPrompts =
+                memberProductRepository.findDueReviewPrompts(memberId, dueStartedOn);
+        return CabinetConverter.toReviewPrompts(reviewPrompts);
+    }
+
+    @Transactional
+    public CabinetResponse.ReviewPromptDismissed dismissReviewPrompt(Long memberId, Long activeProductId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+        validateActiveProductId(activeProductId);
+
+        MemberActiveProduct activeProduct = memberActiveProductRepository
+                .findActiveReviewPromptDismissTarget(memberId, activeProductId)
+                .orElseThrow(() -> new CabinetException(CabinetErrorCode.REVIEW_PROMPT_NOT_FOUND));
+        activeProduct.dismissReviewPrompt(LocalDateTime.now());
+
+        return CabinetConverter.toReviewPromptDismissed(activeProduct);
     }
 
     public CabinetResponse.ProductDetail getProduct(Long memberId, Long memberProductId) {
@@ -111,7 +137,7 @@ public class CabinetService {
         List<CabinetProductIngredientKeywordRow> ingredients =
                 memberProductRepository.findProductIngredientKeywordRows(memberId, memberProductId);
 
-        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), storagePublicBaseUrl);
+        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -149,7 +175,7 @@ public class CabinetService {
         List<CabinetAddedProductRow> orderedRows = addedProductRows.stream()
                 .sorted(Comparator.comparingInt(row -> productOrder.get(row.productId())))
                 .toList();
-        return CabinetConverter.toAddProducts(orderedRows, storagePublicBaseUrl);
+        return CabinetConverter.toAddProducts(orderedRows, s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -177,7 +203,7 @@ public class CabinetService {
         LocalDate stoppedOn = LocalDate.now();
 
         orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
-        activeProducts.forEach(activeProduct -> activeProduct.markStopped(stoppedOn));
+        activeProducts.forEach(activeProduct -> activeProductStopService.stop(activeProduct, stoppedOn));
 
         return response;
     }
@@ -346,6 +372,12 @@ public class CabinetService {
     private void validateMemberProductId(Long memberProductId) {
         if (memberProductId == null || memberProductId < 1) {
             throw new CabinetException(CabinetErrorCode.MEMBER_PRODUCT_ID_INVALID);
+        }
+    }
+
+    private void validateActiveProductId(Long activeProductId) {
+        if (activeProductId == null || activeProductId < 1) {
+            throw new CabinetException(CabinetErrorCode.REVIEW_PROMPT_ID_INVALID);
         }
     }
 
