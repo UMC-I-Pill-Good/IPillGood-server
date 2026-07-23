@@ -50,12 +50,17 @@ public class KakaoProfileClient implements SocialProfileClient {
         }
 
         // 4. 이메일 추출
-        // 사용자가 이메일 제공에 동의하지 않았을 경우 null로 전달
-        String email = response.kakaoAccount() == null ? null : response.kakaoAccount().email();
+        // 사용자가 이메일 제공에 동의하지 않았을 경우 null
+        KakaoUserResponse.KakaoAccount account = response.kakaoAccount();
+        String email = account == null ? null : account.email();
 
-        // 5. 공통 포맷(SocialProfile)으로 변환
+        // 5. 닉네임 추출
+        // 프로필 제공에 동의하지 않았을 경우 null
+        String nickname = account == null || account.profile() == null ? null : account.profile().nickname();
+
+        // 6. 공통 포맷(SocialProfile)으로 변환
         // 카카오는 회원번호를 Long 타입으로 주므로 String 타입으로 통일
-        return new SocialProfile(String.valueOf(response.id()), email);
+        return new SocialProfile(String.valueOf(response.id()), email, sanitizeNickname(nickname));
     }
 
     /**
@@ -102,8 +107,16 @@ public class KakaoProfileClient implements SocialProfileClient {
             KakaoAccount kakaoAccount
     ) {
 
+        // 정의 안 한 필드는 무시
         @JsonIgnoreProperties(ignoreUnknown = true)
-        record KakaoAccount(String email) {
+        record KakaoAccount(
+                String email,
+                KakaoProfile profile
+        ) {
+
+            @JsonIgnoreProperties(ignoreUnknown = true)
+            record KakaoProfile(String nickname) {
+            }
         }
     }
 

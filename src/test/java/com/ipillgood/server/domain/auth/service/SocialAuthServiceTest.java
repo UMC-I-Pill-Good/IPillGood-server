@@ -14,6 +14,9 @@ import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
+import com.ipillgood.server.domain.policy.dto.PolicyRequest;
+import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
+import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
 import com.ipillgood.server.global.security.jwt.InMemoryRefreshTokenStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 소셜 로그인의 네 갈래 판정이 사용자 상태에 따라 올바르게 갈라지는지 검증
+ * 소셜 로그인의 네 갈래 판정과 소셜 회원가입의 분기가 올바르게 동작하는지 검증
  * 카카오를 실제로 호출하지 않고 가짜 클라이언트로 대체
  */
 @SpringBootTest
@@ -46,6 +49,7 @@ class SocialAuthServiceTest {
 
     private static final String PROVIDER_USER_ID = "kakao-12345678";
     private static final String EMAIL = "social@test.com";
+    private static final String NICKNAME = "소셜닉네임";
     private static final AuthRequest.SocialLogin REQUEST = new AuthRequest.SocialLogin("access-token");
 
     // 빈으로 등록하면 실제 리졸버가 KAKAO 구현체를 둘 받아 중복 키로 실패하므로, 스프링 밖에서 직접 들고 있는다
@@ -66,14 +70,22 @@ class SocialAuthServiceTest {
     @Autowired
     private InMemoryRefreshTokenStore refreshTokenStore;
 
+    @Autowired
+    private PolicyDocumentRepository policyDocumentRepository;
+
+    @Autowired
+    private MemberPolicyAgreementRepository memberPolicyAgreementRepository;
+
     @BeforeEach
     void setUp() {
-        // 소셜 계정이 회원을 참조하므로 자식 -> 부모 순으로 정리
+
+        // 약관 이력·소셜 계정이 회원을 참조하므로 자식 -> 부모 순으로 정리
+        memberPolicyAgreementRepository.deleteAll();
         memberSocialAccountRepository.deleteAll();
         memberRepository.deleteAll();
         refreshTokenStore.clear();
 
-        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, EMAIL));
+        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, EMAIL, NICKNAME));
     }
 
     // 로컬 가입 회원 (아이디/비밀번호 보유, 소셜 연동 없음)
@@ -84,6 +96,14 @@ class SocialAuthServiceTest {
                 .email(EMAIL)
                 .password("encoded-password")
                 .build());
+    }
+
+    // 시더가 넣어둔 활성 약관 전체에 동의하는 회원가입 요청 (필수 약관이 모두 포함되어 검증을 통과)
+    private AuthRequest.SocialSignUp signUpRequest() {
+        List<PolicyRequest.Agreement> agreements = policyDocumentRepository.findByActiveTrue().stream()
+                .map(document -> new PolicyRequest.Agreement(document.getId(), true))
+                .toList();
+        return new AuthRequest.SocialSignUp("access-token", agreements);
     }
 
     @Test
@@ -109,7 +129,7 @@ class SocialAuthServiceTest {
     @DisplayName("이메일을 확인할 수 없으면 기존 회원 판단이 불가능하므로 실패한다")
     void login_throwsWhenEmailMissing() {
         // 이메일 제공에 동의하지 않으면 가입도 연동도 할 수 없다
-        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null));
+        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null, NICKNAME));
 
         AuthException exception = assertThrows(AuthException.class,
                 () -> socialAuthService.login(SocialProvider.KAKAO, REQUEST));
@@ -149,6 +169,79 @@ class SocialAuthServiceTest {
         assertFalse(response.accountLinkRequired());
         assertNull(response.accountLinkToken());
         assertNull(response.accessToken());
+    }
+
+    @Test
+    @DisplayName("신규 소셜 사용자는 회원·소셜계정·약관 동의가 저장되고 토큰 없이 응답한다")
+    void signUp_createsMemberWithoutToken() {
+        AuthResponse.SocialSignUp response = socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest());
+
+        // 소셜에서 가져온 닉네임/이메일 그대로 응답에 포함
+        assertNotNull(response.memberId());
+        assertEquals(NICKNAME, response.nickname());
+        assertEquals(EMAIL, response.email());
+        assertEquals(SocialProvider.KAKAO, response.provider());
+
+        // 회원·소셜계정·약관 이력 실제로 저장
+        assertTrue(memberRepository.findByEmail(EMAIL).isPresent());
+        assertTrue(memberSocialAccountRepository
+                .existsByProviderAndProviderUserId(SocialProvider.KAKAO, PROVIDER_USER_ID));
+        assertFalse(memberPolicyAgreementRepository.findAll().isEmpty());
+
+        // 소셜 회원가입은 자동 로그인하지 않으므로 리프레시 토큰이 저장 x
+        assertTrue(refreshTokenStore.find(response.memberId()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("이메일을 확인할 수 없으면 회원가입에 실패한다")
+    void signUp_throwsWhenEmailMissing() {
+        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null, NICKNAME));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
+
+        assertEquals(AuthErrorCode.SOCIAL_EMAIL_NOT_FOUND.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("닉네임을 확인할 수 없으면 회원가입에 실패한다")
+    void signUp_throwsWhenNicknameMissing() {
+        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, EMAIL, null));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
+
+        assertEquals(AuthErrorCode.SOCIAL_NICKNAME_NOT_FOUND.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("이미 연동된 소셜 계정이면 회원가입에 실패한다")
+    void signUp_throwsWhenSocialAccountAlreadyExists() {
+
+        // 같은 provider/providerUserId로 이미 가입된 회원을 만듦
+        Member existing = memberRepository.save(Member.builder()
+                .nickname("기존회원").email("other@test.com").build());
+        memberSocialAccountRepository.save(
+                MemberSocialAccount.of(existing, SocialProvider.KAKAO, PROVIDER_USER_ID, "other@test.com"));
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
+
+        assertEquals(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("이미 사용 중인 이메일이면 회원가입에 실패한다")
+    void signUp_throwsWhenEmailAlreadyUsed() {
+
+        // 같은 이메일의 회원이 이미 있으나 소셜 계정은 연동되지 않은 상태
+        // 비정상적인 직접 호출 방어 경로. login을 건너뛰고 signup을 바로 호출하는 경우. (정상 로직: 연동)
+        saveLocalMember();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
+
+        assertEquals(AuthErrorCode.DUPLICATE_EMAIL.getCode(), exception.getCode().getCode());
     }
 
     /**

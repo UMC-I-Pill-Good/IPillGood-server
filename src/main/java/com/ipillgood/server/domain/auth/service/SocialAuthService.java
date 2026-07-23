@@ -12,17 +12,19 @@ import com.ipillgood.server.domain.auth.store.PendingSocialLink;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.service.MemberService;
+import com.ipillgood.server.domain.policy.service.PolicyService;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Optional;
 
 /**
  * 소셜 로그인/회원가입/계정 연동 흐름을 담당하는 클래스 (판정과 토큰 발급만 책임)
- * 외부 API 호출 때문에 트랜잭션을 걸지 않고, AuthService와 분리
+ * 외부 API 호출이 포함되므로 클래스 단위 트랜잭션은 걸지 않고, 저장이 필요한 메서드만 개별로 건다
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class SocialAuthService {
     private final SocialProfileClientResolver socialProfileClientResolver;
     private final AccountLinkTokenStore accountLinkTokenStore;
     private final MemberService memberService;
+    private final PolicyService policyService;
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
 
@@ -69,6 +72,46 @@ public class SocialAuthService {
 
         // 4. 소셜 계정도 기존 회원도 없으면 신규 사용자
         return AuthConverter.toSignUpRequiredResponse();
+    }
+
+    /**
+     * 소셜 회원가입 요청 시 실행
+     * 소셜 프로필을 조회해 신규 회원과 약관 동의 저장을 한 트랜잭션으로 처리
+     * 외부 API 호출이 트랜잭션에 포함 -> DB 커넥션 오래 사용 (단점)
+     */
+    @Transactional
+    public AuthResponse.SocialSignUp signUp(SocialProvider provider, AuthRequest.SocialSignUp request) {
+
+        // 소셜 제공자에게 사용자 정보 조회 (액세스 토큰 유효한지 검증)
+        SocialProfile profile = socialProfileClientResolver.resolve(provider)
+                .fetch(request.providerAccessToken());
+
+        // 1. 이메일이 없으면 회원을 생성할 수 없으므로 중단
+        if (!StringUtils.hasText(profile.email())) {
+            throw new AuthException(AuthErrorCode.SOCIAL_EMAIL_NOT_FOUND);
+        }
+
+        // 2. 닉네임이 없으면 회원 닉네임을 정할 수 없으므로 중단
+        if (!StringUtils.hasText(profile.nickname())) {
+            throw new AuthException(AuthErrorCode.SOCIAL_NICKNAME_NOT_FOUND);
+        }
+
+        // 3. 이미 연동된 소셜 계정이면 중복 가입 차단
+        if (memberService.isSocialAccountLinked(provider, profile.providerUserId())) {
+            throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
+        }
+
+        // 4. 이미 사용 중인 이메일이면 차단 - 비정상적인 signUp 호출 (정상 흐름은 로그인 단계에서 연동으로 안내됨)
+        if (memberService.existsByEmail(profile.email())) {
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
+
+        // 5. 회원 + 소셜 계정 저장 후 약관 동의 이력 저장
+        Member member = memberService.createSocialMember(
+                profile.email(), profile.nickname(), provider, profile.providerUserId());
+        policyService.agreeToPolicies(member, request.policyAgreements());
+
+        return AuthConverter.toSocialSignUpResponse(member, provider);
     }
 
     /**

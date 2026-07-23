@@ -11,7 +11,9 @@ import java.util.List;
 
 public class AuthRequest {
 
-    // 회원가입 요청
+    /**
+     * 로컬 회원가입 요청
+     */
     public record SignUp(
             // 공백 입력
             @NotBlank(message = "1~10자 이내로 입력해주세요.")
@@ -41,7 +43,9 @@ public class AuthRequest {
     ) {
     }
 
-    // 로그인 요청
+    /**
+     * 로컬 로그인 요청
+     */
     public record Login(
             @NotBlank(message = "2~10자 이내로 입력해주세요.")
             String username,
@@ -51,7 +55,9 @@ public class AuthRequest {
     ) {
     }
 
-    // 액세스 토큰 재발급 요청
+    /**
+     * 액세스 토큰 재발급 요청
+     */
     public record Reissue(
             @NotBlank(message = "리프레시 토큰이 필요합니다.")
             String refreshToken
@@ -65,6 +71,21 @@ public class AuthRequest {
     public record SocialLogin(
             @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
             String providerAccessToken
+    ) {
+    }
+
+    /**
+     * 소셜 회원가입 요청
+     * 닉네임은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회
+     */
+    public record SocialSignUp(
+            @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
+            String providerAccessToken,
+
+            // 약관 동의 목록
+            @NotNull(message = "약관 동의 정보가 필요합니다.")
+            @Valid
+            List<PolicyRequest.Agreement> policyAgreements
     ) {
     }
 }

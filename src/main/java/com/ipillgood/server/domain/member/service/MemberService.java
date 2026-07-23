@@ -51,6 +51,14 @@ public class MemberService {
     }
 
     /**
+     * 소셜 회원가입 직전에 실행
+     * 이미 이 이메일로 가입된 회원이 있는지 확인
+     */
+    public boolean existsByEmail(String email) {
+        return memberRepository.existsByEmail(email);
+    }
+
+    /**
      * 소셜 회원가입 시 실행
      * 회원과 소셜 계정 연동 정보를 함께 생성
      */

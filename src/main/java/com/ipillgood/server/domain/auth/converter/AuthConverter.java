@@ -4,6 +4,7 @@ import com.ipillgood.server.domain.auth.dto.AuthRequest;
 import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.Role;
+import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 
 public class AuthConverter {
 
@@ -92,6 +93,22 @@ public class AuthConverter {
 
                 // 연동 요청에 쓸 임시 토큰
                 .accountLinkToken(accountLinkToken)
+                .build();
+    }
+
+    /**
+     * 소셜 회원가입 - 저장된 회원 엔티티 -> DTO 변환
+     * 자동 로그인하지 않으므로 토큰은 담지 않음
+     */
+    public static AuthResponse.SocialSignUp toSocialSignUpResponse(Member member, SocialProvider provider) {
+        return AuthResponse.SocialSignUp.builder()
+                .memberId(member.getId())
+                .provider(provider)
+                .nickname(member.getNickname())
+                .email(member.getEmail())
+                .profileImageKey(member.getProfileImageKey())
+                .onboardingCompleted(member.getOnboardingCompletedAt() != null)
+                .createdAt(member.getCreatedAt())
                 .build();
     }
 }

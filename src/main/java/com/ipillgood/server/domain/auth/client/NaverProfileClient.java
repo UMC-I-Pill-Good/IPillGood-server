@@ -64,8 +64,8 @@ public class NaverProfileClient implements SocialProfileClient {
 
         // 3. 공통 포맷(SocialProfile)으로 변환
         // 네이버는 ID를 String 타입으로 제공(카카오는 Long 타입)
-        // 사용자가 이메일 제공에 동의하지 않았을 경우 email은 null로 전달
-        return new SocialProfile(response.response().id(), response.response().email());
+        NaverUserResponse.Account account = response.response();
+        return new SocialProfile(account.id(), account.email(), sanitizeNickname(account.nickname()));
     }
 
     /**
@@ -77,8 +77,9 @@ public class NaverProfileClient implements SocialProfileClient {
             Account response
     ) {
 
+        // 정의 안 한 필드는 무시
         @JsonIgnoreProperties(ignoreUnknown = true)
-        record Account(String id, String email) {
+        record Account(String id, String email, String nickname) {
         }
     }
 }

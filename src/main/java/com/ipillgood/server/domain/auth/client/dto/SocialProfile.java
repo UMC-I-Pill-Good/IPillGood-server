@@ -11,6 +11,10 @@ public record SocialProfile(
         String providerUserId,
 
         // 사용자가 이메일 제공에 동의 안하면 null이 될 수도 있음
-        String email
+        String email,
+
+        // 사용자가 프로필(닉네임) 제공에 동의 안하면 null이 될 수도 있음
+        // 소셜 회원가입 시 회원 닉네임 기본값으로 사용 + 10자 제한
+        String nickname
 ) {
 }

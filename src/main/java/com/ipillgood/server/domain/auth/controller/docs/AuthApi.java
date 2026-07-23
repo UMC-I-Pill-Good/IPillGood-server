@@ -64,4 +64,22 @@ public interface AuthApi {
             )
             String provider,
             @Valid AuthRequest.SocialLogin request);
+
+    @Operation(summary = "소셜 회원가입",
+            description = """
+                    소셜 신규 사용자의 약관 동의를 받아 회원가입을 완료합니다.
+                    닉네임은 요청으로 받지 않고 서버가 소셜 제공자에게 직접 조회합니다.
+                    자동 로그인하지 않으므로 토큰을 발급하지 않습니다. (가입 완료 후 로그인 화면으로 이동)
+                    이메일/닉네임 제공에 동의하지 않은 경우 실패합니다. (AUTH400_10, AUTH400_12)
+                    """)
+    ApiResponse<AuthResponse.SocialSignUp> socialSignUp(
+            @Parameter(
+                    description = "소셜 제공자입니다.",
+                    schema = @Schema(
+                            allowableValues = {"KAKAO", "NAVER"},
+                            defaultValue = "KAKAO"
+                    )
+            )
+            String provider,
+            @Valid AuthRequest.SocialSignUp request);
 }

@@ -21,6 +21,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     // AUTH400_9(필수 약관 미동의)는 PolicyErrorCode에 위치
     SOCIAL_EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "AUTH400_10", "소셜 계정 이메일을 확인할 수 없습니다. 이메일 제공에 동의해주세요."),
     UNSUPPORTED_SOCIAL_PROVIDER(HttpStatus.BAD_REQUEST, "AUTH400_11", "지원하지 않는 소셜 로그인입니다."),
+    SOCIAL_NICKNAME_NOT_FOUND(HttpStatus.BAD_REQUEST, "AUTH400_12", "소셜 계정 닉네임을 확인할 수 없습니다. 프로필 제공에 동의해주세요."),
 
     // 401 UNAUTHORIZED - 인증 실패
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH401_1", "아이디 또는 비밀번호를 확인해주세요."),

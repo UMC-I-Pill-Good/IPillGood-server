@@ -1,12 +1,15 @@
 package com.ipillgood.server.domain.auth.dto;
 
+import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
 
 public class AuthResponse {
 
-    // 회원가입 응답
+    /**
+     * 로컬 회원가입 응답
+     */
     @Builder
     public record SignUp(
             Long memberId,
@@ -19,7 +22,9 @@ public class AuthResponse {
     ) {
     }
 
-    // 로그인 응답
+    /**
+     * 로컬 로그인 응답
+     */
     @Builder
     public record Login(
             String accessToken,
@@ -48,6 +53,21 @@ public class AuthResponse {
             Long expiresIn,
             Long memberId,
             Boolean onboardingCompleted
+    ) {
+    }
+
+    /**
+     * 소셜 회원가입 응답
+     */
+    @Builder
+    public record SocialSignUp(
+            Long memberId,
+            SocialProvider provider,
+            String nickname,
+            String email,
+            String profileImageKey,
+            Boolean onboardingCompleted,
+            LocalDateTime createdAt
     ) {
     }
 }

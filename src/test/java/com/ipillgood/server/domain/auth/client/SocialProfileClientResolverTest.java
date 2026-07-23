@@ -26,7 +26,7 @@ class SocialProfileClientResolverTest {
 
             @Override
             public SocialProfile fetch(String providerAccessToken) {
-                return new SocialProfile("id", "email@example.com");
+                return new SocialProfile("id", "email@example.com", "닉네임");
             }
         };
     }
