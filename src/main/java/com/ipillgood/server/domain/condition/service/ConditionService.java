@@ -20,6 +20,7 @@ import java.math.RoundingMode;
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
@@ -136,6 +137,50 @@ public class ConditionService {
                 averageSleepHours(records),
                 averageIntakeDaysCount(records),
                 records);
+    }
+
+    @Transactional
+    public ConditionResponse.PopupAutoShown recordPopupAutoShown(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+        LocalDate weekStartOn = validatePopupTarget(memberId);
+
+        ConditionPopupLog popupLog = conditionPopupLogRepository
+                .findByMember_IdAndWeekStartOn(memberId, weekStartOn)
+                .orElseGet(() -> ConditionPopupLog.create(member, weekStartOn));
+        popupLog.markAutoShown(currentDateTime());
+        conditionPopupLogRepository.save(popupLog);
+
+        return ConditionConverter.toPopupAutoShown(popupLog);
+    }
+
+    @Transactional
+    public ConditionResponse.PopupDismissed recordPopupDismissed(Long memberId) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+        LocalDate weekStartOn = validatePopupTarget(memberId);
+
+        ConditionPopupLog popupLog = conditionPopupLogRepository
+                .findByMember_IdAndWeekStartOn(memberId, weekStartOn)
+                .orElseGet(() -> ConditionPopupLog.create(member, weekStartOn));
+        popupLog.markDismissed(currentDateTime());
+        conditionPopupLogRepository.save(popupLog);
+
+        return ConditionConverter.toPopupDismissed(popupLog);
+    }
+
+    // 컨디션 체크 팝업은 일요일에, 아직 이번 주 체크를 완료하지 않았을 때만 노출된다
+    private LocalDate validatePopupTarget(Long memberId) {
+        LocalDate today = currentDate();
+        if (today.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            throw new ConditionException(ConditionErrorCode.POPUP_NOT_SUNDAY);
+        }
+
+        LocalDate weekStartOn = weekStartOn(today);
+        if (conditionWeeklyRecordRepository.existsByMember_IdAndWeekStartOn(memberId, weekStartOn)) {
+            throw new ConditionException(ConditionErrorCode.ALREADY_CHECKED);
+        }
+        return weekStartOn;
     }
 
     public ConditionResponse.Detail getWeeklyRecordDetail(Long memberId, Long recordId) {
@@ -255,6 +300,10 @@ public class ConditionService {
 
     private LocalDate currentDate() {
         return LocalDate.now(SERVICE_ZONE_ID);
+    }
+
+    private LocalDateTime currentDateTime() {
+        return LocalDateTime.now(SERVICE_ZONE_ID);
     }
 
     private Member getMember(Long memberId) {
