@@ -27,6 +27,16 @@ public class NotificationConverter {
                 .build();
     }
 
+    public static NotificationResponse.ActiveProductNotificationSetting toActiveProductNotificationSetting(
+            long activeProductId,
+            boolean notificationEnabled
+    ) {
+        return NotificationResponse.ActiveProductNotificationSetting.builder()
+                .activeProductId(activeProductId)
+                .notificationEnabled(notificationEnabled)
+                .build();
+    }
+
     public static NotificationResponse.IntakeNotificationSettings toIntakeNotificationSettings(
             boolean pushEnabled,
             boolean intakePushEnabled,

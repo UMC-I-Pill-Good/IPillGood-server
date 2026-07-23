@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,6 +61,18 @@ public class NotificationController implements NotificationApi {
                 memberId,
                 request
         );
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @PatchMapping("/intake/active-products/{activeProductId}")
+    public ApiResponse<NotificationResponse.ActiveProductNotificationSetting> updateActiveProductNotificationSetting(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long activeProductId,
+            @RequestBody(required = false) NotificationRequest.UpdateActiveProductNotificationSetting request
+    ) {
+        NotificationResponse.ActiveProductNotificationSetting response =
+                notificationService.updateActiveProductNotificationSetting(memberId, activeProductId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 }

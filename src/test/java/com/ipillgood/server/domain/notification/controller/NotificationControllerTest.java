@@ -33,6 +33,8 @@ class NotificationControllerTest {
 
     private static final String APP_PUSH_SETTING_URL = "/api/v1/notification-settings/me";
     private static final String INTAKE_NOTIFICATION_SETTINGS_URL = "/api/v1/notification-settings/intake";
+    private static final String ACTIVE_PRODUCT_NOTIFICATION_SETTING_URL_PREFIX =
+            "/api/v1/notification-settings/intake/active-products";
     private static final String PUSH_TOKEN_URL = "/api/v1/push-tokens";
     private static final long MEMBER_ID = 1L;
     private static final long ONBOARDING_INCOMPLETE_MEMBER_ID = 2L;
@@ -518,6 +520,210 @@ class NotificationControllerTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.isSuccess").value(false))
                     .andExpect(jsonPath("$.code").value("NOTIFICATION400_2"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
+    @Test
+    @DisplayName("인증 없이 개별 복용 알림 설정을 변경하면 401을 반환한다")
+    void updateActiveProductNotificationSetting_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(patch(activeProductNotificationSettingUrl(70L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("온보딩을 완료하지 않은 회원은 개별 복용 알림 설정을 변경할 수 없다")
+    void updateActiveProductNotificationSetting_withoutCompletedOnboarding_returnsForbidden() throws Exception {
+        mockMvc.perform(patch(activeProductNotificationSettingUrl(70L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION403_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("활성 섭취 중 영양제의 개별 알림을 false로 변경한다")
+    void updateActiveProductNotificationSetting_withActiveProduct_updatesNotificationEnabledToFalse()
+            throws Exception {
+        insertProduct(140L, "개별 알림 변경 제품", null);
+        insertMemberProduct(40L, MEMBER_ID, 140L, null);
+        insertActiveProduct(70L, MEMBER_ID, 40L, null, true, "08:30", "2026-07-01 10:00:00");
+
+        mockMvc.perform(patch(activeProductNotificationSettingUrl(70L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.activeProductId").value(70))
+                .andExpect(jsonPath("$.result.notificationEnabled").value(false));
+
+        assertEquals(Boolean.FALSE, findActiveProductNotificationEnabled(70L));
+    }
+
+    @Test
+    @DisplayName("개별 알림 설정을 기존 값과 같은 상태로 요청해도 성공한다")
+    void updateActiveProductNotificationSetting_withSameNotificationEnabled_returnsSuccess() throws Exception {
+        insertProduct(141L, "이미 꺼진 개별 알림 제품", null);
+        insertMemberProduct(41L, MEMBER_ID, 141L, null);
+        insertActiveProduct(71L, MEMBER_ID, 41L, null, false, "08:30", "2026-07-01 10:00:00");
+
+        mockMvc.perform(patch(activeProductNotificationSettingUrl(71L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.result.activeProductId").value(71))
+                .andExpect(jsonPath("$.result.notificationEnabled").value(false));
+
+        assertEquals(Boolean.FALSE, findActiveProductNotificationEnabled(71L));
+    }
+
+    @Test
+    @DisplayName("개별 알림 대상 ID가 1 미만이면 400을 반환한다")
+    void updateActiveProductNotificationSetting_withInvalidActiveProductId_returnsBadRequest()
+            throws Exception {
+        List<String> invalidActiveProductIds = List.of("0", "-1");
+
+        for (String invalidActiveProductId : invalidActiveProductIds) {
+            mockMvc.perform(patch(activeProductNotificationSettingUrl(invalidActiveProductId))
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "notificationEnabled": false
+                                    }
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("NOTIFICATION400_5"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
+    @Test
+    @DisplayName("개별 알림 대상 ID가 숫자 형식이 아니면 400을 반환한다")
+    void updateActiveProductNotificationSetting_withNonNumericActiveProductId_returnsBadRequest()
+            throws Exception {
+        mockMvc.perform(patch(activeProductNotificationSettingUrl("abc"))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON400_1"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("개별 알림 설정 변경 요청 본문이 없으면 400을 반환한다")
+    void updateActiveProductNotificationSetting_withoutBody_returnsBadRequest() throws Exception {
+        mockMvc.perform(patch(activeProductNotificationSettingUrl(70L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("NOTIFICATION400_6"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("개별 알림 설정 변경 요청의 notificationEnabled가 Boolean이 아니면 400을 반환한다")
+    void updateActiveProductNotificationSetting_withInvalidNotificationEnabled_returnsBadRequest()
+            throws Exception {
+        List<String> invalidBodies = List.of(
+                "{}",
+                "null",
+                """
+                        {
+                          "notificationEnabled": null
+                        }
+                        """,
+                """
+                        {
+                          "notificationEnabled": "false"
+                        }
+                        """,
+                """
+                        {
+                          "notificationEnabled": 1
+                        }
+                        """
+        );
+
+        for (String invalidBody : invalidBodies) {
+            mockMvc.perform(patch(activeProductNotificationSettingUrl(70L))
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(invalidBody))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("NOTIFICATION400_6"))
+                    .andExpect(jsonPath("$.result").doesNotExist());
+        }
+    }
+
+    @Test
+    @DisplayName("개별 알림 변경 대상이 현재 회원의 활성 섭취 중 상품이 아니면 404를 반환한다")
+    void updateActiveProductNotificationSetting_withUnavailableActiveProduct_returnsNotFound()
+            throws Exception {
+        insertMember(OTHER_MEMBER_ID, "다른회원", "2026-07-01 00:00:00");
+
+        insertProduct(150L, "다른 회원 제품", null);
+        insertProduct(151L, "중단된 제품", null);
+        insertProduct(152L, "삭제된 캐비닛 제품", null);
+        insertProduct(153L, "삭제된 상품", "2026-07-02 00:00:00");
+
+        insertMemberProduct(50L, OTHER_MEMBER_ID, 150L, null);
+        insertMemberProduct(51L, MEMBER_ID, 151L, null);
+        insertMemberProduct(52L, MEMBER_ID, 152L, "2026-07-02 00:00:00");
+        insertMemberProduct(53L, MEMBER_ID, 153L, null);
+
+        insertActiveProduct(80L, OTHER_MEMBER_ID, 50L, null, true, "08:00", "2026-07-01 10:00:00");
+        insertActiveProduct(81L, MEMBER_ID, 51L, "2026-07-10", true, "09:00", "2026-07-02 10:00:00");
+        insertActiveProduct(82L, MEMBER_ID, 52L, null, true, "10:00", "2026-07-03 10:00:00");
+        insertActiveProduct(83L, MEMBER_ID, 53L, null, true, "11:00", "2026-07-04 10:00:00");
+
+        for (long activeProductId : new long[]{999L, 80L, 81L, 82L, 83L}) {
+            mockMvc.perform(patch(activeProductNotificationSettingUrl(activeProductId))
+                            .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "notificationEnabled": false
+                                    }
+                                    """))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.isSuccess").value(false))
+                    .andExpect(jsonPath("$.code").value("NOTIFICATION404_2"))
                     .andExpect(jsonPath("$.result").doesNotExist());
         }
     }
@@ -1074,6 +1280,14 @@ class NotificationControllerTest {
         );
     }
 
+    private Boolean findActiveProductNotificationEnabled(Long activeProductId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT notification_enabled FROM member_active_product WHERE id = ?",
+                Boolean.class,
+                activeProductId
+        );
+    }
+
     private Long findPushTokenMemberId(String token) {
         return jdbcTemplate.queryForObject(
                 "SELECT member_id FROM member_push_token WHERE token = ?",
@@ -1108,5 +1322,9 @@ class NotificationControllerTest {
 
     private String bearerToken(String token) {
         return "Bearer " + token;
+    }
+
+    private String activeProductNotificationSettingUrl(Object activeProductId) {
+        return ACTIVE_PRODUCT_NOTIFICATION_SETTING_URL_PREFIX + "/" + activeProductId;
     }
 }

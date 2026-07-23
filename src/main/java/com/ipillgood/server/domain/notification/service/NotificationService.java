@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.notification.service;
 
+import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.IntakeNotificationActiveProductRow;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.member.entity.Member;
@@ -112,6 +113,30 @@ public class NotificationService {
     }
 
     @Transactional
+    public NotificationResponse.ActiveProductNotificationSetting updateActiveProductNotificationSetting(
+            Long memberId,
+            Long activeProductId,
+            NotificationRequest.UpdateActiveProductNotificationSetting request
+    ) {
+        Member member = getMember(memberId);
+        validateOnboardingCompleted(member);
+
+        validateActiveProductNotificationTargetId(activeProductId);
+        boolean notificationEnabled = validateUpdateActiveProductNotificationSettingRequest(request);
+        MemberActiveProduct activeProduct = memberActiveProductRepository
+                .findActiveSettingsUpdateTarget(memberId, activeProductId)
+                .orElseThrow(() -> new NotificationException(
+                        NotificationErrorCode.ACTIVE_PRODUCT_NOTIFICATION_TARGET_NOT_FOUND
+                ));
+        activeProduct.changeNotificationEnabled(notificationEnabled);
+
+        return NotificationConverter.toActiveProductNotificationSetting(
+                activeProduct.getId(),
+                activeProduct.isNotificationEnabled()
+        );
+    }
+
+    @Transactional
     public NotificationResponse.PushTokenRegistration registerPushToken(
             Long memberId,
             NotificationRequest.RegisterPushToken request
@@ -173,6 +198,19 @@ public class NotificationService {
         return intakePushEnabled;
     }
 
+    private boolean validateUpdateActiveProductNotificationSettingRequest(
+            NotificationRequest.UpdateActiveProductNotificationSetting request
+    ) {
+        if (request == null
+                || request.notificationEnabled() == null
+                || !(request.notificationEnabled() instanceof Boolean notificationEnabled)) {
+            throw new NotificationException(
+                    NotificationErrorCode.ACTIVE_PRODUCT_NOTIFICATION_SETTING_REQUEST_INVALID
+            );
+        }
+        return notificationEnabled;
+    }
+
     private RegisterPushTokenRequestValues validateRegisterPushTokenRequest(
             NotificationRequest.RegisterPushToken request
     ) {
@@ -187,6 +225,12 @@ public class NotificationService {
             throw new NotificationException(NotificationErrorCode.PUSH_TOKEN_REGISTER_REQUEST_INVALID);
         }
         return new RegisterPushTokenRequestValues(PushPlatform.WEB, token);
+    }
+
+    private void validateActiveProductNotificationTargetId(Long activeProductId) {
+        if (activeProductId == null || activeProductId < 1) {
+            throw new NotificationException(NotificationErrorCode.ACTIVE_PRODUCT_NOTIFICATION_TARGET_ID_INVALID);
+        }
     }
 
     private void validatePushTokenId(Long pushTokenId) {

@@ -45,6 +45,17 @@ public class NotificationResponse {
     ) {
     }
 
+    @Schema(description = "개별 복용 알림 변경 응답")
+    @Builder
+    public record ActiveProductNotificationSetting(
+            @Schema(description = "변경된 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "변경 후 개별 복용 알림 ON/OFF 여부", example = "false")
+            Boolean notificationEnabled
+    ) {
+    }
+
     @Schema(description = "복용 알림 설정 섭취 중 영양제 항목")
     @Builder
     public record IntakeNotificationActiveProduct(
