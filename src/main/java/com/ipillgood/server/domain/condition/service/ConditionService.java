@@ -24,6 +24,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,7 +105,14 @@ public class ConditionService {
                 .intakeScore(intakeScore)
                 .conditionScore(conditionScore)
                 .build();
-        conditionWeeklyRecordRepository.save(record);
+
+        try {
+            // saveAndFlush로 즉시 INSERT를 실행해, 동시 요청으로 유니크 제약(member_id, week_start_on)을 위반하는 경우
+            // 커밋 시점이 아니라 여기서 바로 DataIntegrityViolationException을 잡아 409로 변환한다.
+            conditionWeeklyRecordRepository.saveAndFlush(record);
+        } catch (DataIntegrityViolationException e) {
+            throw new ConditionException(ConditionErrorCode.ALREADY_CHECKED);
+        }
 
         return ConditionConverter.toDetail(record);
     }

@@ -366,8 +366,8 @@ public interface ConditionControllerDocs {
     })
     ApiResponse<ConditionResponse.MonthlySummary> getMonthlyRecords(
             Long memberId,
-            @Parameter(description = "조회 연도", required = true) String year,
-            @Parameter(description = "조회 월", required = true) String month
+            @Parameter(description = "조회 연도", required = false) String year,
+            @Parameter(description = "조회 월", required = false) String month
     );
 
     @Operation(
