@@ -50,9 +50,9 @@ public class KakaoProfileClient implements SocialProfileClient {
         }
 
         // 4. 이메일 추출
-        // 사용자가 이메일 제공에 동의하지 않았을 경우 null
+        // 이메일 미제공 또는 유효·인증이 확인되지 않은 이메일은 신뢰하지 않고 null 처리
         KakaoUserResponse.KakaoAccount account = response.kakaoAccount();
-        String email = account == null ? null : account.email();
+        String email = isTrustworthyEmail(account) ? account.email() : null;
 
         // 5. 닉네임 추출
         // 프로필 제공에 동의하지 않았을 경우 null
@@ -61,6 +61,17 @@ public class KakaoProfileClient implements SocialProfileClient {
         // 6. 공통 포맷(SocialProfile)으로 변환
         // 카카오는 회원번호를 Long 타입으로 주므로 String 타입으로 통일
         return new SocialProfile(String.valueOf(response.id()), email, sanitizeNickname(nickname));
+    }
+
+    /**
+     * 신뢰할 수 있는 이메일인지 확인 (본인 이메일이 맞는지 확인 + 미인증 이메일로 남의 계정에 연동되는 것을 방지)
+     * 카카오의 '사용자 정보 조회' API 응답에 유효성(is_email_valid)과 인증 여부(is_email_verified) 플래그가 포함되므로,
+     * 둘 다 true인 경우에만 사용
+     */
+    private boolean isTrustworthyEmail(KakaoUserResponse.KakaoAccount account) {
+        return account != null
+                && Boolean.TRUE.equals(account.isEmailValid())
+                && Boolean.TRUE.equals(account.isEmailVerified());
     }
 
     /**
@@ -111,6 +122,15 @@ public class KakaoProfileClient implements SocialProfileClient {
         @JsonIgnoreProperties(ignoreUnknown = true)
         record KakaoAccount(
                 String email,
+
+                // 이메일이 다른 계정에 사용되어 만료되지 않았는지
+                @JsonProperty("is_email_valid")
+                Boolean isEmailValid,
+
+                // 이메일 인증 플래그
+                @JsonProperty("is_email_verified")
+                Boolean isEmailVerified,
+
                 KakaoProfile profile
         ) {
 

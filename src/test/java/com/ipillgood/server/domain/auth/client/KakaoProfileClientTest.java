@@ -59,6 +59,7 @@ class KakaoProfileClientTest {
                           "connected_at": "2026-07-22T00:00:00Z",
                           "kakao_account": {
                             "is_email_valid": true,
+                            "is_email_verified": true,
                             "email": "kim@example.com"
                           }
                         }
@@ -81,6 +82,48 @@ class KakaoProfileClientTest {
         SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
 
         assertEquals("12345678", profile.providerUserId());
+        assertNull(profile.email());
+    }
+
+    @Test
+    @DisplayName("인증되지 않은 이메일은 신뢰하지 않고 null로 전달한다")
+    void fetch_returnsNullEmailWhenNotVerified() {
+        // 미인증 이메일을 신뢰하면 남의 계정에 소셜 계정을 연동할 수 있음
+        server.expect(requestTo(USER_INFO_URI))
+                .andRespond(withSuccess("""
+                        {
+                          "id": 12345678,
+                          "kakao_account": {
+                            "is_email_valid": true,
+                            "is_email_verified": false,
+                            "email": "victim@example.com"
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
+
+        assertNull(profile.email());
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 이메일은 신뢰하지 않고 null로 전달한다")
+    void fetch_returnsNullEmailWhenNotValid() {
+        // 다른 계정에 사용되어 만료된 이메일
+        server.expect(requestTo(USER_INFO_URI))
+                .andRespond(withSuccess("""
+                        {
+                          "id": 12345678,
+                          "kakao_account": {
+                            "is_email_valid": false,
+                            "is_email_verified": true,
+                            "email": "expired@example.com"
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
+
         assertNull(profile.email());
     }
 
@@ -121,7 +164,11 @@ class KakaoProfileClientTest {
                 .andRespond(withSuccess("""
                         {
                           "id": 777,
-                          "kakao_account": { "email": "kim@example.com" }
+                          "kakao_account": {
+                            "is_email_valid": true,
+                            "is_email_verified": true,
+                            "email": "kim@example.com"
+                          }
                         }
                         """, MediaType.APPLICATION_JSON));
 
