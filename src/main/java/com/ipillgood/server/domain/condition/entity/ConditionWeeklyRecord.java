@@ -13,6 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -69,4 +70,21 @@ public class ConditionWeeklyRecord extends BaseEntity {
 
     @Column(name = "condition_score", nullable = false, precision = 3, scale = 2)
     private BigDecimal conditionScore;
+
+    @Builder
+    public ConditionWeeklyRecord(Member member, LocalDate weekStartOn, LocalDate weekEndOn, LocalDate checkedOn,
+                                  Short vitalityScore, Short sleepHours, Short sleepMinutes, Short sleepScore,
+                                  Short intakeDaysCount, Short intakeScore, BigDecimal conditionScore) {
+        this.member = member;
+        this.weekStartOn = weekStartOn;
+        this.weekEndOn = weekEndOn;
+        this.checkedOn = checkedOn;
+        this.vitalityScore = vitalityScore;
+        this.sleepHours = sleepHours;
+        this.sleepMinutes = sleepMinutes;
+        this.sleepScore = sleepScore;
+        this.intakeDaysCount = intakeDaysCount;
+        this.intakeScore = intakeScore;
+        this.conditionScore = conditionScore;
+    }
 }
