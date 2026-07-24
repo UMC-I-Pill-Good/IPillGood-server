@@ -1,14 +1,20 @@
 package com.ipillgood.server.domain.member.service;
 
+import com.ipillgood.server.domain.member.code.MemberErrorCode;
+import com.ipillgood.server.domain.member.converter.MemberConverter;
+import com.ipillgood.server.domain.member.dto.MemberResponse;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
+import com.ipillgood.server.domain.member.exception.MemberException;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
+import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,6 +29,23 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
+    private final S3Service s3Service;
+
+    /**
+     * 마이페이지 진입 시 실행
+     * 내 기본 정보, 로그인 방식, 온보딩 완료 여부를 조회
+     */
+    public MemberResponse.MyInfo getMyInfo(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        List<SocialProvider> socialProviders = memberSocialAccountRepository.findByMember(member).stream()
+                .map(MemberSocialAccount::getProvider)
+                .toList();
+
+        // 로컬으로만 로그인한 경우 socialProviders 빈 값으로 return
+        return MemberConverter.toMyInfo(member, socialProviders, s3Service::getPublicUrl);
+    }
 
     /**
      * 소셜 로그인 1단계에서 실행
