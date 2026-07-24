@@ -37,6 +37,28 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
     List<ActiveProductRow> findActiveProductRows(@Param("memberId") Long memberId);
 
     @Query("""
+            select new com.ipillgood.server.domain.intake.repository.IntakeNotificationActiveProductRow(
+                ap.id,
+                mp.id,
+                p.id,
+                p.name,
+                ap.notificationEnabled,
+                ap.intakeTime
+            )
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            where ap.member.id = :memberId
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            order by ap.createdAt asc, ap.id asc
+            """)
+    List<IntakeNotificationActiveProductRow> findIntakeNotificationActiveProductRows(
+            @Param("memberId") Long memberId
+    );
+
+    @Query("""
             select new com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow(
                 ap.id,
                 mp.id,

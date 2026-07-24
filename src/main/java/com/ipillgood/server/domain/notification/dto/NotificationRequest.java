@@ -11,6 +11,20 @@ public class NotificationRequest {
     ) {
     }
 
+    @Schema(description = "복용 전체 알림 변경 요청")
+    public record UpdateIntakePushSetting(
+            @Schema(description = "변경할 복용 전체 알림 ON/OFF 여부", type = "boolean", example = "false")
+            Object intakePushEnabled
+    ) {
+    }
+
+    @Schema(description = "개별 복용 알림 변경 요청")
+    public record UpdateActiveProductNotificationSetting(
+            @Schema(description = "변경할 개별 복용 알림 ON/OFF 여부", type = "boolean", example = "false")
+            Object notificationEnabled
+    ) {
+    }
+
     @Schema(description = "푸시 토큰 등록 요청")
     public record RegisterPushToken(
             @Schema(description = "푸시 토큰 플랫폼 enum", type = "string", example = "WEB")
