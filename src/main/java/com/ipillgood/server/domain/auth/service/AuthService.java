@@ -132,7 +132,7 @@ public class AuthService {
      * 2. 로컬 계정(비밀번호 보유): 해당 이메일로 로그인 안내 (AUTH409_1)
      */
     private void validateEmailAvailable(String email) {
-        memberRepository.findByEmail(email).ifPresent(member -> {
+        memberRepository.findByEmail(Member.normalizeEmail(email)).ifPresent(member -> {
 
             // 1. 소셜 계정 존재
             if (member.isSocialOnly()) {

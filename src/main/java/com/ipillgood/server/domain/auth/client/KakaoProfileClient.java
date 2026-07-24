@@ -123,7 +123,7 @@ public class KakaoProfileClient implements SocialProfileClient {
         record KakaoAccount(
                 String email,
 
-                // 이메일이 다른 계정에 사용되어 만료되지 않았는지
+                // 유효한 이메일인지 (false: 다른 카카오계정에 사용되어 만료된 이메일)
                 @JsonProperty("is_email_valid")
                 Boolean isEmailValid,
 

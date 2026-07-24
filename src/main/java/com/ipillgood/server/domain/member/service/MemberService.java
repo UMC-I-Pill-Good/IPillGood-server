@@ -39,7 +39,7 @@ public class MemberService {
      * 이메일로 기존 회원을 조회 (계정 연동 대상 탐지 목적)
      */
     public Optional<Member> findByEmail(String email) {
-        return memberRepository.findByEmail(email);
+        return memberRepository.findByEmail(Member.normalizeEmail(email));
     }
 
     /**
