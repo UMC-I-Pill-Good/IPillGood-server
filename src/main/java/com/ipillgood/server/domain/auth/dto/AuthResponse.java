@@ -16,7 +16,7 @@ public class AuthResponse {
             String nickname,
             String username,
             String email,
-            String profileImageKey,
+            String profileImageUrl,
             Boolean onboardingCompleted,
             LocalDateTime createdAt
     ) {
@@ -65,7 +65,7 @@ public class AuthResponse {
             SocialProvider provider,
             String nickname,
             String email,
-            String profileImageKey,
+            String profileImageUrl,
             Boolean onboardingCompleted,
             LocalDateTime createdAt
     ) {
