@@ -54,16 +54,18 @@ public class FirebasePushNotificationClient implements PushNotificationClient {
 
     private PushSendResult toFailureResult(FirebaseMessagingException exception) {
         MessagingErrorCode errorCode = exception.getMessagingErrorCode();
-        String failureReason = toFailureReason(errorCode, exception);
-        if (errorCode == MessagingErrorCode.UNREGISTERED
-                || errorCode == MessagingErrorCode.SENDER_ID_MISMATCH) {
+        return toFailureResult(errorCode, exception.getMessage());
+    }
+
+    static PushSendResult toFailureResult(MessagingErrorCode errorCode, String message) {
+        String failureReason = toFailureReason(errorCode, message);
+        if (errorCode == MessagingErrorCode.UNREGISTERED) {
             return PushSendResult.invalidToken(failureReason);
         }
         return PushSendResult.retryableFailure(failureReason);
     }
 
-    private String toFailureReason(MessagingErrorCode errorCode, FirebaseMessagingException exception) {
-        String message = exception.getMessage();
+    private static String toFailureReason(MessagingErrorCode errorCode, String message) {
         if (errorCode == null) {
             return message;
         }
