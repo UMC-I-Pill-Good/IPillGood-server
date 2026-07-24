@@ -4,6 +4,8 @@ import com.ipillgood.server.domain.auth.dto.AuthRequest;
 import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -43,4 +45,58 @@ public interface AuthApi {
             @NotBlank(message = "올바른 이메일 형식이 아닙니다.")
             @Email(message = "올바른 이메일 형식이 아닙니다.")
             String email);
+
+    @Operation(summary = "소셜 로그인",
+            description = """
+                    소셜 액세스 토큰을 검증하고 사용자 상태에 따라 세 경우로 응답합니다.
+                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken, refreshToken 발급)
+                    - 같은 이메일의 기존 회원이 존재하면 연동 동의 필요합니다. (accountLinkRequired=true + accountLinkToken 발급)
+                    - 신규 사용자라면 회원가입 필요합니다. (signupRequired=true)
+                    이메일 제공에 동의하지 않은 경우 로그인에 실패합니다. (AUTH400_10)
+                    """)
+    ApiResponse<AuthResponse.SocialLogin> socialLogin(
+            @Parameter(
+                    description = "소셜 제공자입니다.",
+                    schema = @Schema(
+                            allowableValues = {"KAKAO", "NAVER"},
+                            defaultValue = "KAKAO"
+                    )
+            )
+            String provider,
+            @Valid AuthRequest.SocialLogin request);
+
+    @Operation(summary = "소셜 회원가입",
+            description = """
+                    소셜 신규 사용자의 약관 동의를 받아 회원가입을 완료합니다.
+                    닉네임은 요청으로 받지 않고 서버가 소셜 제공자에게 직접 조회합니다.
+                    자동 로그인하지 않으므로 토큰을 발급하지 않습니다. (가입 완료 후 로그인 화면으로 이동)
+                    이메일/닉네임 제공에 동의하지 않은 경우 실패합니다. (AUTH400_10, AUTH400_12)
+                    """)
+    ApiResponse<AuthResponse.SocialSignUp> socialSignUp(
+            @Parameter(
+                    description = "소셜 제공자입니다.",
+                    schema = @Schema(
+                            allowableValues = {"KAKAO", "NAVER"},
+                            defaultValue = "KAKAO"
+                    )
+            )
+            String provider,
+            @Valid AuthRequest.SocialSignUp request);
+
+    @Operation(summary = "소셜 계정 연동",
+            description = """
+                    소셜 로그인 중 발급받은 임시 토큰으로 기존 회원에 소셜 계정을 연동합니다.
+                    연동 즉시 로그인 처리되어 토큰을 함께 발급합니다.
+                    임시 토큰이 만료·위조되었거나 URL의 제공자와 다르면 실패합니다. (AUTH401_3)
+                    """)
+    ApiResponse<AuthResponse.SocialLink> socialLink(
+            @Parameter(
+                    description = "소셜 제공자입니다.",
+                    schema = @Schema(
+                            allowableValues = {"KAKAO", "NAVER"},
+                            defaultValue = "KAKAO"
+                    )
+            )
+            String provider,
+            @Valid AuthRequest.SocialLink request);
 }

@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 // 회원 기본 정보
 @Entity
@@ -65,7 +66,7 @@ public class Member extends BaseEntity {
                   String profileImageKey) {
         this.nickname = nickname;
         this.username = username;
-        this.email = email;
+        this.email = normalizeEmail(email);
         this.password = password;
         this.role = role == null ? Role.USER : role;
         this.status = status == null ? MemberStatus.ACTIVE : status;
@@ -75,5 +76,18 @@ public class Member extends BaseEntity {
     // 최초 설문 기반 추천 성공 시 온보딩 완료 처리
     public void completeOnboarding(LocalDateTime completedAt) {
         this.onboardingCompletedAt = completedAt;
+    }
+
+    // 소셜 전용 계정 여부 (소셜 회원가입은 비밀번호를 받지 않으므로 비밀번호가 없음)
+    public boolean isSocialOnly() {
+        return password == null;
+    }
+
+    /**
+     * 이메일 정규화 (소문자 통일)
+     * PostgreSQL은 기본적으로 문자열을 대소문자 구분하기 때문
+     */
+    public static String normalizeEmail(String email) {
+        return email == null ? null : email.toLowerCase(Locale.ROOT);
     }
 }

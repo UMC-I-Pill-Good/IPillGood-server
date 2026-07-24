@@ -157,4 +157,9 @@ public class JwtProvider {
     public Duration getRefreshTokenValidity() {
         return Duration.ofMillis(refreshTokenValidity);
     }
+
+    // 액세스 토큰 유효기간(초) (로그인 응답의 expiresIn으로 사용)
+    public long getAccessTokenExpiresIn() {
+        return Duration.ofMillis(accessTokenValidity).toSeconds();
+    }
 }

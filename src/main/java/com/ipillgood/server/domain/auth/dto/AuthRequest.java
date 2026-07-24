@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.auth.dto;
 
+import com.ipillgood.server.domain.policy.dto.PolicyRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +11,9 @@ import java.util.List;
 
 public class AuthRequest {
 
-    // 회원가입 요청
+    /**
+     * 로컬 회원가입 요청
+     */
     public record SignUp(
             // 공백 입력
             @NotBlank(message = "1~10자 이내로 입력해주세요.")
@@ -36,21 +39,13 @@ public class AuthRequest {
             // 약관 동의 목록
             @NotNull(message = "약관 동의 정보가 필요합니다.")
             @Valid
-            List<PolicyAgreement> policyAgreements
+            List<PolicyRequest.Agreement> policyAgreements
     ) {
     }
 
-    // 약관 동의 항목
-    public record PolicyAgreement(
-            @NotNull(message = "약관 문서 ID가 필요합니다.")
-            Long policyDocumentId,
-
-            @NotNull(message = "약관 동의 여부가 필요합니다.")
-            Boolean agreed
-    ) {
-    }
-
-    // 로그인 요청
+    /**
+     * 로컬 로그인 요청
+     */
     public record Login(
             @NotBlank(message = "2~10자 이내로 입력해주세요.")
             String username,
@@ -60,10 +55,47 @@ public class AuthRequest {
     ) {
     }
 
-    // 액세스 토큰 재발급 요청
+    /**
+     * 액세스 토큰 재발급 요청
+     */
     public record Reissue(
             @NotBlank(message = "리프레시 토큰이 필요합니다.")
             String refreshToken
+    ) {
+    }
+
+    /**
+     * 소셜 로그인 요청
+     * 이메일은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회함
+     */
+    public record SocialLogin(
+            @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
+            String providerAccessToken
+    ) {
+    }
+
+    /**
+     * 소셜 회원가입 요청
+     * 닉네임은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회
+     */
+    public record SocialSignUp(
+            @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
+            String providerAccessToken,
+
+            // 약관 동의 목록
+            @NotNull(message = "약관 동의 정보가 필요합니다.")
+            @Valid
+            List<PolicyRequest.Agreement> policyAgreements
+    ) {
+    }
+
+    /**
+     * 소셜 계정 연동 요청
+     * 연동 대상 회원·소셜 정보는 임시 토큰이 들고 있으므로 토큰만 받음
+     */
+    public record SocialLink(
+            @NotBlank(message = "계정 연동 토큰이 필요합니다.")
+            String accountLinkToken
     ) {
     }
 }

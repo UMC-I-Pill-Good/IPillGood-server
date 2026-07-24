@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -59,4 +60,26 @@ public class MemberSocialAccount extends BaseEntity {
 
     @Column(name = "linked_at", nullable = false)
     private LocalDateTime linkedAt;
+
+    @Builder(access = AccessLevel.PRIVATE)
+    private MemberSocialAccount(Member member, SocialProvider provider, String providerUserId,
+                                String providerEmail, LocalDateTime linkedAt) {
+        this.member = member;
+        this.provider = provider;
+        this.providerUserId = providerUserId;
+        this.providerEmail = providerEmail;
+        this.linkedAt = linkedAt;
+    }
+
+    // 소셜 회원가입 / 계정 연동 시 실행
+    public static MemberSocialAccount of(Member member, SocialProvider provider,
+                                         String providerUserId, String providerEmail) {
+        return MemberSocialAccount.builder()
+                .member(member)
+                .provider(provider)
+                .providerUserId(providerUserId)
+                .providerEmail(providerEmail)
+                .linkedAt(LocalDateTime.now())  // 연동 일시 = 생성 시점
+                .build();
+    }
 }
