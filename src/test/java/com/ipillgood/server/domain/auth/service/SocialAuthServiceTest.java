@@ -247,7 +247,7 @@ class SocialAuthServiceTest {
         AuthException exception = assertThrows(AuthException.class,
                 () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
 
-        assertEquals(AuthErrorCode.DUPLICATE_EMAIL.getCode(), exception.getCode().getCode());
+        assertEquals(AuthErrorCode.ACCOUNT_LINK_REQUIRED.getCode(), exception.getCode().getCode());
     }
 
     @Test
