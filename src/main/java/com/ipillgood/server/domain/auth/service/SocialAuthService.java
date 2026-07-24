@@ -111,7 +111,7 @@ public class SocialAuthService {
             }
 
             // 로컬 계정이면 해당 이메일로 로그인하도록 안내
-            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
+            throw new AuthException(AuthErrorCode.ACCOUNT_LINK_REQUIRED);
         });
 
         // 5. 회원 + 소셜 계정 저장 후 약관 동의 이력 저장
