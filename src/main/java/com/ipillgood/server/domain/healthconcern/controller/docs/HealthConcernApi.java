@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.healthconcern.controller.docs;
 import com.ipillgood.server.domain.healthconcern.dto.HealthConcernResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -93,4 +94,105 @@ public interface HealthConcernApi {
             )
     })
     ApiResponse<HealthConcernResponse.CategoryList> getCategories();
+
+    @Operation(
+            summary = "건강 상태 추천 성분 조회",
+            description = "선택한 건강 상태(대분류/소분류)에 대한 감퇴 원인과 추천 성분 목록을 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "건강 상태 추천 성분 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "건강 상태 추천 성분 조회에 성공했습니다.",
+                                              "result": {
+                                                "healthConcernId": 1,
+                                                "majorCategory": "NERVOUS_SYSTEM",
+                                                "minorCategory": "SLEEP_QUALITY",
+                                                "declineCause": "수면 리듬 변화가 원인일 수 있습니다.",
+                                                "recommendedIngredients": [
+                                                  {
+                                                    "ingredientId": 1,
+                                                    "name": "마그네슘",
+                                                    "description": "긴장 완화와 수면 관리에 도움을 줄 수 있습니다.",
+                                                    "imageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/magnesium.png",
+                                                    "effectKeywords": ["긴장 완화"],
+                                                    "hasCabinetProduct": true
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "요청값 검증에 실패했습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON400_2",
+                                              "message": "요청값 검증에 실패했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증이 필요합니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON401_1",
+                                              "message": "인증이 필요합니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "서버 내부 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON500_1",
+                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<HealthConcernResponse.RecommendedIngredients> getRecommendedIngredients(
+            @Parameter(description = "건강 상태 대분류", required = true, example = "NERVOUS_SYSTEM")
+            String majorCategory,
+
+            @Parameter(description = "건강 상태 소분류", required = true, example = "SLEEP_QUALITY")
+            String minorCategory,
+
+            @Parameter(hidden = true)
+            Long memberId
+    );
 }
