@@ -23,9 +23,8 @@ public class PolicyController implements PolicyApi {
     // 약관/정책 목록 조회
     @Override
     @GetMapping
-    public ApiResponse<PolicyResponse.DocumentList> getDocuments(
-            @RequestParam(required = false) Boolean activeOnly) {
-        PolicyResponse.DocumentList response = policyService.getDocuments(activeOnly);
+    public ApiResponse<PolicyResponse.DocumentList> getDocuments() {
+        PolicyResponse.DocumentList response = policyService.getDocuments();
         return ApiResponse.onSuccess(PolicySuccessCode.POLICY_DOCUMENTS_FOUND, response);
     }
 
