@@ -12,7 +12,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
 import lombok.*;
+import org.hibernate.annotations.OnDelete;                                                                                                                                   
+import org.hibernate.annotations.OnDeleteAction;
+
 
 import java.time.LocalDateTime;
 
@@ -37,6 +41,7 @@ public class MemberSearchKeyword extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
     @Column(name = "keyword", nullable = false, length = 100)

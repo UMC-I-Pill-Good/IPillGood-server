@@ -14,6 +14,8 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 // 후기 첨부 이미지
 @Entity
@@ -34,6 +36,7 @@ public class ProductReviewImage extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProductReview review;
 
     @Column(name = "image_key", nullable = false)

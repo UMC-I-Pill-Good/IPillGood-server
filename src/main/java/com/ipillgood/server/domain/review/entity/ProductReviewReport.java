@@ -17,6 +17,8 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 // 후기 신고 이력
 @Entity
@@ -31,10 +33,12 @@ public class ProductReviewReport extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ProductReview review;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_member_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member reporterMember;
 
     @Enumerated(EnumType.STRING)

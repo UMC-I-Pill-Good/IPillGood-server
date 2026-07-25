@@ -19,6 +19,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,10 +44,12 @@ public class RecommendationFeedbackCycle extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recommendation_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Recommendation recommendation;
 
     @Column(name = "cycle_due_on", nullable = false)

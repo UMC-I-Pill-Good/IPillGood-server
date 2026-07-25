@@ -1,11 +1,13 @@
 package com.ipillgood.server.domain.member.repository;
 
+import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -33,4 +35,10 @@ public interface MemberSocialAccountRepository extends JpaRepository<MemberSocia
      * 이미 연동된 소셜 계정인지 확인
      */
     boolean existsByProviderAndProviderUserId(SocialProvider provider, String providerUserId);
+
+    /**
+     * 내 정보 조회에서 실행
+     * 연동된 소셜 계정 목록 조회 (없으면 빈 값)
+     */
+    List<MemberSocialAccount> findByMember(Member member);
 }

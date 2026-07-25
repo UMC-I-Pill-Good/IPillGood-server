@@ -14,6 +14,7 @@ import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.service.MemberService;
 import com.ipillgood.server.domain.policy.service.PolicyService;
+import com.ipillgood.server.global.s3.S3Service;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class SocialAuthService {
     private final PolicyService policyService;
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final S3Service s3Service;
 
     /**
      * 소셜 로그인 요청 시 실행 - 4가지 케이스
@@ -119,7 +121,7 @@ public class SocialAuthService {
                 profile.email(), profile.nickname(), provider, profile.providerUserId());
         policyService.agreeToPolicies(member, request.policyAgreements());
 
-        return AuthConverter.toSocialSignUpResponse(member, provider);
+        return AuthConverter.toSocialSignUpResponse(member, provider, s3Service::getPublicUrl);
     }
 
     /**

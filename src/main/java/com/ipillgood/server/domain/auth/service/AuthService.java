@@ -8,6 +8,7 @@ import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.policy.service.PolicyService;
+import com.ipillgood.server.global.s3.S3Service;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
 import io.jsonwebtoken.Claims;
@@ -26,6 +27,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final PolicyService policyService;
+    private final S3Service s3Service;
 
     // 로컬 회원가입
     @Transactional
@@ -52,7 +54,7 @@ public class AuthService {
         // 5. 약관 동의 검증 + 이력 저장
         policyService.agreeToPolicies(savedMember, request.policyAgreements());
 
-        return AuthConverter.toSignUpResponse(savedMember);
+        return AuthConverter.toSignUpResponse(savedMember, s3Service::getPublicUrl);
     }
 
     // 로컬 로그인

@@ -7,6 +7,8 @@ import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.Role;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 
+import java.util.function.Function;
+
 public class AuthConverter {
 
     // 응답에 내려주는 토큰 타입 (Authorization 헤더에 "Bearer {accessToken}" 형태로 사용)
@@ -28,13 +30,13 @@ public class AuthConverter {
     /**
      * 1. 로컬 회원가입 - 멤버 엔티티 -> DTO 변환
      */
-    public static AuthResponse.SignUp toSignUpResponse(Member member) {
+    public static AuthResponse.SignUp toSignUpResponse(Member member, Function<String, String> imageUrlResolver) {
         return AuthResponse.SignUp.builder()
                 .memberId(member.getId())
                 .nickname(member.getNickname())
                 .username(member.getUsername())
                 .email(member.getEmail())
-                .profileImageKey(member.getProfileImageKey())
+                .profileImageUrl(imageUrlResolver.apply(member.getProfileImageKey()))
                 .onboardingCompleted(member.getOnboardingCompletedAt() != null)
                 .createdAt(member.getCreatedAt())
                 .build();
@@ -101,13 +103,14 @@ public class AuthConverter {
      * 소셜 회원가입 - 저장된 회원 엔티티 -> DTO 변환
      * 자동 로그인하지 않으므로 토큰은 담지 않음
      */
-    public static AuthResponse.SocialSignUp toSocialSignUpResponse(Member member, SocialProvider provider) {
+    public static AuthResponse.SocialSignUp toSocialSignUpResponse(Member member, SocialProvider provider,
+                                                                    Function<String, String> imageUrlResolver) {
         return AuthResponse.SocialSignUp.builder()
                 .memberId(member.getId())
                 .provider(provider)
                 .nickname(member.getNickname())
                 .email(member.getEmail())
-                .profileImageKey(member.getProfileImageKey())
+                .profileImageUrl(imageUrlResolver.apply(member.getProfileImageKey()))
                 .onboardingCompleted(member.getOnboardingCompletedAt() != null)
                 .createdAt(member.getCreatedAt())
                 .build();

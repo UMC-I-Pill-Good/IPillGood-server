@@ -16,6 +16,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 // 추천 성분 항목
 @Entity
@@ -42,6 +44,7 @@ public class RecommendationItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recommendation_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Recommendation recommendation;
 
     @ManyToOne(fetch = FetchType.LAZY)
