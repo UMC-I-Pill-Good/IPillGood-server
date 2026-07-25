@@ -78,6 +78,11 @@ public class Member extends BaseEntity {
         this.onboardingCompletedAt = completedAt;
     }
 
+    // 프로필 관리 화면에서 닉네임 변경
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     // 소셜 전용 계정 여부 (소셜 회원가입은 비밀번호를 받지 않으므로 비밀번호가 없음)
     public boolean isSocialOnly() {
         return password == null;

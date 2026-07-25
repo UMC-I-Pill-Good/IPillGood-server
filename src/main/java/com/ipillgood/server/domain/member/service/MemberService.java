@@ -2,6 +2,7 @@ package com.ipillgood.server.domain.member.service;
 
 import com.ipillgood.server.domain.member.code.MemberErrorCode;
 import com.ipillgood.server.domain.member.converter.MemberConverter;
+import com.ipillgood.server.domain.member.dto.MemberRequest;
 import com.ipillgood.server.domain.member.dto.MemberResponse;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
@@ -45,6 +46,19 @@ public class MemberService {
 
         // 로컬으로만 로그인한 경우 socialProviders 빈 값으로 return
         return MemberConverter.toMyInfo(member, socialProviders, s3Service::getPublicUrl);
+    }
+
+    /**
+     * 프로필 관리 화면에서 실행
+     * 닉네임 변경 (같은 값으로 변경해도 성공 처리)
+     */
+    @Transactional
+    public MemberResponse.ProfileUpdated updateNickname(Long memberId, MemberRequest.UpdateProfile request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        member.updateNickname(request.nickname());
+        return MemberConverter.toProfileUpdated(member);
     }
 
     /**

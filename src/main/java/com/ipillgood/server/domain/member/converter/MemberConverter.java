@@ -34,4 +34,14 @@ public class MemberConverter {
                 .onboardingCompleted(member.getOnboardingCompletedAt() != null)
                 .build();
     }
+
+    /**
+     * 프로필 수정 - 닉네임이 반영된 회원 엔티티 -> DTO 변환
+     */
+    public static MemberResponse.ProfileUpdated toProfileUpdated(Member member) {
+        return MemberResponse.ProfileUpdated.builder()
+                .memberId(member.getId())
+                .nickname(member.getNickname())
+                .build();
+    }
 }

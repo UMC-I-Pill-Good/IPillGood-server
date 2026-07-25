@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum MemberSuccessCode implements BaseSuccessCode {
 
     MY_INFO_FOUND(HttpStatus.OK, "MEMBER200_1", "내 정보 조회에 성공했습니다."),
+    PROFILE_UPDATED(HttpStatus.OK, "MEMBER200_2", "프로필 수정에 성공했습니다."),
     ;
 
     private final HttpStatus status;

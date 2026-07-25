@@ -18,4 +18,14 @@ public class MemberResponse {
             Boolean onboardingCompleted
     ) {
     }
+
+    /**
+     * 프로필 수정 응답
+     */
+    @Builder
+    public record ProfileUpdated(
+            Long memberId,
+            String nickname
+    ) {
+    }
 }
