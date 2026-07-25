@@ -22,7 +22,8 @@ public interface MemberApi {
     ApiResponse<MemberResponse.ProfileUpdated> updateProfile(Long memberId, @Valid MemberRequest.UpdateProfile request);
 
     @Operation(summary = "비밀번호 변경",
-            description = "로컬 로그인 사용자의 비밀번호를 변경합니다.")
+            description = "로컬 로그인 사용자의 비밀번호를 변경합니다. 변경 즉시 저장된 리프레시 토큰을 폐기하므로, "
+                    + "액세스 토큰 만료 후에는 재로그인이 필요합니다.")
     ApiResponse<Void> changePassword(Long memberId, @Valid MemberRequest.ChangePassword request);
 
     @Operation(summary = "회원 탈퇴",
