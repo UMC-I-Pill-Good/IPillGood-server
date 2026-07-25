@@ -30,8 +30,8 @@ import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,16 +74,14 @@ public class IntakeService {
     private final IntakeDayRepository intakeDayRepository;
     private final IntakeRecordRepository intakeRecordRepository;
     private final ActiveProductStopService activeProductStopService;
-
-    @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String storagePublicBaseUrl;
+    private final S3Service s3Service;
 
     public IntakeResponse.ActiveProducts getActiveProducts(Long memberId) {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
         List<ActiveProductRow> activeProducts = memberActiveProductRepository.findActiveProductRows(memberId);
-        return IntakeConverter.toActiveProducts(activeProducts, storagePublicBaseUrl);
+        return IntakeConverter.toActiveProducts(activeProducts, s3Service::getPublicUrl);
     }
 
     public IntakeResponse.TodayIntakeStatus getTodayIntakeStatus(Long memberId) {
@@ -207,6 +205,53 @@ public class IntakeService {
                 activeProductCount,
                 calculation.lastRoutineDate()
         );
+    }
+
+    // 컨디션 도메인에서 주간 섭취 완료/미완료 일수를 집계할 때 사용.
+    // 복용 예정일이 없는 날은 완료도 미완료도 아닌 "영향 없음"으로 취급해 어느 쪽 집계에도 포함하지 않는다.
+    public IntakeWeeklyCompletionSummary getWeeklyCompletionSummary(Long memberId, LocalDate startDate, LocalDate endDate) {
+        List<CalendarScheduleHistoryRow> scheduleHistoryRows =
+                memberActiveProductScheduleHistoryRepository.findCalendarScheduleHistoryRows(
+                        memberId, startDate, endDate);
+        Map<LocalDate, IntakeDay> intakeDaysByDate = findIntakeDaysByDate(memberId, startDate, endDate);
+
+        int completedDays = 0;
+        int missedDays = 0;
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            LocalDate currentDate = date;
+            boolean hasScheduledRoutine = scheduleHistoryRows.stream()
+                    .anyMatch(row -> isRoutineActiveOn(row, currentDate) && isScheduledOn(row, currentDate));
+            if (!hasScheduledRoutine) {
+                continue;
+            }
+
+            IntakeDay intakeDay = intakeDaysByDate.get(currentDate);
+            boolean allCompleted = intakeDay != null && intakeDay.isAllCompleted();
+            if (allCompleted) {
+                completedDays++;
+            } else {
+                missedDays++;
+            }
+        }
+        return new IntakeWeeklyCompletionSummary(completedDays, missedDays);
+    }
+
+    // 컨디션 도메인에서 일요일 영양제 미섭취 확인 팝업 필요 여부를 판단할 때 사용
+    public boolean hasIncompleteTodayIntake(Long memberId) {
+        LocalDate currentDate = currentDate();
+        List<TodayScheduledProductRow> scheduledRows = findTodayScheduledRows(memberId, currentDate);
+        if (scheduledRows.isEmpty()) {
+            return false;
+        }
+
+        IntakeDay intakeDay = intakeDayRepository.findByMemberIdAndIntakeOn(memberId, currentDate).orElse(null);
+        Map<Long, TodayIntakeRecordRow> recordsByActiveProductId =
+                findTodayRecordsByActiveProductId(intakeDay, scheduledRows);
+        long takenCount = scheduledRows.stream()
+                .map(row -> recordsByActiveProductId.get(row.activeProductId()))
+                .filter(record -> record != null && Boolean.TRUE.equals(record.taken()))
+                .count();
+        return takenCount < scheduledRows.size();
     }
 
     public IntakeResponse.DailyTakenProducts getDailyTakenProducts(Long memberId, String date) {
@@ -337,7 +382,7 @@ public class IntakeService {
         ActiveProductRow activeProductRow = memberActiveProductRepository
                 .findActiveProductRow(memberId, activeProduct.getId())
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
-        return IntakeConverter.toRegisterActiveProduct(activeProduct, activeProductRow, storagePublicBaseUrl);
+        return IntakeConverter.toRegisterActiveProduct(activeProduct, activeProductRow, s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -373,7 +418,7 @@ public class IntakeService {
         return IntakeConverter.toUpdateActiveProductSettings(
                 activeProductSettingsRow,
                 currentDate,
-                storagePublicBaseUrl
+                s3Service::getPublicUrl
         );
     }
 

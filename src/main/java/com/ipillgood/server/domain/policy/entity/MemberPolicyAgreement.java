@@ -50,7 +50,7 @@ public class MemberPolicyAgreement extends BaseEntity {
     @Column(name = "agreed_at")
     private LocalDateTime agreedAt;
 
-    @Builder
+    @Builder(access = AccessLevel.PRIVATE)
     private MemberPolicyAgreement(Member member, PolicyDocument policyDocument, boolean agreed, LocalDateTime agreedAt) {
         this.member = member;
         this.policyDocument = policyDocument;

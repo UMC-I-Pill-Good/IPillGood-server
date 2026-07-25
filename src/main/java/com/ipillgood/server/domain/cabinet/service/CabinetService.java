@@ -23,10 +23,10 @@ import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.domain.product.repository.ProductRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,9 +58,7 @@ public class CabinetService {
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final ProductRepository productRepository;
     private final ActiveProductStopService activeProductStopService;
-
-    @Value("${app.storage.public-base-url:https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com}")
-    private String storagePublicBaseUrl;
+    private final S3Service s3Service;
 
     public CabinetResponse.ProductCandidates getProductCandidates(
             Long memberId,
@@ -92,7 +90,7 @@ public class CabinetService {
                 candidatePage.hasNext(),
                 candidatePage.getContent(),
                 tagsByProductId,
-                storagePublicBaseUrl
+                s3Service::getPublicUrl
         );
     }
 
@@ -101,7 +99,7 @@ public class CabinetService {
         validateOnboardingCompleted(member);
 
         List<CabinetProductRow> products = memberProductRepository.findActiveCabinetProducts(memberId);
-        return CabinetConverter.toProductList(member.getNickname(), products, storagePublicBaseUrl);
+        return CabinetConverter.toProductList(member.getNickname(), products, s3Service::getPublicUrl);
     }
 
     public CabinetResponse.ReviewPrompts getDueReviewPrompts(Long memberId) {
@@ -139,7 +137,7 @@ public class CabinetService {
         List<CabinetProductIngredientKeywordRow> ingredients =
                 memberProductRepository.findProductIngredientKeywordRows(memberId, memberProductId);
 
-        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), storagePublicBaseUrl);
+        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -177,7 +175,7 @@ public class CabinetService {
         List<CabinetAddedProductRow> orderedRows = addedProductRows.stream()
                 .sorted(Comparator.comparingInt(row -> productOrder.get(row.productId())))
                 .toList();
-        return CabinetConverter.toAddProducts(orderedRows, storagePublicBaseUrl);
+        return CabinetConverter.toAddProducts(orderedRows, s3Service::getPublicUrl);
     }
 
     @Transactional

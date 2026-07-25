@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +36,61 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
             order by ap.createdAt asc, ap.id asc
             """)
     List<ActiveProductRow> findActiveProductRows(@Param("memberId") Long memberId);
+
+    @Query("""
+            select new com.ipillgood.server.domain.intake.repository.IntakeNotificationActiveProductRow(
+                ap.id,
+                mp.id,
+                p.id,
+                p.name,
+                ap.notificationEnabled,
+                ap.intakeTime
+            )
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            where ap.member.id = :memberId
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and p.deletedAt is null
+            order by ap.createdAt asc, ap.id asc
+            """)
+    List<IntakeNotificationActiveProductRow> findIntakeNotificationActiveProductRows(
+            @Param("memberId") Long memberId
+    );
+
+    @Query("""
+            select new com.ipillgood.server.domain.intake.repository.IntakeNotificationDeliveryProductRow(
+                ap.member.id,
+                ap.id,
+                p.name,
+                ap.scheduleAnchorOn,
+                ap.frequencyIntervalDays,
+                ap.intakeTime
+            )
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join mp.product p
+            left join MemberNotificationSetting setting on setting.member = ap.member
+            where ap.startedOn <= :currentDate
+              and (ap.stoppedOn is null or :currentDate < ap.stoppedOn)
+              and mp.deletedAt is null
+              and p.deletedAt is null
+              and ap.notificationEnabled = true
+              and ap.intakeTime = :currentTime
+              and (setting.memberId is null or (setting.pushEnabled = true and setting.intakePushEnabled = true))
+              and exists (
+                  select token.id
+                  from MemberPushToken token
+                  where token.member = ap.member
+                    and token.active = true
+              )
+            order by ap.member.id asc, ap.createdAt asc, ap.id asc
+            """)
+    List<IntakeNotificationDeliveryProductRow> findIntakeNotificationDeliveryProductRows(
+            @Param("currentDate") LocalDate currentDate,
+            @Param("currentTime") LocalTime currentTime
+    );
 
     @Query("""
             select new com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow(

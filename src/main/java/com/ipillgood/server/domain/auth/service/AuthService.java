@@ -7,12 +7,7 @@ import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
-import com.ipillgood.server.domain.policy.entity.MemberPolicyAgreement;
-import com.ipillgood.server.domain.policy.entity.PolicyDocument;
-import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
-import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
-import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
-import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import com.ipillgood.server.domain.policy.service.PolicyService;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
 import io.jsonwebtoken.Claims;
@@ -20,11 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
-    private final PolicyDocumentRepository policyDocumentRepository;
-    private final MemberPolicyAgreementRepository memberPolicyAgreementRepository;
+    private final PolicyService policyService;
 
     // 로컬 회원가입
     @Transactional
@@ -53,67 +42,17 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.DUPLICATE_USERNAME);
         }
 
-        // 3. 이메일 중복 확인
-        if (memberRepository.existsByEmail(request.email())) {
-            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
-        }
+        // 3. 이메일 중복 확인 - 기존 계정이 로컬/소셜인지에 따라 다르게 안내
+        validateEmailAvailable(request.email());
 
-        // 4. 약관 동의 검증
-        Map<Long, Boolean> agreedByDocument = toAgreementMap(request.policyAgreements());
-        List<PolicyDocument> submittedDocuments = findActiveDocuments(agreedByDocument.keySet());
-        validateRequiredAgreements(agreedByDocument);
-
-        // 5. 비밀번호 암호화 + 회원 저장
+        // 4. 비밀번호 암호화 + 회원 저장
         String encodedPassword = passwordEncoder.encode(request.password());
         Member savedMember = memberRepository.save(AuthConverter.toMember(request, encodedPassword));
 
-        // 6. 약관 동의 이력 저장
-        saveAgreements(savedMember, submittedDocuments, agreedByDocument);
+        // 5. 약관 동의 검증 + 이력 저장
+        policyService.agreeToPolicies(savedMember, request.policyAgreements());
 
         return AuthConverter.toSignUpResponse(savedMember);
-    }
-
-    // 동의 목록: {문서 ID: 동의 여부} key-value 형식 맵
-    private Map<Long, Boolean> toAgreementMap(List<AuthRequest.PolicyAgreement> agreements) {
-        Map<Long, Boolean> agreedByDocument = new LinkedHashMap<>();
-        for (AuthRequest.PolicyAgreement agreement : agreements) {
-            Boolean previous = agreedByDocument.putIfAbsent(agreement.policyDocumentId(), agreement.agreed());
-
-            // 기존에 존재하는 문서와 동의값이 다르면 예외처리
-            if (previous != null && !previous.equals(agreement.agreed())) {
-                throw new GeneralException(GeneralErrorCode.VALID_FAIL);
-            }
-        }
-        return agreedByDocument;
-    }
-
-    // 제출한 문서가 모두 실재하는 활성 문서인지 확인 (존재하지 않거나 비활성 문서가 섞이는 문제 방지)
-    private List<PolicyDocument> findActiveDocuments(Set<Long> documentIds) {
-        List<PolicyDocument> documents = policyDocumentRepository.findByIdInAndActiveTrue(documentIds);
-
-        // 만약 요청한 문서가 4개인데, 조회된 문서가 3개인 경우
-        if (documents.size() != documentIds.size()) {
-            throw new GeneralException(GeneralErrorCode.VALID_FAIL);
-        }
-        return documents;
-    }
-
-    // 활성 필수 약관이 모두 동의(true) 상태인지 확인 (누락하거나 false로 보내면 차단)
-    private void validateRequiredAgreements(Map<Long, Boolean> agreedByDocument) {
-        boolean allRequiredAgreed = policyDocumentRepository.findByActiveTrueAndRequiredTrue().stream()
-                .allMatch(document -> Boolean.TRUE.equals(agreedByDocument.get(document.getId())));
-        if (!allRequiredAgreed) {
-            throw new AuthException(AuthErrorCode.REQUIRED_TERMS_NOT_AGREED);
-        }
-    }
-
-    // 제출한 약관 동의 이력을 회원에 저장 (동의/거부 모두 기록)
-    private void saveAgreements(Member member, List<PolicyDocument> documents, Map<Long, Boolean> agreedByDocument) {
-        List<MemberPolicyAgreement> agreements = documents.stream()
-                .map(document -> MemberPolicyAgreement.of(
-                        member, document, Boolean.TRUE.equals(agreedByDocument.get(document.getId()))))
-                .toList();
-        memberPolicyAgreementRepository.saveAll(agreements);
     }
 
     // 로컬 로그인
@@ -135,7 +74,7 @@ public class AuthService {
         // 4. 리프레시 토큰 저장 (재발급 검증용)
         refreshTokenStore.save(member.getId(), refreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toLoginResponse(accessToken, refreshToken);
+        return AuthConverter.toLoginResponse(member, accessToken, refreshToken, jwtProvider.getAccessTokenExpiresIn());
     }
 
     // 토큰 재발급 (Refresh Token Rotation)
@@ -166,7 +105,8 @@ public class AuthService {
         String newRefreshToken = jwtProvider.createRefreshToken(member.getId(), role);
         refreshTokenStore.save(member.getId(), newRefreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toLoginResponse(newAccessToken, newRefreshToken);
+        return AuthConverter.toLoginResponse(member, newAccessToken, newRefreshToken,
+                jwtProvider.getAccessTokenExpiresIn());
     }
 
     // 로그아웃 (저장된 리프레시 토큰 폐기)
@@ -183,8 +123,24 @@ public class AuthService {
 
     // 이메일 중복확인
     public void checkEmailDuplicate(String email) {
-        if (memberRepository.existsByEmail(email)) {
+        validateEmailAvailable(email);
+    }
+
+    /**
+     * 이미 가입된 이메일인 경우, 기존 계정의 종류에 따라 다른 방식으로 안내
+     * 1. 소셜 전용 계정(비밀번호 없음): 해당 소셜 계정으로 로그인 안내 (AUTH409_2)
+     * 2. 로컬 계정(비밀번호 보유): 해당 이메일로 로그인 안내 (AUTH409_1)
+     */
+    private void validateEmailAvailable(String email) {
+        memberRepository.findByEmail(Member.normalizeEmail(email)).ifPresent(member -> {
+
+            // 1. 소셜 계정 존재
+            if (member.isSocialOnly()) {
+                throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+
+            // 2. 로컬 계정 존재
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
-        }
+        });
     }
 }

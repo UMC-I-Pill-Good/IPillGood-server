@@ -48,4 +48,29 @@ public class ConditionPopupLog extends BaseEntity {
 
     @Column(name = "dismissed_at")
     private LocalDateTime dismissedAt;
+
+    private ConditionPopupLog(Member member, LocalDate weekStartOn) {
+        this.member = member;
+        this.weekStartOn = weekStartOn;
+    }
+
+    public static ConditionPopupLog create(Member member, LocalDate weekStartOn) {
+        return new ConditionPopupLog(member, weekStartOn);
+    }
+
+    // 같은 주에 이미 자동 노출 기록이 있으면 최초 노출 시각을 유지한다
+    public LocalDateTime markAutoShown(LocalDateTime shownAt) {
+        if (autoShownAt == null) {
+            autoShownAt = shownAt;
+        }
+        return autoShownAt;
+    }
+
+    // 같은 주에 이미 닫힘 기록이 있으면 최초 닫힘 시각을 유지한다
+    public LocalDateTime markDismissed(LocalDateTime dismissedAt) {
+        if (this.dismissedAt == null) {
+            this.dismissedAt = dismissedAt;
+        }
+        return this.dismissedAt;
+    }
 }
