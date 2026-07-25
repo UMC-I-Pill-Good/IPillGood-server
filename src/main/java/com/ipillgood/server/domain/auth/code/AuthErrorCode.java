@@ -10,7 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum AuthErrorCode implements BaseErrorCode {
 
     // 400 BAD_REQUEST - 유효성 검사
-    INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_1", "1~10자 이내로 입력해주세요."),
+    INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_1", "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요."),
     INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_2", "올바른 이메일 형식이 아닙니다."),
     USERNAME_CHECK_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH400_3", "아이디 중복 확인을 해주세요."),
     INVALID_USERNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_4", "2~10자 이내로 입력해주세요."),
