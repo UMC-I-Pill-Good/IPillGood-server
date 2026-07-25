@@ -17,6 +17,7 @@ import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.intake.service.ActiveProductStopService;
+import com.ipillgood.server.domain.intake.service.TodayIntakeCompletionService;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.product.entity.Product;
@@ -60,6 +61,7 @@ public class CabinetService {
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final ProductRepository productRepository;
     private final ActiveProductStopService activeProductStopService;
+    private final TodayIntakeCompletionService todayIntakeCompletionService;
     private final S3Service s3Service;
 
     public CabinetResponse.ProductCandidates getProductCandidates(
@@ -206,6 +208,9 @@ public class CabinetService {
 
         orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
         activeProducts.forEach(activeProduct -> activeProductStopService.stop(activeProduct, stoppedOn));
+        if (!activeProducts.isEmpty()) {
+            todayIntakeCompletionService.recalculateIfTodayExists(memberId, stoppedOn, deletedAt);
+        }
 
         return response;
     }

@@ -74,6 +74,7 @@ public class IntakeService {
     private final IntakeDayRepository intakeDayRepository;
     private final IntakeRecordRepository intakeRecordRepository;
     private final ActiveProductStopService activeProductStopService;
+    private final TodayIntakeCompletionService todayIntakeCompletionService;
     private final S3Service s3Service;
 
     public IntakeResponse.ActiveProducts getActiveProducts(Long memberId) {
@@ -379,6 +380,7 @@ public class IntakeService {
         memberActiveProductScheduleHistoryRepository.save(
                 MemberActiveProductScheduleHistory.createInitial(activeProduct)
         );
+        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, currentDateTime());
 
         ActiveProductRow activeProductRow = memberActiveProductRepository
                 .findActiveProductRow(memberId, activeProduct.getId())
@@ -409,8 +411,12 @@ public class IntakeService {
             activeProduct.changeNotificationEnabled(values.notificationEnabled());
         }
         if (values.frequency() != null && values.frequency() != activeProduct.getFrequency()) {
+            boolean wasScheduledToday = isScheduledOn(activeProduct, currentDate);
             activeProduct.changeFrequency(values.frequency(), currentDate);
             updateScheduleHistory(activeProduct, currentDate);
+            if (wasScheduledToday != isScheduledOn(activeProduct, currentDate)) {
+                todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, currentDateTime());
+            }
         }
 
         ActiveProductSettingsRow activeProductSettingsRow = memberActiveProductRepository
@@ -435,6 +441,7 @@ public class IntakeService {
 
         LocalDate currentDate = currentDate();
         activeProductStopService.stop(activeProduct, currentDate);
+        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, currentDateTime());
         return IntakeConverter.toRemoveActiveProduct(activeProduct, currentDate);
     }
 
@@ -711,23 +718,28 @@ public class IntakeService {
     }
 
     private boolean isScheduledOn(TodayScheduledProductRow row, LocalDate currentDate) {
-        if (row.scheduleAnchorOn() == null || row.frequencyIntervalDays() == null
-                || row.frequencyIntervalDays() < 1) {
-            return false;
-        }
-
-        long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), currentDate);
-        return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+        return isScheduledOn(row.scheduleAnchorOn(), row.frequencyIntervalDays(), currentDate);
     }
 
     private boolean isScheduledOn(CalendarScheduleHistoryRow row, LocalDate date) {
-        if (row.scheduleAnchorOn() == null || row.frequencyIntervalDays() == null
-                || row.frequencyIntervalDays() < 1) {
+        return isScheduledOn(row.scheduleAnchorOn(), row.frequencyIntervalDays(), date);
+    }
+
+    private boolean isScheduledOn(MemberActiveProduct activeProduct, LocalDate currentDate) {
+        return isScheduledOn(
+                activeProduct.getScheduleAnchorOn(),
+                activeProduct.getFrequencyIntervalDays(),
+                currentDate
+        );
+    }
+
+    private boolean isScheduledOn(LocalDate scheduleAnchorOn, Short frequencyIntervalDays, LocalDate currentDate) {
+        if (scheduleAnchorOn == null || frequencyIntervalDays == null || frequencyIntervalDays < 1) {
             return false;
         }
 
-        long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), date);
-        return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+        long daysSinceAnchor = ChronoUnit.DAYS.between(scheduleAnchorOn, currentDate);
+        return daysSinceAnchor >= 0 && daysSinceAnchor % frequencyIntervalDays == 0;
     }
 
     private YearMonth validateCalendarPeriod(String year, String month) {

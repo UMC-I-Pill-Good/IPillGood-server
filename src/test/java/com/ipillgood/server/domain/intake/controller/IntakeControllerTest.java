@@ -1623,6 +1623,35 @@ class IntakeControllerTest {
     }
 
     @Test
+    @DisplayName("기존 오늘 예정 영양제를 모두 완료한 뒤 새 영양제를 등록하면 오늘 완료 상태를 미완료로 재계산한다")
+    void registerActiveProduct_afterAllScheduledProductsCompleted_marksTodayAsIncomplete() throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, true, currentDate + " 10:00:00");
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+        insertTodayIntakeRecord(2L, 1L, 10L, 100L, true, currentDate + " 08:30:00");
+
+        mockMvc.perform(post(ACTIVE_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 8,
+                                  "intakeTime": "08:30",
+                                  "frequency": "EVERY_DAY"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.memberProductId").value(8))
+                .andExpect(jsonPath("$.result.productId").value(107));
+
+        assertEquals(false, findAllCompleted(MEMBER_ID, currentDate));
+        assertNull(findCompletedAt(MEMBER_ID, currentDate));
+        assertEquals(2, countIntakeRecords(MEMBER_ID, currentDate));
+    }
+
+    @Test
     @DisplayName("인증 없이 섭취 중 영양제 설정 변경을 요청하면 401을 반환한다")
     void updateActiveProductSettings_withoutToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(patch(activeProductUrl(10L))
@@ -1724,6 +1753,34 @@ class IntakeControllerTest {
         assertEquals(2, countScheduleHistories(10L));
         assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
         assertEquals(1, countActiveScheduleHistories(10L, "EVERY_2_DAYS"));
+    }
+
+    @Test
+    @DisplayName("복용 주기 변경으로 오늘 예정 영양제가 늘어나면 오늘 완료 상태를 미완료로 재계산한다")
+    void updateActiveProductSettings_whenTodayScheduledStatusChanges_marksTodayAsIncomplete()
+            throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(10L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, true, currentDate + " 10:00:00");
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "EVERY_3_DAYS"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.frequency").value("EVERY_3_DAYS"))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value(currentDate.toString()));
+
+        assertEquals(false, findAllCompleted(MEMBER_ID, currentDate));
+        assertNull(findCompletedAt(MEMBER_ID, currentDate));
+        assertEquals(1, countIntakeRecords(MEMBER_ID, currentDate));
     }
 
     @Test
@@ -1916,6 +1973,50 @@ class IntakeControllerTest {
         assertEquals(0, countDeletedMemberProduct(1L));
         assertEquals(beforeIntakeDayCount, countIntakeDays());
         assertEquals(beforeIntakeRecordCount, countIntakeRecords());
+    }
+
+    @Test
+    @DisplayName("일부 완료 후 미완료 영양제를 제거하면 남은 오늘 예정 기준으로 완료 상태를 true로 재계산한다")
+    void removeActiveProduct_afterOnlyRemainingProductTaken_marksTodayAsCompleted() throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, false, null);
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+        insertTodayIntakeRecord(2L, 1L, 10L, 100L, false, null);
+
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true));
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(true, findAllCompleted(MEMBER_ID, currentDate));
+        LocalDateTime completedAt = findCompletedAt(MEMBER_ID, currentDate);
+        assertNotNull(completedAt);
+        assertEquals(currentDate, completedAt.toLocalDate());
+        assertEquals(2, countIntakeRecords(MEMBER_ID, currentDate));
+        assertEquals(false, findTodayRecordTaken(MEMBER_ID, currentDate, 10L));
+    }
+
+    @Test
+    @DisplayName("오늘 예정 영양제를 모두 제거하면 완료 상태를 false와 null 완료 일시로 재계산한다")
+    void removeActiveProduct_whenNoScheduledProductsRemain_marksTodayAsIncomplete() throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(20L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, true, currentDate + " 10:00:00");
+        insertTodayIntakeRecord(1L, 1L, 10L, 100L, true, currentDate + " 08:30:00");
+
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true));
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(false, findAllCompleted(MEMBER_ID, currentDate));
+        assertNull(findCompletedAt(MEMBER_ID, currentDate));
+        assertEquals(1, countIntakeRecords(MEMBER_ID, currentDate));
+        assertEquals(true, findTodayRecordTaken(MEMBER_ID, currentDate, 10L));
     }
 
     @Test

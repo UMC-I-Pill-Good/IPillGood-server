@@ -759,6 +759,37 @@ class CabinetControllerTest {
         assertEquals(beforeIntakeRecordCount, countIntakeRecords());
     }
 
+    @Test
+    @DisplayName("캐비닛 삭제로 활성 섭취 상품이 중단되면 남은 오늘 예정 기준으로 완료 상태를 재계산한다")
+    void deleteProducts_withActiveProductRecalculatesTodayCompletion() throws Exception {
+        LocalDate currentDate = LocalDate.now();
+        insertMemberActiveProduct(20L, 2L, MEMBER_ID, null);
+        insertIntakeDay(1L, MEMBER_ID, currentDate.toString(), false, null);
+        insertIntakeRecord(1L, 1L, 10L, 100L, false, null);
+        insertIntakeRecord(2L, 1L, 20L, 101L, true, currentDate + " 08:00:00");
+
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "memberProductIds": [1]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.deletedProducts[0].wasActiveIntake").value(true))
+                .andExpect(jsonPath("$.result.deletedProducts[0].stoppedActiveProductId").value(10));
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(true, findAllCompleted(MEMBER_ID, currentDate));
+        LocalDateTime completedAt = findCompletedAt(MEMBER_ID, currentDate);
+        assertNotNull(completedAt);
+        assertEquals(currentDate, completedAt.toLocalDate());
+        assertEquals(2, countIntakeRecords());
+        assertEquals(false, findIntakeRecordTaken(1L));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "{}",
@@ -1161,6 +1192,16 @@ class CabinetControllerTest {
     }
 
     private void insertIntakeDay(Long id, Long memberId, String intakeOn) {
+        insertIntakeDay(id, memberId, intakeOn, true, "2026-07-20 09:10:00");
+    }
+
+    private void insertIntakeDay(
+            Long id,
+            Long memberId,
+            String intakeOn,
+            boolean allCompleted,
+            String completedAt
+    ) {
         jdbcTemplate.update("""
                         INSERT INTO intake_day (
                             id,
@@ -1172,16 +1213,28 @@ class CabinetControllerTest {
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, NULL, true, '2026-07-20 09:10:00',
-                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, ?, NULL, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 memberId,
-                intakeOn
+                intakeOn,
+                allCompleted,
+                completedAt
         );
     }
 
     private void insertIntakeRecord(Long id, Long intakeDayId, Long memberActiveProductId, Long productId) {
+        insertIntakeRecord(id, intakeDayId, memberActiveProductId, productId, true, "2026-07-20 09:10:00");
+    }
+
+    private void insertIntakeRecord(
+            Long id,
+            Long intakeDayId,
+            Long memberActiveProductId,
+            Long productId,
+            boolean taken,
+            String takenAt
+    ) {
         jdbcTemplate.update("""
                         INSERT INTO intake_record (
                             id,
@@ -1194,13 +1247,14 @@ class CabinetControllerTest {
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, ?, true, true, '2026-07-20 09:10:00',
-                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, ?, ?, true, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 intakeDayId,
                 memberActiveProductId,
-                productId
+                productId,
+                taken,
+                takenAt
         );
     }
 
@@ -1353,6 +1407,32 @@ class CabinetControllerTest {
     private int countIntakeRecords() {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM intake_record", Integer.class);
         return count == null ? 0 : count;
+    }
+
+    private Boolean findAllCompleted(Long memberId, LocalDate intakeOn) {
+        return jdbcTemplate.queryForObject(
+                "SELECT all_completed FROM intake_day WHERE member_id = ? AND intake_on = ?",
+                Boolean.class,
+                memberId,
+                intakeOn
+        );
+    }
+
+    private LocalDateTime findCompletedAt(Long memberId, LocalDate intakeOn) {
+        return jdbcTemplate.queryForObject(
+                "SELECT completed_at FROM intake_day WHERE member_id = ? AND intake_on = ?",
+                LocalDateTime.class,
+                memberId,
+                intakeOn
+        );
+    }
+
+    private Boolean findIntakeRecordTaken(Long intakeRecordId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT taken FROM intake_record WHERE id = ?",
+                Boolean.class,
+                intakeRecordId
+        );
     }
 
     private String bearerToken(String token) {
