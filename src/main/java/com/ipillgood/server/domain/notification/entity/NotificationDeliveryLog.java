@@ -15,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,7 +26,13 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "notification_delivery_log")
+@Table(
+        name = "notification_delivery_log",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_notification_delivery_log_token_type_scheduled",
+                columnNames = {"member_push_token_id", "notification_type", "scheduled_at"}
+        )
+)
 public class NotificationDeliveryLog extends BaseEntity {
 
     @Id
@@ -68,4 +75,63 @@ public class NotificationDeliveryLog extends BaseEntity {
 
     @Column(name = "failure_reason", columnDefinition = "TEXT")
     private String failureReason;
+
+    private NotificationDeliveryLog(
+            Member member,
+            MemberPushToken memberPushToken,
+            NotificationType notificationType,
+            String title,
+            String body,
+            String targetRoute,
+            LocalDateTime scheduledAt
+    ) {
+        this.member = member;
+        this.memberPushToken = memberPushToken;
+        this.notificationType = notificationType;
+        this.title = title;
+        this.body = body;
+        this.targetRoute = targetRoute;
+        this.scheduledAt = scheduledAt;
+        this.status = NotificationDeliveryStatus.PENDING;
+        this.retryCount = 0;
+    }
+
+    public static NotificationDeliveryLog createPending(
+            Member member,
+            MemberPushToken memberPushToken,
+            NotificationType notificationType,
+            String title,
+            String body,
+            String targetRoute,
+            LocalDateTime scheduledAt
+    ) {
+        return new NotificationDeliveryLog(
+                member,
+                memberPushToken,
+                notificationType,
+                title,
+                body,
+                targetRoute,
+                scheduledAt
+        );
+    }
+
+    public void markSent(LocalDateTime sentAt, short retryCount) {
+        this.sentAt = sentAt;
+        this.status = NotificationDeliveryStatus.SENT;
+        this.retryCount = retryCount;
+        this.failureReason = null;
+    }
+
+    public void markFailed(String failureReason) {
+        this.status = NotificationDeliveryStatus.FAILED;
+        this.retryCount = 0;
+        this.failureReason = failureReason;
+    }
+
+    public void markRetryFailed(String failureReason) {
+        this.status = NotificationDeliveryStatus.RETRY_FAILED;
+        this.retryCount = 1;
+        this.failureReason = failureReason;
+    }
 }
