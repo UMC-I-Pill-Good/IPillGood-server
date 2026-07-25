@@ -36,7 +36,7 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 
     // Swagger
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -46,6 +46,12 @@ dependencies {
     // AWS S3
     implementation platform('software.amazon.awssdk:bom:2.28.16')
     implementation 'software.amazon.awssdk:s3'
+
+    // QueryDSL (Spring Boot 4 / Hibernate 7 지원을 위해 OpenFeign 포크 사용)
+    implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.0'
+    annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.0:jpa'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 }
 
 tasks.named('test') {
