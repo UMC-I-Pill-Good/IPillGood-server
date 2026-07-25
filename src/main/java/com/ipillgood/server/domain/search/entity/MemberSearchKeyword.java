@@ -12,11 +12,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.OnDelete;
+
+import lombok.*;
+import org.hibernate.annotations.OnDelete;                                                                                                                                   
 import org.hibernate.annotations.OnDeleteAction;
+
 
 import java.time.LocalDateTime;
 
@@ -24,6 +24,8 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 @Table(
         name = "member_search_keyword",
         uniqueConstraints = @UniqueConstraint(
@@ -47,4 +49,8 @@ public class MemberSearchKeyword extends BaseEntity {
 
     @Column(name = "searched_at", nullable = false)
     private LocalDateTime searchedAt;
+
+    public void updateSearchedAt(LocalDateTime searchedAt) {
+        this.searchedAt = searchedAt;
+    }
 }
