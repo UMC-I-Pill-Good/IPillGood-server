@@ -5,6 +5,7 @@ import com.ipillgood.server.domain.member.dto.MemberResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 /**
  * 마이페이지 관련 API 문서
@@ -18,11 +19,11 @@ public interface MemberApi {
 
     @Operation(summary = "프로필 수정",
             description = "내 닉네임을 수정합니다.")
-    ApiResponse<MemberResponse.ProfileUpdated> updateProfile(Long memberId, MemberRequest.UpdateProfile request);
+    ApiResponse<MemberResponse.ProfileUpdated> updateProfile(Long memberId, @Valid MemberRequest.UpdateProfile request);
 
     @Operation(summary = "비밀번호 변경",
             description = "로컬 로그인 사용자의 비밀번호를 변경합니다.")
-    ApiResponse<Void> changePassword(Long memberId, MemberRequest.ChangePassword request);
+    ApiResponse<Void> changePassword(Long memberId, @Valid MemberRequest.ChangePassword request);
 
     @Operation(summary = "회원 탈퇴",
             description = "회원 계정과 사용자 종속 데이터를 삭제합니다.")
