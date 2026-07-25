@@ -29,4 +29,19 @@ public class SupportConverter {
                 .answer(faq.getAnswer())
                 .build();
     }
+
+    /**
+     * 문의/고객센터 조회 - FAQ 미리보기 엔티티 목록 + 문의처 정보 -> DTO 변환
+     */
+    public static SupportResponse.Info toInfo(List<Faq> faqs, String contactEmail,
+                                              String operatingHours, String closedDays) {
+        return SupportResponse.Info.builder()
+                .faqs(faqs.stream()
+                        .map(SupportConverter::toFaqItem)
+                        .toList())
+                .contactEmail(contactEmail)
+                .operatingHours(operatingHours)
+                .closedDays(closedDays)
+                .build();
+    }
 }

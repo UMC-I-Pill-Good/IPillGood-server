@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum SupportSuccessCode implements BaseSuccessCode {
 
     FAQ_LIST_FOUND(HttpStatus.OK, "SUPPORT200_1", "FAQ 목록 조회에 성공했습니다."),
+    SUPPORT_INFO_FOUND(HttpStatus.OK, "SUPPORT200_2", "문의/고객센터 조회에 성공했습니다."),
     ;
 
     private final HttpStatus status;

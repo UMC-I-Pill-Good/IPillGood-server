@@ -27,4 +27,16 @@ public class SupportResponse {
             List<FaqItem> faqs
     ) {
     }
+
+    /**
+     * 문의/고객센터 조회 응답
+     */
+    @Builder
+    public record Info(
+            List<FaqItem> faqs,
+            String contactEmail,
+            String operatingHours,
+            String closedDays
+    ) {
+    }
 }

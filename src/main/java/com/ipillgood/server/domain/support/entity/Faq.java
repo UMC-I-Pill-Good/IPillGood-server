@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -40,4 +41,13 @@ public class Faq extends BaseEntity {
 
     @Column(name = "active", nullable = false)
     private boolean active = true;
+
+    @Builder
+    public Faq(FaqCategory category, String question, String answer, Integer displayOrder, boolean active) {
+        this.category = category;
+        this.question = question;
+        this.answer = answer;
+        this.displayOrder = displayOrder;
+        this.active = active;
+    }
 }

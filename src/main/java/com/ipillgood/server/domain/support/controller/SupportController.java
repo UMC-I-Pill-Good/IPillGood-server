@@ -28,4 +28,12 @@ public class SupportController implements SupportApi {
         SupportResponse.FaqList response = supportService.getFaqs(category, keyword);
         return ApiResponse.onSuccess(SupportSuccessCode.FAQ_LIST_FOUND, response);
     }
+
+    // 문의/고객센터 조회
+    @Override
+    @GetMapping
+    public ApiResponse<SupportResponse.Info> getSupportInfo() {
+        SupportResponse.Info response = supportService.getSupportInfo();
+        return ApiResponse.onSuccess(SupportSuccessCode.SUPPORT_INFO_FOUND, response);
+    }
 }
