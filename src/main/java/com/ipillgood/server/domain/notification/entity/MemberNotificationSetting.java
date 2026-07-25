@@ -13,6 +13,8 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 // 회원 알림 설정
 @Entity
@@ -28,6 +30,7 @@ public class MemberNotificationSetting extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "member_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
     @Column(name = "push_enabled", nullable = false)

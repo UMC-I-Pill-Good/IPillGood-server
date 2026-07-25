@@ -18,6 +18,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 // 온보딩 건강 고민 선택
 @Entity
@@ -38,6 +40,7 @@ public class SurveyOnboardingConcernSelection extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_response_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private SurveyResponse surveyResponse;
 
     @Enumerated(EnumType.STRING)

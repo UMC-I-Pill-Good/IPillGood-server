@@ -23,4 +23,8 @@ public interface MemberApi {
     @Operation(summary = "비밀번호 변경",
             description = "로컬 로그인 사용자의 비밀번호를 변경합니다.")
     ApiResponse<Void> changePassword(Long memberId, MemberRequest.ChangePassword request);
+
+    @Operation(summary = "회원 탈퇴",
+            description = "회원 계정과 사용자 종속 데이터를 삭제합니다.")
+    ApiResponse<Void> withdraw(Long memberId);
 }

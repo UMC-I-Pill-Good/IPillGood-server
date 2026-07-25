@@ -15,6 +15,8 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -37,10 +39,12 @@ public class IntakeRecord extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "intake_day_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private IntakeDay intakeDay;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_active_product_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private MemberActiveProduct memberActiveProduct;
 
     @ManyToOne(fetch = FetchType.LAZY)

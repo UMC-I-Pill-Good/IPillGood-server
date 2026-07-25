@@ -11,6 +11,7 @@ import com.ipillgood.server.domain.member.exception.MemberException;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
 import com.ipillgood.server.global.s3.S3Service;
+import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class MemberService {
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final S3Service s3Service;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenStore refreshTokenStore;
 
     /**
      * 마이페이지 진입 시 실행
@@ -89,6 +91,19 @@ public class MemberService {
 
         // 4. 비밀번호 변경 성공
         member.changePassword(passwordEncoder.encode(request.newPassword()));
+    }
+
+    /**
+     * 회원 탈퇴 시 실행
+     * 리프레시 토큰 폐기 후 회원 삭제
+     */
+    @Transactional
+    public void withdraw(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        refreshTokenStore.delete(memberId);
+        memberRepository.delete(member);
     }
 
     /**

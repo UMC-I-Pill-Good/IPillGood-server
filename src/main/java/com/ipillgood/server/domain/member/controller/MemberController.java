@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,5 +51,13 @@ public class MemberController implements MemberApi {
             @Valid @RequestBody MemberRequest.ChangePassword request) {
         memberService.changePassword(memberId, request);
         return ApiResponse.onSuccess(MemberSuccessCode.PASSWORD_CHANGED, null);
+    }
+
+    // 회원 탈퇴
+    @Override
+    @DeleteMapping("/me")
+    public ApiResponse<Void> withdraw(@AuthenticationPrincipal Long memberId) {
+        memberService.withdraw(memberId);
+        return ApiResponse.onSuccess(MemberSuccessCode.WITHDRAWN, null);
     }
 }
