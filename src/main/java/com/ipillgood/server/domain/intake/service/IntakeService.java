@@ -269,7 +269,8 @@ public class IntakeService {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         IntakeDay intakeDay = intakeDayRepository.findByMemberIdAndIntakeOn(memberId, currentDate)
                 .orElse(null);
 
@@ -286,7 +287,7 @@ public class IntakeService {
             intakeDay = intakeDayRepository.save(IntakeDay.create(member, currentDate));
         }
 
-        LocalDateTime autoPopupShownAt = intakeDay.markAutoPopupShown(currentDateTime());
+        LocalDateTime autoPopupShownAt = intakeDay.markAutoPopupShown(now);
         return IntakeConverter.toTodayPopupShown(currentDate, autoPopupShownAt);
     }
 
@@ -299,7 +300,8 @@ public class IntakeService {
         validateOnboardingCompleted(member);
 
         Set<Long> takenActiveProductIds = validateSaveTodayIntakeRecordsRequest(request);
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         List<TodayScheduledProductRow> scheduledRows = findTodayScheduledRows(memberId, currentDate);
         if (scheduledRows.isEmpty()) {
             throw new IntakeException(IntakeErrorCode.TODAY_RECORD_REQUEST_INVALID);
@@ -319,7 +321,6 @@ public class IntakeService {
                 findActiveTodayRecordTargetsById(memberId, scheduledRowsByActiveProductId.keySet());
         Map<Long, IntakeRecord> recordsByProductId = findTodayRecordEntitiesByProductId(intakeDay, scheduledRows);
 
-        LocalDateTime now = currentDateTime();
         List<IntakeRecord> newRecords = new ArrayList<>();
         for (TodayScheduledProductRow scheduledRow : scheduledRows) {
             MemberActiveProduct activeProduct = activeProductsById.get(scheduledRow.activeProductId());
@@ -367,7 +368,8 @@ public class IntakeService {
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         validateNotStoppedToday(memberId, targetMemberProduct, currentDate);
         MemberActiveProduct activeProduct = MemberActiveProduct.create(
                 targetMemberProduct,
@@ -380,7 +382,7 @@ public class IntakeService {
         memberActiveProductScheduleHistoryRepository.save(
                 MemberActiveProductScheduleHistory.createInitial(activeProduct)
         );
-        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, currentDateTime());
+        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, now);
 
         ActiveProductRow activeProductRow = memberActiveProductRepository
                 .findActiveProductRow(memberId, activeProduct.getId())
@@ -403,7 +405,8 @@ public class IntakeService {
                 .findActiveSettingsUpdateTarget(memberId, parsedActiveProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         if (values.intakeTime() != null) {
             activeProduct.changeIntakeTime(values.intakeTime());
         }
@@ -415,7 +418,7 @@ public class IntakeService {
             activeProduct.changeFrequency(values.frequency(), currentDate);
             updateScheduleHistory(activeProduct, currentDate);
             if (wasScheduledToday != isScheduledOn(activeProduct, currentDate)) {
-                todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, currentDateTime());
+                todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, now);
             }
         }
 
@@ -439,9 +442,10 @@ public class IntakeService {
                 .findActiveStopTarget(memberId, parsedActiveProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         activeProductStopService.stop(activeProduct, currentDate);
-        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, currentDateTime());
+        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, now);
         return IntakeConverter.toRemoveActiveProduct(activeProduct, currentDate);
     }
 
