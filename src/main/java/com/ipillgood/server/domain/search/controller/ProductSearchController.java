@@ -3,19 +3,18 @@ package com.ipillgood.server.domain.search.controller;
 import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
 import com.ipillgood.server.domain.search.code.SearchSuccessCode;
 import com.ipillgood.server.domain.search.controller.docs.ProductSearchApi;
+import com.ipillgood.server.domain.search.dto.ProductSearchRequest;
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
 import com.ipillgood.server.domain.search.entity.enums.ProductSearchSort;
 import com.ipillgood.server.domain.search.service.ProductSearchService;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import com.ipillgood.server.global.enums.AgeGroup;
 import com.ipillgood.server.global.enums.Gender;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -52,5 +51,15 @@ public class ProductSearchController implements ProductSearchApi {
     ) {
         ProductSearchResponse.RecentSearchKeywords resDto = productSearchService.getRecentSearchKeywords(memberId);
         return ApiResponse.onSuccess(SearchSuccessCode.VIEW_RECENT_SEARCH_KEYWORDS_SUCCESS, resDto);
+    }
+
+    @Override
+    @PostMapping("/recent-keywords")
+    public ApiResponse<ProductSearchResponse.RecentSearchKeyword> storeRecentSearchKeyword(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody @Valid ProductSearchRequest.RecentSearchKeyword reqDto
+    ) {
+        ProductSearchResponse.RecentSearchKeyword resDto = productSearchService.storeRecentSearchKeyword(memberId, reqDto.keyword());
+        return ApiResponse.onSuccess(SearchSuccessCode.STORE_RECENT_SEARCH_KEYWORD_SUCCESS, resDto);
     }
 }

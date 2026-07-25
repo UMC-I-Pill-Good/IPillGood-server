@@ -101,7 +101,7 @@ class ProductSearchControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
+                .andExpect(jsonPath("$.code").value("SEARCH200_1"))
                 .andExpect(jsonPath("$.result.keyword").doesNotExist())
                 .andExpect(jsonPath("$.result.products[*].productId").value(contains(100, 102, 101, 104)))
                 .andExpect(jsonPath("$.result.size").value(20))

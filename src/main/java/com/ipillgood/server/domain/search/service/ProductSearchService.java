@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.search.service;
 import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
 import com.ipillgood.server.domain.ingredient.entity.enums.TargetGender;
 import com.ipillgood.server.domain.search.converter.ProductSearchConverter;
+import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.search.entity.MemberSearchKeyword;
 import com.ipillgood.server.domain.search.repository.MemberSearchKeywordRepository;
 import com.ipillgood.server.domain.search.repository.ProductSearchCondition;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +32,7 @@ public class ProductSearchService {
 
     private final ProductSearchRepository productSearchRepository;
     private final MemberSearchKeywordRepository memberSearchKeywordRepository;
+    private final MemberRepository memberRepository;
     private final S3Service s3Service;
 
     public ProductSearchResponse.ProductSearch searchProducts(
@@ -75,6 +78,29 @@ public class ProductSearchService {
                 .findTop10ByMemberIdOrderBySearchedAtDesc(memberId);
 
         return ProductSearchConverter.toRecentSearchKeywords(keywords);
+    }
+
+    @Transactional
+    public ProductSearchResponse.RecentSearchKeyword storeRecentSearchKeyword(Long memberId, String rawKeyword) {
+        String keyword = rawKeyword.trim();
+
+        MemberSearchKeyword recentKeyword = memberSearchKeywordRepository
+                .findByMemberIdAndKeyword(memberId, keyword)
+                .map(existing -> {
+                    existing.updateSearchedAt(LocalDateTime.now());
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    MemberSearchKeyword created = memberSearchKeywordRepository.save(
+                            MemberSearchKeyword.builder()
+                                    .member(memberRepository.getReferenceById(memberId))
+                                    .keyword(keyword)
+                                    .searchedAt(LocalDateTime.now())
+                                    .build());
+                    return created;
+                });
+
+        return ProductSearchConverter.toRecentSearchKeyword(recentKeyword);
     }
 
     private ProductSearchCondition toProductSearchCondition(

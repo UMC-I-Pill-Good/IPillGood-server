@@ -49,7 +49,7 @@ public class ProductSearchConverter {
     public static ProductSearchResponse.RecentSearchKeywords toRecentSearchKeywords(
             List<MemberSearchKeyword> keywords
     ) {
-        List<ProductSearchResponse.RecentSearchKeywords.RecentSearchKeyword> recentSearchKeywords = keywords.stream()
+        List<ProductSearchResponse.RecentSearchKeyword> recentSearchKeywords = keywords.stream()
                 .map(keyword -> toRecentSearchKeyword(keyword)).toList();
 
         return ProductSearchResponse.RecentSearchKeywords.builder()
@@ -78,10 +78,10 @@ public class ProductSearchConverter {
                 .build();
     }
 
-    private static ProductSearchResponse.RecentSearchKeywords.RecentSearchKeyword toRecentSearchKeyword(
+    public static ProductSearchResponse.RecentSearchKeyword toRecentSearchKeyword(
             MemberSearchKeyword keyword
     ) {
-        return ProductSearchResponse.RecentSearchKeywords.RecentSearchKeyword.builder()
+        return ProductSearchResponse.RecentSearchKeyword.builder()
                 .keywordId(keyword.getId())
                 .keyword(keyword.getKeyword())
                 .searchedAt(keyword.getSearchedAt())

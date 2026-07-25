@@ -1,6 +1,7 @@
 package com.ipillgood.server.domain.search.controller.docs;
 
 import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
+import com.ipillgood.server.domain.search.dto.ProductSearchRequest;
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
 import com.ipillgood.server.domain.search.entity.enums.ProductSearchSort;
 import com.ipillgood.server.global.enums.AgeGroup;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
@@ -38,7 +40,7 @@ public interface ProductSearchApi {
                                     value = """
                                             {
                                               "isSuccess": true,
-                                              "code": "SUCCESS200_1",
+                                              "code": "SEARCH200_1",
                                               "message": "영양제 상품 목록 조회에 성공했습니다.",
                                               "result": {
                                                 "keyword": "비타민",
@@ -159,7 +161,7 @@ public interface ProductSearchApi {
                                     value = """
                                             {
                                               "isSuccess": true,
-                                              "code": "SUCCESS200_2",
+                                              "code": "SEARCH200_2",
                                               "message": "최근 검색어 조회에 성공했습니다.",
                                               "result": {
                                                 "keywords": [
@@ -179,5 +181,58 @@ public interface ProductSearchApi {
     ApiResponse<ProductSearchResponse.RecentSearchKeywords> getRecentSearchKeywords(
             @Parameter(hidden = true)
             Long memberId
+    );
+
+    @Operation(
+            summary = "최근 검색어 저장",
+            description = "검색 실행 시 최근 검색어를 저장합니다. 이미 있는 검색어면 검색 일시만 최신화합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "최근 검색어 저장 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SEARCH201_1",
+                                              "message": "최근 검색어 저장에 성공했습니다.",
+                                              "result": {
+                                                "keywordId": 1,
+                                                "keyword": "비타민",
+                                                "searchedAt": "2026-07-20T15:00:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "검색어 검증 실패(공백이거나 100자 초과)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON400_1",
+                                              "message": "잘못된 요청입니다.",
+                                              "result": {
+                                                "keyword": "공백일 수 없습니다"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductSearchResponse.RecentSearchKeyword> storeRecentSearchKeyword(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Valid ProductSearchRequest.RecentSearchKeyword request
     );
 }

@@ -10,8 +10,11 @@ import org.springframework.http.HttpStatus;
 public enum SearchSuccessCode implements BaseSuccessCode {
 
     // 200 OK
-    PRODUCT_SEARCH_SUCCESS(HttpStatus.OK, "SUCCESS200_1", "영양제 상품 목록 조회에 성공했습니다."),
-    VIEW_RECENT_SEARCH_KEYWORDS_SUCCESS(HttpStatus.OK, "SUCCESS200_2", "최근 검색어 조회에 성공했습니다."),
+    PRODUCT_SEARCH_SUCCESS(HttpStatus.OK, "SEARCH200_1", "영양제 상품 목록 조회에 성공했습니다."),
+    VIEW_RECENT_SEARCH_KEYWORDS_SUCCESS(HttpStatus.OK, "SEARCH200_2", "최근 검색어 조회에 성공했습니다."),
+
+    // 201 CREATED
+    STORE_RECENT_SEARCH_KEYWORD_SUCCESS(HttpStatus.CREATED, "SEARCH201_1", "최근 검색어 저장에 성공했습니다."),
     ;
 
     private final HttpStatus status;
