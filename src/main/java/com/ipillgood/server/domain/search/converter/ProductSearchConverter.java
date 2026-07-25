@@ -1,6 +1,7 @@
 package com.ipillgood.server.domain.search.converter;
 
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
+import com.ipillgood.server.domain.search.entity.MemberSearchKeyword;
 import com.ipillgood.server.domain.search.repository.ProductSearchProjection;
 import com.ipillgood.server.global.s3.S3Service;
 
@@ -45,6 +46,17 @@ public class ProductSearchConverter {
                 .build();
     }
 
+    public static ProductSearchResponse.RecentSearchKeywords toRecentSearchKeywords(
+            List<MemberSearchKeyword> keywords
+    ) {
+        List<ProductSearchResponse.RecentSearchKeywords.RecentSearchKeyword> recentSearchKeywords = keywords.stream()
+                .map(keyword -> toRecentSearchKeyword(keyword)).toList();
+
+        return ProductSearchResponse.RecentSearchKeywords.builder()
+                .keywords(recentSearchKeywords)
+                .build();
+    }
+
     private static ProductSearchResponse.ProductSearchItem toProductSearchItem(
             ProductSearchProjection.Product row,
             List<ProductSearchProjection.Ingredient> ingredients,
@@ -63,6 +75,16 @@ public class ProductSearchConverter {
                 .ingredientNames(ingredientNames)
                 .averageRating(toRoundedAverageRating(row.averageRating()))
                 .reviewCount(row.reviewCount() == null ? 0 : row.reviewCount().intValue())
+                .build();
+    }
+
+    private static ProductSearchResponse.RecentSearchKeywords.RecentSearchKeyword toRecentSearchKeyword(
+            MemberSearchKeyword keyword
+    ) {
+        return ProductSearchResponse.RecentSearchKeywords.RecentSearchKeyword.builder()
+                .keywordId(keyword.getId())
+                .keyword(keyword.getKeyword())
+                .searchedAt(keyword.getSearchedAt())
                 .build();
     }
 

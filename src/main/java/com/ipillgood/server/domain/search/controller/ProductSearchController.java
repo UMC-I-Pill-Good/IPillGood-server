@@ -44,4 +44,13 @@ public class ProductSearchController implements ProductSearchApi {
                 keyword, sort, ageGroups, gender, mfdsCertified, healthConcernMajorCategories, size, cursor);
         return ApiResponse.onSuccess(SearchSuccessCode.PRODUCT_SEARCH_SUCCESS, resDto);
     }
+
+    @Override
+    @GetMapping("/recent-keywords")
+    public ApiResponse<ProductSearchResponse.RecentSearchKeywords> getRecentSearchKeywords(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        ProductSearchResponse.RecentSearchKeywords resDto = productSearchService.getRecentSearchKeywords(memberId);
+        return ApiResponse.onSuccess(SearchSuccessCode.VIEW_RECENT_SEARCH_KEYWORDS_SUCCESS, resDto);
+    }
 }

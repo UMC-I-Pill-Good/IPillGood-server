@@ -3,6 +3,8 @@ package com.ipillgood.server.domain.search.service;
 import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
 import com.ipillgood.server.domain.ingredient.entity.enums.TargetGender;
 import com.ipillgood.server.domain.search.converter.ProductSearchConverter;
+import com.ipillgood.server.domain.search.entity.MemberSearchKeyword;
+import com.ipillgood.server.domain.search.repository.MemberSearchKeywordRepository;
 import com.ipillgood.server.domain.search.repository.ProductSearchCondition;
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
 import com.ipillgood.server.domain.search.entity.enums.ProductSearchSort;
@@ -27,6 +29,7 @@ public class ProductSearchService {
     private static final int DEFAULT_PRODUCT_SEARCH_PAGE_SIZE = 20;
 
     private final ProductSearchRepository productSearchRepository;
+    private final MemberSearchKeywordRepository memberSearchKeywordRepository;
     private final S3Service s3Service;
 
     public ProductSearchResponse.ProductSearch searchProducts(
@@ -65,6 +68,13 @@ public class ProductSearchService {
                 ingredientRows,
                 s3Service
         );
+    }
+
+    public ProductSearchResponse.RecentSearchKeywords getRecentSearchKeywords(Long memberId) {
+        List<MemberSearchKeyword> keywords = memberSearchKeywordRepository
+                .findTop10ByMemberIdOrderBySearchedAtDesc(memberId);
+
+        return ProductSearchConverter.toRecentSearchKeywords(keywords);
     }
 
     private ProductSearchCondition toProductSearchCondition(

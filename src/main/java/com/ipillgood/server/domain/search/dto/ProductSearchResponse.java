@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.search.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class ProductSearchResponse {
@@ -57,5 +58,25 @@ public class ProductSearchResponse {
             @Schema(description = "후기 수", example = "12")
             Integer reviewCount
     ) {
+    }
+
+    @Schema(description = "최근 검색어 조회 응답")
+    @Builder
+    public record RecentSearchKeywords(
+            @Schema(description = "최근 검색어 목록 (최신순, 최대 10개)")
+            List<RecentSearchKeyword> keywords
+    ) {
+        @Schema(description = "최근 검색어 항목")
+        @Builder
+        public record RecentSearchKeyword(
+                @Schema(description = "최근 검색어 ID", example = "1")
+                Long keywordId,
+
+                @Schema(description = "검색어", example = "비타민")
+                String keyword,
+
+                @Schema(description = "검색 일시", example = "2026-07-20T15:00:00")
+                LocalDateTime searchedAt
+        ) {}
     }
 }

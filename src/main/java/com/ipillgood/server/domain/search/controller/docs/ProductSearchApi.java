@@ -143,4 +143,41 @@ public interface ProductSearchApi {
             )
             String cursor
     );
+
+    @Operation(
+            summary = "최근 검색어 조회",
+            description = "로그인한 회원의 최근 검색어를 최신순으로 최대 10개 조회합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "최근 검색어 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_2",
+                                              "message": "최근 검색어 조회에 성공했습니다.",
+                                              "result": {
+                                                "keywords": [
+                                                  {
+                                                    "keywordId": 1,
+                                                    "keyword": "비타민",
+                                                    "searchedAt": "2026-07-20T15:00:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductSearchResponse.RecentSearchKeywords> getRecentSearchKeywords(
+            @Parameter(hidden = true)
+            Long memberId
+    );
 }
