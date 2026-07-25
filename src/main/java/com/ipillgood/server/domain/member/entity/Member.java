@@ -83,6 +83,11 @@ public class Member extends BaseEntity {
         this.nickname = nickname;
     }
 
+    // 비밀번호 변경 화면에서 실행 (인코딩된 값을 전달받음)
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     // 소셜 전용 계정 여부 (소셜 회원가입은 비밀번호를 받지 않으므로 비밀번호가 없음)
     public boolean isSocialOnly() {
         return password == null;

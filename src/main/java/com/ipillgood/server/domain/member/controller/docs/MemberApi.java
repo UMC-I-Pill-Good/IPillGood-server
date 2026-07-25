@@ -19,4 +19,8 @@ public interface MemberApi {
     @Operation(summary = "프로필 수정",
             description = "내 닉네임을 수정합니다.")
     ApiResponse<MemberResponse.ProfileUpdated> updateProfile(Long memberId, MemberRequest.UpdateProfile request);
+
+    @Operation(summary = "비밀번호 변경",
+            description = "로컬 로그인 사용자의 비밀번호를 변경합니다.")
+    ApiResponse<Void> changePassword(Long memberId, MemberRequest.ChangePassword request);
 }

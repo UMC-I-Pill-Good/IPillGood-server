@@ -12,6 +12,7 @@ import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
 import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final S3Service s3Service;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 마이페이지 진입 시 실행
@@ -59,6 +61,34 @@ public class MemberService {
 
         member.updateNickname(request.nickname());
         return MemberConverter.toProfileUpdated(member);
+    }
+
+    /**
+     * 비밀번호 변경 화면에서 실행
+     * 소셜 전용 계정 차단 -> 현재 비밀번호 검증 -> 새 비밀번호 확인 일치 검증 순서로 처리
+     */
+    @Transactional
+    public void changePassword(Long memberId, MemberRequest.ChangePassword request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        // 1. 소셜 계정은 비밀번호 변경 불가능
+        if (member.isSocialOnly()) {
+            throw new MemberException(MemberErrorCode.SOCIAL_ONLY_ACCOUNT);
+        }
+
+        // 2. 기존 비밀번호 비교 불일치
+        if (!passwordEncoder.matches(request.currentPassword(), member.getPassword())) {
+            throw new MemberException(MemberErrorCode.CURRENT_PASSWORD_MISMATCH);
+        }
+
+        // 3. 새 비밀번호 - 새 비밀번호 확인 불일치
+        if (!request.newPassword().equals(request.newPasswordConfirm())) {
+            throw new MemberException(MemberErrorCode.NEW_PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        // 4. 비밀번호 변경 성공
+        member.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 
     /**

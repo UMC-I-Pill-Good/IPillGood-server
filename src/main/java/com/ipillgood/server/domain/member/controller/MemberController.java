@@ -41,4 +41,14 @@ public class MemberController implements MemberApi {
         MemberResponse.ProfileUpdated response = memberService.updateNickname(memberId, request);
         return ApiResponse.onSuccess(MemberSuccessCode.PROFILE_UPDATED, response);
     }
+
+    // 비밀번호 변경
+    @Override
+    @PatchMapping("/me/password")
+    public ApiResponse<Void> changePassword(
+            @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody MemberRequest.ChangePassword request) {
+        memberService.changePassword(memberId, request);
+        return ApiResponse.onSuccess(MemberSuccessCode.PASSWORD_CHANGED, null);
+    }
 }

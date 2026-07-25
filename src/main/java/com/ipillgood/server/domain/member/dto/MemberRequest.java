@@ -14,4 +14,20 @@ public class MemberRequest {
             String nickname
     ) {
     }
+
+    /**
+     * 비밀번호 변경 요청
+     */
+    public record ChangePassword(
+            @NotBlank(message = "현재 비밀번호를 입력해주세요.")
+            String currentPassword,
+
+            @NotBlank(message = "8~16자의 영문, 숫자를 조합해 주세요.")
+            @Pattern(regexp = "^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{8,16}$", message = "8~16자의 영문, 숫자를 조합해 주세요.")
+            String newPassword,
+
+            @NotBlank(message = "새 비밀번호 확인을 입력해주세요.")
+            String newPasswordConfirm
+    ) {
+    }
 }
