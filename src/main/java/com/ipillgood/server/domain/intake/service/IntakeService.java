@@ -74,6 +74,7 @@ public class IntakeService {
     private final IntakeDayRepository intakeDayRepository;
     private final IntakeRecordRepository intakeRecordRepository;
     private final ActiveProductStopService activeProductStopService;
+    private final TodayIntakeCompletionService todayIntakeCompletionService;
     private final S3Service s3Service;
 
     public IntakeResponse.ActiveProducts getActiveProducts(Long memberId) {
@@ -268,7 +269,8 @@ public class IntakeService {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         IntakeDay intakeDay = intakeDayRepository.findByMemberIdAndIntakeOn(memberId, currentDate)
                 .orElse(null);
 
@@ -285,7 +287,7 @@ public class IntakeService {
             intakeDay = intakeDayRepository.save(IntakeDay.create(member, currentDate));
         }
 
-        LocalDateTime autoPopupShownAt = intakeDay.markAutoPopupShown(currentDateTime());
+        LocalDateTime autoPopupShownAt = intakeDay.markAutoPopupShown(now);
         return IntakeConverter.toTodayPopupShown(currentDate, autoPopupShownAt);
     }
 
@@ -298,7 +300,8 @@ public class IntakeService {
         validateOnboardingCompleted(member);
 
         Set<Long> takenActiveProductIds = validateSaveTodayIntakeRecordsRequest(request);
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         List<TodayScheduledProductRow> scheduledRows = findTodayScheduledRows(memberId, currentDate);
         if (scheduledRows.isEmpty()) {
             throw new IntakeException(IntakeErrorCode.TODAY_RECORD_REQUEST_INVALID);
@@ -318,7 +321,6 @@ public class IntakeService {
                 findActiveTodayRecordTargetsById(memberId, scheduledRowsByActiveProductId.keySet());
         Map<Long, IntakeRecord> recordsByProductId = findTodayRecordEntitiesByProductId(intakeDay, scheduledRows);
 
-        LocalDateTime now = currentDateTime();
         List<IntakeRecord> newRecords = new ArrayList<>();
         for (TodayScheduledProductRow scheduledRow : scheduledRows) {
             MemberActiveProduct activeProduct = activeProductsById.get(scheduledRow.activeProductId());
@@ -366,7 +368,9 @@ public class IntakeService {
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
+        validateNotStoppedToday(memberId, targetMemberProduct, currentDate);
         MemberActiveProduct activeProduct = MemberActiveProduct.create(
                 targetMemberProduct,
                 member,
@@ -378,6 +382,7 @@ public class IntakeService {
         memberActiveProductScheduleHistoryRepository.save(
                 MemberActiveProductScheduleHistory.createInitial(activeProduct)
         );
+        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, now);
 
         ActiveProductRow activeProductRow = memberActiveProductRepository
                 .findActiveProductRow(memberId, activeProduct.getId())
@@ -400,7 +405,8 @@ public class IntakeService {
                 .findActiveSettingsUpdateTarget(memberId, parsedActiveProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         if (values.intakeTime() != null) {
             activeProduct.changeIntakeTime(values.intakeTime());
         }
@@ -408,8 +414,12 @@ public class IntakeService {
             activeProduct.changeNotificationEnabled(values.notificationEnabled());
         }
         if (values.frequency() != null && values.frequency() != activeProduct.getFrequency()) {
+            boolean wasScheduledToday = isScheduledOn(activeProduct, currentDate);
             activeProduct.changeFrequency(values.frequency(), currentDate);
             updateScheduleHistory(activeProduct, currentDate);
+            if (wasScheduledToday != isScheduledOn(activeProduct, currentDate)) {
+                todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, now);
+            }
         }
 
         ActiveProductSettingsRow activeProductSettingsRow = memberActiveProductRepository
@@ -432,8 +442,10 @@ public class IntakeService {
                 .findActiveStopTarget(memberId, parsedActiveProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_NOT_FOUND));
 
-        LocalDate currentDate = currentDate();
+        LocalDateTime now = currentDateTime();
+        LocalDate currentDate = now.toLocalDate();
         activeProductStopService.stop(activeProduct, currentDate);
+        todayIntakeCompletionService.recalculateIfTodayExists(memberId, currentDate, now);
         return IntakeConverter.toRemoveActiveProduct(activeProduct, currentDate);
     }
 
@@ -449,6 +461,7 @@ public class IntakeService {
                 .findActiveIntakeRegistrationTarget(memberId, memberProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
+        validateNotStoppedToday(memberId, targetMemberProduct, currentDate());
 
         List<CompatibilityConflictRow> conflicts = memberActiveProductRepository.findCompatibilityConflicts(
                 memberId,
@@ -709,23 +722,28 @@ public class IntakeService {
     }
 
     private boolean isScheduledOn(TodayScheduledProductRow row, LocalDate currentDate) {
-        if (row.scheduleAnchorOn() == null || row.frequencyIntervalDays() == null
-                || row.frequencyIntervalDays() < 1) {
-            return false;
-        }
-
-        long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), currentDate);
-        return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+        return isScheduledOn(row.scheduleAnchorOn(), row.frequencyIntervalDays(), currentDate);
     }
 
     private boolean isScheduledOn(CalendarScheduleHistoryRow row, LocalDate date) {
-        if (row.scheduleAnchorOn() == null || row.frequencyIntervalDays() == null
-                || row.frequencyIntervalDays() < 1) {
+        return isScheduledOn(row.scheduleAnchorOn(), row.frequencyIntervalDays(), date);
+    }
+
+    private boolean isScheduledOn(MemberActiveProduct activeProduct, LocalDate currentDate) {
+        return isScheduledOn(
+                activeProduct.getScheduleAnchorOn(),
+                activeProduct.getFrequencyIntervalDays(),
+                currentDate
+        );
+    }
+
+    private boolean isScheduledOn(LocalDate scheduleAnchorOn, Short frequencyIntervalDays, LocalDate currentDate) {
+        if (scheduleAnchorOn == null || frequencyIntervalDays == null || frequencyIntervalDays < 1) {
             return false;
         }
 
-        long daysSinceAnchor = ChronoUnit.DAYS.between(row.scheduleAnchorOn(), date);
-        return daysSinceAnchor >= 0 && daysSinceAnchor % row.frequencyIntervalDays() == 0;
+        long daysSinceAnchor = ChronoUnit.DAYS.between(scheduleAnchorOn, currentDate);
+        return daysSinceAnchor >= 0 && daysSinceAnchor % frequencyIntervalDays == 0;
     }
 
     private YearMonth validateCalendarPeriod(String year, String month) {
@@ -882,6 +900,16 @@ public class IntakeService {
                 memberProductId
         )) {
             throw new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_ALREADY_EXISTS);
+        }
+    }
+
+    private void validateNotStoppedToday(Long memberId, MemberProduct targetMemberProduct, LocalDate currentDate) {
+        if (memberActiveProductRepository.existsStoppedProductOn(
+                memberId,
+                targetMemberProduct.getProduct().getId(),
+                currentDate
+        )) {
+            throw new IntakeException(IntakeErrorCode.TODAY_STOPPED_PRODUCT_RE_REGISTRATION_BLOCKED);
         }
     }
 

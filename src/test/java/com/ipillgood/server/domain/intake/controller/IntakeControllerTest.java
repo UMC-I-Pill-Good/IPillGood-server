@@ -52,6 +52,7 @@ class IntakeControllerTest {
     private static final String TODAY_RECORDS_URL = "/api/v1/intake/today/records";
     private static final String ACTIVE_PRODUCTS_URL = "/api/v1/intake/active-products";
     private static final String COMPATIBILITY_CHECKS_URL = "/api/v1/intake/compatibility-checks";
+    private static final String CABINET_PRODUCTS_URL = "/api/v1/cabinet/products";
     private static final long MEMBER_ID = 1L;
     private static final long OTHER_MEMBER_ID = 2L;
     private static final long EMPTY_MEMBER_ID = 3L;
@@ -1421,6 +1422,10 @@ class IntakeControllerTest {
     @Test
     @DisplayName("이미 섭취 중인 캐비닛 상품이면 등록 시 409를 반환한다")
     void registerActiveProduct_withAlreadyActiveTarget_returnsConflict() throws Exception {
+        LocalDate currentDate = currentDate();
+        insertMemberProduct(50L, MEMBER_ID, 100L, "2026-07-01 10:00:00", currentDate + " 12:00:00");
+        insertMemberActiveProduct(40L, 50L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
+
         mockMvc.perform(post(ACTIVE_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType("application/json")
@@ -1436,6 +1441,101 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.code").value("INTAKE409_1"))
                 .andExpect(jsonPath("$.message").value("이미 섭취 중인 영양제입니다."))
                 .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("오늘 홈에서 섭취 중 제거된 같은 캐비닛 상품은 다시 등록할 수 없다")
+    void registerActiveProduct_withTodayStoppedSameMemberProduct_returnsConflict() throws Exception {
+        LocalDate currentDate = currentDate();
+
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk());
+
+        assertEquals(currentDate, findStoppedOn(10L));
+
+        mockMvc.perform(post(ACTIVE_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 1,
+                                  "intakeTime": "08:30",
+                                  "frequency": "EVERY_DAY"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE409_3"))
+                .andExpect(jsonPath("$.message").value("오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(0, countActiveProductsByMemberProductId(1L));
+    }
+
+    @Test
+    @DisplayName("오늘 캐비닛 삭제 후 같은 상품을 새 캐비닛 상품으로 추가해도 다시 등록할 수 없다")
+    void registerActiveProduct_afterCabinetDeleteAndReAddSameProduct_returnsConflict() throws Exception {
+        LocalDate currentDate = currentDate();
+
+        mockMvc.perform(delete(CABINET_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductIds": [1]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        insertMemberProduct(50L, MEMBER_ID, 100L, currentDate + " 12:00:00", null);
+
+        mockMvc.perform(post(ACTIVE_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 50,
+                                  "intakeTime": "08:30",
+                                  "frequency": "EVERY_DAY"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE409_3"))
+                .andExpect(jsonPath("$.message").value("오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+
+        assertEquals(0, countActiveProductsByMemberProductId(50L));
+    }
+
+    @Test
+    @DisplayName("어제 이전에 중단한 동일 상품은 오늘 다시 등록하고 새 활성 섭취 상품을 생성한다")
+    void registerActiveProduct_withPreviouslyStoppedSameProduct_registersNewActiveProduct() throws Exception {
+        LocalDate currentDate = currentDate();
+        LocalDate previousDate = currentDate.minusDays(1);
+        insertMemberActiveProduct(40L, 9L, MEMBER_ID, previousDate.toString(), "2026-07-01 09:00:00");
+        int beforeTotalCount = countMemberActiveProductsByMemberProductId(9L);
+
+        mockMvc.perform(post(ACTIVE_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 9,
+                                  "intakeTime": "08:30",
+                                  "frequency": "EVERY_DAY"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS201_1"))
+                .andExpect(jsonPath("$.result.memberProductId").value(9))
+                .andExpect(jsonPath("$.result.productId").value(108));
+
+        assertEquals(beforeTotalCount + 1, countMemberActiveProductsByMemberProductId(9L));
+        assertEquals(1, countActiveProductsByMemberProductId(9L));
     }
 
     @Test
@@ -1520,6 +1620,35 @@ class IntakeControllerTest {
                 currentDate
         );
         assertEquals(1, scheduleHistoryCount);
+    }
+
+    @Test
+    @DisplayName("기존 오늘 예정 영양제를 모두 완료한 뒤 새 영양제를 등록하면 오늘 완료 상태를 미완료로 재계산한다")
+    void registerActiveProduct_afterAllScheduledProductsCompleted_marksTodayAsIncomplete() throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, true, currentDate + " 10:00:00");
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+        insertTodayIntakeRecord(2L, 1L, 10L, 100L, true, currentDate + " 08:30:00");
+
+        mockMvc.perform(post(ACTIVE_PRODUCTS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 8,
+                                  "intakeTime": "08:30",
+                                  "frequency": "EVERY_DAY"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.memberProductId").value(8))
+                .andExpect(jsonPath("$.result.productId").value(107));
+
+        assertEquals(false, findAllCompleted(MEMBER_ID, currentDate));
+        assertNull(findCompletedAt(MEMBER_ID, currentDate));
+        assertEquals(2, countIntakeRecords(MEMBER_ID, currentDate));
     }
 
     @Test
@@ -1624,6 +1753,34 @@ class IntakeControllerTest {
         assertEquals(2, countScheduleHistories(10L));
         assertEquals(1, countClosedScheduleHistories(10L, "EVERY_DAY", currentDate));
         assertEquals(1, countActiveScheduleHistories(10L, "EVERY_2_DAYS"));
+    }
+
+    @Test
+    @DisplayName("복용 주기 변경으로 오늘 예정 영양제가 늘어나면 오늘 완료 상태를 미완료로 재계산한다")
+    void updateActiveProductSettings_whenTodayScheduledStatusChanges_marksTodayAsIncomplete()
+            throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(10L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, true, currentDate + " 10:00:00");
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+
+        mockMvc.perform(patch(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "frequency": "EVERY_3_DAYS"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.frequency").value("EVERY_3_DAYS"))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value(currentDate.toString()));
+
+        assertEquals(false, findAllCompleted(MEMBER_ID, currentDate));
+        assertNull(findCompletedAt(MEMBER_ID, currentDate));
+        assertEquals(1, countIntakeRecords(MEMBER_ID, currentDate));
     }
 
     @Test
@@ -1819,6 +1976,50 @@ class IntakeControllerTest {
     }
 
     @Test
+    @DisplayName("일부 완료 후 미완료 영양제를 제거하면 남은 오늘 예정 기준으로 완료 상태를 true로 재계산한다")
+    void removeActiveProduct_afterOnlyRemainingProductTaken_marksTodayAsCompleted() throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, false, null);
+        insertTodayIntakeRecord(1L, 1L, 20L, 106L, true, currentDate + " 07:30:00");
+        insertTodayIntakeRecord(2L, 1L, 10L, 100L, false, null);
+
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true));
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(true, findAllCompleted(MEMBER_ID, currentDate));
+        LocalDateTime completedAt = findCompletedAt(MEMBER_ID, currentDate);
+        assertNotNull(completedAt);
+        assertEquals(currentDate, completedAt.toLocalDate());
+        assertEquals(2, countIntakeRecords(MEMBER_ID, currentDate));
+        assertEquals(false, findTodayRecordTaken(MEMBER_ID, currentDate, 10L));
+    }
+
+    @Test
+    @DisplayName("오늘 예정 영양제를 모두 제거하면 완료 상태를 false와 null 완료 일시로 재계산한다")
+    void removeActiveProduct_whenNoScheduledProductsRemain_marksTodayAsIncomplete() throws Exception {
+        LocalDate currentDate = currentDate();
+        changeActiveProductFrequency(20L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        changeActiveProductFrequency(11L, "EVERY_2_DAYS", 2, currentDate.minusDays(1));
+        insertCalendarIntakeDay(1L, MEMBER_ID, currentDate, true, currentDate + " 10:00:00");
+        insertTodayIntakeRecord(1L, 1L, 10L, 100L, true, currentDate + " 08:30:00");
+
+        mockMvc.perform(delete(activeProductUrl(10L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true));
+
+        assertEquals(currentDate, findStoppedOn(10L));
+        assertEquals(false, findAllCompleted(MEMBER_ID, currentDate));
+        assertNull(findCompletedAt(MEMBER_ID, currentDate));
+        assertEquals(1, countIntakeRecords(MEMBER_ID, currentDate));
+        assertEquals(true, findTodayRecordTaken(MEMBER_ID, currentDate, 10L));
+    }
+
+    @Test
     @DisplayName("인증 없이 섭취 중 영양제 제거를 요청하면 401을 반환한다")
     void removeActiveProduct_withoutToken_returnsUnauthorized() throws Exception {
         mockMvc.perform(delete(activeProductUrl(10L)))
@@ -2011,6 +2212,10 @@ class IntakeControllerTest {
     @Test
     @DisplayName("이미 섭취 중인 캐비닛 상품이면 409를 반환한다")
     void checkCompatibility_withAlreadyActiveTarget_returnsConflict() throws Exception {
+        LocalDate currentDate = currentDate();
+        insertMemberProduct(50L, MEMBER_ID, 100L, "2026-07-01 10:00:00", currentDate + " 12:00:00");
+        insertMemberActiveProduct(40L, 50L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
+
         mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType("application/json")
@@ -2023,6 +2228,49 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE409_1"))
                 .andExpect(jsonPath("$.message").value("이미 섭취 중인 영양제입니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("오늘 중단한 동일 상품이면 병용 금기 확인도 409를 반환한다")
+    void checkCompatibility_withTodayStoppedSameProduct_returnsConflict() throws Exception {
+        LocalDate currentDate = currentDate();
+        insertMemberActiveProduct(40L, 9L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
+
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 9
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE409_3"))
+                .andExpect(jsonPath("$.message").value("오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다."))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("당일 재등록 제한 대상이면 병용 금기 충돌보다 409가 우선한다")
+    void checkCompatibility_withTodayStoppedSameProductAndConflicts_returnsConflictBeforeConflicts()
+            throws Exception {
+        LocalDate currentDate = currentDate();
+        insertMemberActiveProduct(40L, 8L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
+
+        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "memberProductId": 8
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE409_3"))
+                .andExpect(jsonPath("$.message").value("오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다."))
                 .andExpect(jsonPath("$.result").doesNotExist());
     }
 
@@ -2731,6 +2979,35 @@ class IntakeControllerTest {
                         """,
                 Integer.class,
                 activeProductId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countMemberActiveProductsByMemberProductId(Long memberProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product
+                        WHERE member_product_id = ?
+                          AND member_id = ?
+                        """,
+                Integer.class,
+                memberProductId,
+                MEMBER_ID
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countActiveProductsByMemberProductId(Long memberProductId) {
+        Integer count = jdbcTemplate.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM member_active_product
+                        WHERE member_product_id = ?
+                          AND member_id = ?
+                          AND stopped_on IS NULL
+                        """,
+                Integer.class,
+                memberProductId,
+                MEMBER_ID
         );
         return count == null ? 0 : count;
     }

@@ -17,6 +17,7 @@ import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.intake.service.ActiveProductStopService;
+import com.ipillgood.server.domain.intake.service.TodayIntakeCompletionService;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.product.entity.Product;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -52,12 +54,14 @@ public class CabinetService {
     private static final int MAX_PRODUCT_CANDIDATE_SIZE = 100;
     private static final int MAX_PRODUCT_CANDIDATE_KEYWORD_LENGTH = 100;
     private static final int REVIEW_PROMPT_DUE_DAYS = 30;
+    private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MemberRepository memberRepository;
     private final MemberProductRepository memberProductRepository;
     private final MemberActiveProductRepository memberActiveProductRepository;
     private final ProductRepository productRepository;
     private final ActiveProductStopService activeProductStopService;
+    private final TodayIntakeCompletionService todayIntakeCompletionService;
     private final S3Service s3Service;
 
     public CabinetResponse.ProductCandidates getProductCandidates(
@@ -106,7 +110,7 @@ public class CabinetService {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
-        LocalDate dueStartedOn = LocalDate.now().minusDays(REVIEW_PROMPT_DUE_DAYS);
+        LocalDate dueStartedOn = currentDate().minusDays(REVIEW_PROMPT_DUE_DAYS);
         List<CabinetReviewPromptRow> reviewPrompts =
                 memberProductRepository.findDueReviewPrompts(memberId, dueStartedOn);
         return CabinetConverter.toReviewPrompts(reviewPrompts);
@@ -121,7 +125,7 @@ public class CabinetService {
         MemberActiveProduct activeProduct = memberActiveProductRepository
                 .findActiveReviewPromptDismissTarget(memberId, activeProductId)
                 .orElseThrow(() -> new CabinetException(CabinetErrorCode.REVIEW_PROMPT_NOT_FOUND));
-        activeProduct.dismissReviewPrompt(LocalDateTime.now());
+        activeProduct.dismissReviewPrompt(currentDateTime());
 
         return CabinetConverter.toReviewPromptDismissed(activeProduct);
     }
@@ -137,7 +141,7 @@ public class CabinetService {
         List<CabinetProductIngredientKeywordRow> ingredients =
                 memberProductRepository.findProductIngredientKeywordRows(memberId, memberProductId);
 
-        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), s3Service::getPublicUrl);
+        return CabinetConverter.toProductDetail(product, ingredients, currentDate(), s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -151,7 +155,7 @@ public class CabinetService {
         validateNotAlreadyOwned(memberId, productIds);
 
         Map<Long, Product> productsById = toProductsById(products);
-        LocalDateTime addedAt = LocalDateTime.now();
+        LocalDateTime addedAt = currentDateTime();
         List<MemberProduct> memberProducts = productIds.stream()
                 .map(productId -> MemberProduct.builder()
                         .member(member)
@@ -199,13 +203,24 @@ public class CabinetService {
 
         CabinetResponse.DeleteProducts response =
                 CabinetConverter.toDeleteProducts(orderedMemberProducts, activeProductsByMemberProductId);
-        LocalDateTime deletedAt = LocalDateTime.now();
-        LocalDate stoppedOn = LocalDate.now();
+        LocalDateTime deletedAt = currentDateTime();
+        LocalDate stoppedOn = deletedAt.toLocalDate();
 
         orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
         activeProducts.forEach(activeProduct -> activeProductStopService.stop(activeProduct, stoppedOn));
+        if (!activeProducts.isEmpty()) {
+            todayIntakeCompletionService.recalculateIfTodayExists(memberId, stoppedOn, deletedAt);
+        }
 
         return response;
+    }
+
+    private LocalDate currentDate() {
+        return LocalDate.now(SERVICE_ZONE_ID);
+    }
+
+    private LocalDateTime currentDateTime() {
+        return LocalDateTime.now(SERVICE_ZONE_ID);
     }
 
     private ProductCandidateSearchCondition validateProductCandidateSearchCondition(

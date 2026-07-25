@@ -27,6 +27,11 @@ public enum IntakeErrorCode implements BaseErrorCode {
     // 409 CONFLICT - 섭취 중 상품 중복 등록/복용 팝업 노출 대상 오류
     ACTIVE_PRODUCT_ALREADY_EXISTS(HttpStatus.CONFLICT, "INTAKE409_1", "이미 섭취 중인 영양제입니다."),
     TODAY_POPUP_NOT_TARGET(HttpStatus.CONFLICT, "INTAKE409_2", "오늘 복용 팝업 노출 대상이 아닙니다."),
+    TODAY_STOPPED_PRODUCT_RE_REGISTRATION_BLOCKED(
+            HttpStatus.CONFLICT,
+            "INTAKE409_3",
+            "오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다."
+    ),
     ;
 
     private final HttpStatus status;
