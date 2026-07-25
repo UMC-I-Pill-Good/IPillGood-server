@@ -110,7 +110,7 @@ public class CabinetService {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
-        LocalDate dueStartedOn = LocalDate.now().minusDays(REVIEW_PROMPT_DUE_DAYS);
+        LocalDate dueStartedOn = currentDate().minusDays(REVIEW_PROMPT_DUE_DAYS);
         List<CabinetReviewPromptRow> reviewPrompts =
                 memberProductRepository.findDueReviewPrompts(memberId, dueStartedOn);
         return CabinetConverter.toReviewPrompts(reviewPrompts);
@@ -125,7 +125,7 @@ public class CabinetService {
         MemberActiveProduct activeProduct = memberActiveProductRepository
                 .findActiveReviewPromptDismissTarget(memberId, activeProductId)
                 .orElseThrow(() -> new CabinetException(CabinetErrorCode.REVIEW_PROMPT_NOT_FOUND));
-        activeProduct.dismissReviewPrompt(LocalDateTime.now());
+        activeProduct.dismissReviewPrompt(currentDateTime());
 
         return CabinetConverter.toReviewPromptDismissed(activeProduct);
     }
@@ -141,7 +141,7 @@ public class CabinetService {
         List<CabinetProductIngredientKeywordRow> ingredients =
                 memberProductRepository.findProductIngredientKeywordRows(memberId, memberProductId);
 
-        return CabinetConverter.toProductDetail(product, ingredients, LocalDate.now(), s3Service::getPublicUrl);
+        return CabinetConverter.toProductDetail(product, ingredients, currentDate(), s3Service::getPublicUrl);
     }
 
     @Transactional
@@ -155,7 +155,7 @@ public class CabinetService {
         validateNotAlreadyOwned(memberId, productIds);
 
         Map<Long, Product> productsById = toProductsById(products);
-        LocalDateTime addedAt = LocalDateTime.now();
+        LocalDateTime addedAt = currentDateTime();
         List<MemberProduct> memberProducts = productIds.stream()
                 .map(productId -> MemberProduct.builder()
                         .member(member)
@@ -203,7 +203,7 @@ public class CabinetService {
 
         CabinetResponse.DeleteProducts response =
                 CabinetConverter.toDeleteProducts(orderedMemberProducts, activeProductsByMemberProductId);
-        LocalDateTime deletedAt = LocalDateTime.now(SERVICE_ZONE_ID);
+        LocalDateTime deletedAt = currentDateTime();
         LocalDate stoppedOn = deletedAt.toLocalDate();
 
         orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
@@ -213,6 +213,14 @@ public class CabinetService {
         }
 
         return response;
+    }
+
+    private LocalDate currentDate() {
+        return LocalDate.now(SERVICE_ZONE_ID);
+    }
+
+    private LocalDateTime currentDateTime() {
+        return LocalDateTime.now(SERVICE_ZONE_ID);
     }
 
     private ProductCandidateSearchCondition validateProductCandidateSearchCondition(

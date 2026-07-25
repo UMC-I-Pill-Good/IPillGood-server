@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -35,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class CabinetControllerTest {
 
+    private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String CABINET_PRODUCTS_URL = "/api/v1/cabinet/products";
     private static final String CABINET_PRODUCT_CANDIDATES_URL = "/api/v1/cabinet/product-candidates";
     private static final String CABINET_REVIEW_PROMPTS_URL = "/api/v1/cabinet/review-prompts";
@@ -66,7 +68,7 @@ class CabinetControllerTest {
         insertMember(OTHER_MEMBER_ID, "다른회원", "2026-07-01 00:00:00");
         insertMember(EMPTY_MEMBER_ID, "빈회원", "2026-07-01 00:00:00");
         insertMember(ONBOARDING_INCOMPLETE_MEMBER_ID, "미완료", null);
-        defaultActiveProductStartedOn = LocalDate.now().minusDays(20).toString();
+        defaultActiveProductStartedOn = currentDate().minusDays(20).toString();
 
         insertIngredient(1L, "종합비타민", "ingredients/1.png");
         insertIngredient(2L, "비타민 D", "ingredients/2.png");
@@ -107,6 +109,10 @@ class CabinetControllerTest {
         accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
         emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER");
         onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER");
+    }
+
+    private LocalDate currentDate() {
+        return LocalDate.now(SERVICE_ZONE_ID);
     }
 
     @Test
@@ -469,7 +475,7 @@ class CabinetControllerTest {
     @Test
     @DisplayName("후기 작성 유도 대상만 정렬해서 조회한다")
     void getDueReviewPrompts_returnsEligiblePromptsOrdered() throws Exception {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         String olderStartedOn = currentDate.minusDays(31).toString();
         String exactDueStartedOn = currentDate.minusDays(30).toString();
         String notDueStartedOn = currentDate.minusDays(29).toString();
@@ -717,7 +723,7 @@ class CabinetControllerTest {
     @Test
     @DisplayName("캐비닛 영양제를 복수 삭제하고 활성 섭취 상품을 중단한다")
     void deleteProducts_withValidMemberProducts_returnsOk() throws Exception {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
                 defaultActiveProductStartedOn, null);
         insertIntakeDay(1L, MEMBER_ID, "2026-07-20");
@@ -762,7 +768,7 @@ class CabinetControllerTest {
     @Test
     @DisplayName("캐비닛 삭제로 활성 섭취 상품이 중단되면 남은 오늘 예정 기준으로 완료 상태를 재계산한다")
     void deleteProducts_withActiveProductRecalculatesTodayCompletion() throws Exception {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         insertMemberActiveProduct(20L, 2L, MEMBER_ID, null);
         insertIntakeDay(1L, MEMBER_ID, currentDate.toString(), false, null);
         insertIntakeRecord(1L, 1L, 10L, 100L, false, null);
@@ -802,7 +808,7 @@ class CabinetControllerTest {
     })
     @DisplayName("캐비닛 삭제 상품 ID 목록이 올바르지 않으면 400을 반환하고 삭제하지 않는다")
     void deleteProducts_withInvalidMemberProductIds_returnsBadRequest(String requestBody) throws Exception {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
                 defaultActiveProductStartedOn, null);
 
@@ -830,7 +836,7 @@ class CabinetControllerTest {
     })
     @DisplayName("삭제할 수 없는 캐비닛 상품이 포함되면 404를 반환하고 일부만 삭제하지 않는다")
     void deleteProducts_withUnavailableMemberProduct_returnsNotFound(String requestBody) throws Exception {
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = currentDate();
         insertMemberActiveProductScheduleHistory(10L, "EVERY_DAY", 1, defaultActiveProductStartedOn,
                 defaultActiveProductStartedOn, null);
 
