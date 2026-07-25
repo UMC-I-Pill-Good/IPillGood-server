@@ -609,19 +609,33 @@ public interface IntakeApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409",
-                    description = "이미 섭취 중인 영양제",
+                    description = "이미 섭취 중이거나 오늘 재등록할 수 없는 영양제",
                     content = @Content(
                             mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "INTAKE409_1",
-                                              "message": "이미 섭취 중인 영양제입니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "이미 섭취 중",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "INTAKE409_1",
+                                                      "message": "이미 섭취 중인 영양제입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "당일 재등록 제한",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "INTAKE409_3",
+                                                      "message": "오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             )
     })
@@ -873,19 +887,33 @@ public interface IntakeApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "409",
-                    description = "이미 섭취 중인 영양제",
+                    description = "이미 섭취 중이거나 오늘 재등록할 수 없는 영양제",
                     content = @Content(
                             mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "INTAKE409_1",
-                                              "message": "이미 섭취 중인 영양제입니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "이미 섭취 중",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "INTAKE409_1",
+                                                      "message": "이미 섭취 중인 영양제입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "당일 재등록 제한",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "INTAKE409_3",
+                                                      "message": "오늘 삭제한 영양제는 내일부터 다시 추가할 수 있습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             )
     })

@@ -367,6 +367,7 @@ public class IntakeService {
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
 
         LocalDate currentDate = currentDate();
+        validateNotStoppedToday(memberId, targetMemberProduct, currentDate);
         MemberActiveProduct activeProduct = MemberActiveProduct.create(
                 targetMemberProduct,
                 member,
@@ -449,6 +450,7 @@ public class IntakeService {
                 .findActiveIntakeRegistrationTarget(memberId, memberProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
+        validateNotStoppedToday(memberId, targetMemberProduct, currentDate());
 
         List<CompatibilityConflictRow> conflicts = memberActiveProductRepository.findCompatibilityConflicts(
                 memberId,
@@ -882,6 +884,16 @@ public class IntakeService {
                 memberProductId
         )) {
             throw new IntakeException(IntakeErrorCode.ACTIVE_PRODUCT_ALREADY_EXISTS);
+        }
+    }
+
+    private void validateNotStoppedToday(Long memberId, MemberProduct targetMemberProduct, LocalDate currentDate) {
+        if (memberActiveProductRepository.existsStoppedProductOn(
+                memberId,
+                targetMemberProduct.getProduct().getId(),
+                currentDate
+        )) {
+            throw new IntakeException(IntakeErrorCode.TODAY_STOPPED_PRODUCT_RE_REGISTRATION_BLOCKED);
         }
     }
 

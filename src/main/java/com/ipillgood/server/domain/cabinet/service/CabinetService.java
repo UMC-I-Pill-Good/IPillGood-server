@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -52,6 +53,7 @@ public class CabinetService {
     private static final int MAX_PRODUCT_CANDIDATE_SIZE = 100;
     private static final int MAX_PRODUCT_CANDIDATE_KEYWORD_LENGTH = 100;
     private static final int REVIEW_PROMPT_DUE_DAYS = 30;
+    private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final MemberRepository memberRepository;
     private final MemberProductRepository memberProductRepository;
@@ -199,8 +201,8 @@ public class CabinetService {
 
         CabinetResponse.DeleteProducts response =
                 CabinetConverter.toDeleteProducts(orderedMemberProducts, activeProductsByMemberProductId);
-        LocalDateTime deletedAt = LocalDateTime.now();
-        LocalDate stoppedOn = LocalDate.now();
+        LocalDateTime deletedAt = LocalDateTime.now(SERVICE_ZONE_ID);
+        LocalDate stoppedOn = deletedAt.toLocalDate();
 
         orderedMemberProducts.forEach(memberProduct -> memberProduct.markDeleted(deletedAt));
         activeProducts.forEach(activeProduct -> activeProductStopService.stop(activeProduct, stoppedOn));

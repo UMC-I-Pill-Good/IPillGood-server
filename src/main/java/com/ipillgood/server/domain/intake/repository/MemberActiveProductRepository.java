@@ -255,6 +255,20 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
     boolean existsByMemberIdAndMemberProductIdAndStoppedOnIsNull(Long memberId, Long memberProductId);
 
     @Query("""
+            select case when count(ap.id) > 0 then true else false end
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            where ap.member.id = :memberId
+              and mp.product.id = :productId
+              and ap.stoppedOn = :stoppedOn
+            """)
+    boolean existsStoppedProductOn(
+            @Param("memberId") Long memberId,
+            @Param("productId") Long productId,
+            @Param("stoppedOn") LocalDate stoppedOn
+    );
+
+    @Query("""
             select distinct new com.ipillgood.server.domain.intake.repository.CompatibilityConflictRow(
                 ic.id,
                 ic.type,
