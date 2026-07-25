@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,7 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ProductSearchControllerTest {
 
     private static final String SEARCH_PRODUCTS_URL = "/api/v1/search/products";
+    private static final String RECENT_KEYWORDS_URL = "/api/v1/search/recent-keywords";
     private static final long MEMBER_ID = 1L;
+    private static final long OTHER_MEMBER_ID = 2L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -41,6 +46,7 @@ class ProductSearchControllerTest {
     private JwtProvider jwtProvider;
 
     private String accessToken;
+    private String otherAccessToken;
 
     @BeforeEach
     void setUp() {
@@ -83,7 +89,15 @@ class ProductSearchControllerTest {
         insertProductReview(5L, 102L, MEMBER_ID, 3, null);
         insertProductReview(6L, 102L, MEMBER_ID, 1, "2026-07-01 00:00:00");
 
+        insertMember(OTHER_MEMBER_ID, "다른회원", "2026-07-01 00:00:00");
+        // 최근 검색어: MEMBER_ID 2개(오메가3가 더 최신), OTHER_MEMBER_ID 1개
+        insertMemberSearchKeyword(1L, MEMBER_ID, "비타민", "2026-07-20 10:00:00");
+        insertMemberSearchKeyword(2L, MEMBER_ID, "오메가3", "2026-07-21 10:00:00");
+        insertMemberSearchKeyword(3L, OTHER_MEMBER_ID, "마그네슘", "2026-07-20 10:00:00");
+        restartMemberSearchKeywordIdentity(); // JPA IDENTITY 생성 id가 수동 삽입분과 충돌하지 않도록
+
         accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
+        otherAccessToken = jwtProvider.createAccessToken(OTHER_MEMBER_ID, "USER");
     }
 
     @Test
@@ -349,6 +363,147 @@ class ProductSearchControllerTest {
                 .andExpect(jsonPath("$.code").value("SEARCH400_1"));
     }
 
+    // ---------- 최근 검색어 조회 ----------
+
+    @Test
+    @DisplayName("인증 없이 최근 검색어를 조회하면 401을 반환한다")
+    void getRecentSearchKeywords_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get(RECENT_KEYWORDS_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("최근 검색어를 최신순으로 조회한다")
+    void getRecentSearchKeywords_returnsKeywordsOrderBySearchedAtDesc() throws Exception {
+        mockMvc.perform(get(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SEARCH200_2"))
+                .andExpect(jsonPath("$.result.keywords[*].keyword").value(contains("오메가3", "비타민")))
+                .andExpect(jsonPath("$.result.keywords.length()").value(2));
+    }
+
+    // ---------- 최근 검색어 저장 ----------
+
+    @Test
+    @DisplayName("인증 없이 최근 검색어를 저장하면 401을 반환한다")
+    void storeRecentSearchKeyword_withoutToken_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post(RECENT_KEYWORDS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keyword\":\"루테인\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false));
+    }
+
+    @Test
+    @DisplayName("새 검색어를 저장하면 201과 저장된 검색어를 반환한다")
+    void storeRecentSearchKeyword_withNewKeyword_returnsCreated() throws Exception {
+        mockMvc.perform(post(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keyword\":\"루테인\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("SEARCH201_1"))
+                .andExpect(jsonPath("$.result.keyword").value("루테인"))
+                .andExpect(jsonPath("$.result.keywordId").isNumber())
+                .andExpect(jsonPath("$.result.searchedAt").exists());
+
+        // 신규 저장 → 총 3개, 최신인 루테인이 맨 앞
+        mockMvc.perform(get(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(jsonPath("$.result.keywords.length()").value(3))
+                .andExpect(jsonPath("$.result.keywords[0].keyword").value("루테인"));
+    }
+
+    @Test
+    @DisplayName("이미 있는 검색어를 재검색하면 새로 추가하지 않고 검색 일시만 최신화한다")
+    void storeRecentSearchKeyword_withExistingKeyword_updatesSearchedAt() throws Exception {
+        mockMvc.perform(post(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keyword\":\"비타민\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.result.keywordId").value(1))
+                .andExpect(jsonPath("$.result.keyword").value("비타민"));
+
+        // 개수 그대로 2개, 재검색한 비타민이 맨 앞으로 최신화
+        mockMvc.perform(get(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(jsonPath("$.result.keywords.length()").value(2))
+                .andExpect(jsonPath("$.result.keywords[*].keyword").value(contains("비타민", "오메가3")));
+    }
+
+    @Test
+    @DisplayName("공백 검색어를 저장하면 400(COMMON400_1)을 반환한다")
+    void storeRecentSearchKeyword_withBlankKeyword_returnsBadRequest() throws Exception {
+        mockMvc.perform(post(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"keyword\":\"  \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON400_1"));
+    }
+
+    // ---------- 최근 검색어 개별 삭제 ----------
+
+    @Test
+    @DisplayName("최근 검색어를 개별 삭제한다")
+    void deleteRecentSearchKeyword_returnsDeleted() throws Exception {
+        mockMvc.perform(delete(RECENT_KEYWORDS_URL + "/1")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SEARCH200_3"))
+                .andExpect(jsonPath("$.result.deleted").value(true))
+                .andExpect(jsonPath("$.result.keywordId").value(1));
+
+        // 삭제 후 남은 건 오메가3 하나
+        mockMvc.perform(get(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(jsonPath("$.result.keywords[*].keyword").value(contains("오메가3")));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 최근 검색어를 삭제하면 404를 반환한다")
+    void deleteRecentSearchKeyword_withUnknownId_returnsNotFound() throws Exception {
+        mockMvc.perform(delete(RECENT_KEYWORDS_URL + "/999")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SEARCH404_1"));
+    }
+
+    @Test
+    @DisplayName("다른 회원의 최근 검색어를 삭제하면 403을 반환한다")
+    void deleteRecentSearchKeyword_withOtherMembersKeyword_returnsForbidden() throws Exception {
+        // keywordId 3 은 OTHER_MEMBER_ID 소유
+        mockMvc.perform(delete(RECENT_KEYWORDS_URL + "/3")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("SEARCH403_1"));
+    }
+
+    // ---------- 최근 검색어 전체 삭제 ----------
+
+    @Test
+    @DisplayName("최근 검색어를 전체 삭제하면 삭제 개수를 반환하고 본인 것만 지운다")
+    void deleteAllRecentSearchKeywords_returnsDeletedCount() throws Exception {
+        mockMvc.perform(delete(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SEARCH200_4"))
+                .andExpect(jsonPath("$.result.deletedCount").value(2));
+
+        // 본인 것은 0개
+        mockMvc.perform(get(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+                .andExpect(jsonPath("$.result.keywords.length()").value(0));
+
+        // 다른 회원 것은 그대로 유지
+        mockMvc.perform(get(RECENT_KEYWORDS_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(otherAccessToken)))
+                .andExpect(jsonPath("$.result.keywords.length()").value(1));
+    }
+
     private void clearDatabase() {
         jdbcTemplate.execute("SET REFERENTIAL_INTEGRITY FALSE");
         jdbcTemplate.update("DELETE FROM product_review");
@@ -517,6 +672,22 @@ class ProductSearchControllerTest {
                 rating,
                 deletedAt
         );
+    }
+
+    private void insertMemberSearchKeyword(Long id, Long memberId, String keyword, String searchedAt) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_search_keyword (id, member_id, keyword, searched_at, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberId,
+                keyword,
+                searchedAt
+        );
+    }
+
+    private void restartMemberSearchKeywordIdentity() {
+        jdbcTemplate.execute("ALTER TABLE member_search_keyword ALTER COLUMN id RESTART WITH 100");
     }
 
     private String bearerToken(String token) {

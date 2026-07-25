@@ -79,4 +79,21 @@ public class ProductSearchResponse {
             @Schema(description = "검색 일시", example = "2026-07-20T15:00:00")
             LocalDateTime searchedAt
     ) {}
+
+    @Schema(description = "최근 검색어 삭제 응답")
+    @Builder
+    public record DeletedKeyword(
+            @Schema(description = "삭제 여부", example = "true")
+            Boolean deleted,
+
+            @Schema(description = "삭제된 최근 검색어 ID", example = "1")
+            Long keywordId
+    ) {}
+
+    @Schema(description = "최근 검색어 전체 삭제 응답")
+    @Builder
+    public record DeletedKeywords(
+            @Schema(description = "삭제된 최근 검색어 수", example = "10")
+            Integer deletedCount
+    ) {}
 }

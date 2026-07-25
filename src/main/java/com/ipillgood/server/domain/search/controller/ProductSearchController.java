@@ -62,4 +62,23 @@ public class ProductSearchController implements ProductSearchApi {
         ProductSearchResponse.RecentSearchKeyword resDto = productSearchService.storeRecentSearchKeyword(memberId, reqDto.keyword());
         return ApiResponse.onSuccess(SearchSuccessCode.STORE_RECENT_SEARCH_KEYWORD_SUCCESS, resDto);
     }
+
+    @Override
+    @DeleteMapping("/recent-keywords/{keywordId}")
+    public ApiResponse<ProductSearchResponse.DeletedKeyword> deleteRecentSearchKeyword(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long keywordId
+    ) {
+        ProductSearchResponse.DeletedKeyword resDto = productSearchService.deleteRecentSearchKeyword(memberId, keywordId);
+        return ApiResponse.onSuccess(SearchSuccessCode.DELETE_RECENT_SEARCH_KEYWORD_SUCCESS, resDto);
+    }
+
+    @Override
+    @DeleteMapping("/recent-keywords")
+    public ApiResponse<ProductSearchResponse.DeletedKeywords> deleteAllRecentSearchKeywords(
+            @AuthenticationPrincipal Long memberId
+    ) {
+        ProductSearchResponse.DeletedKeywords resDto = productSearchService.deleteAllRecentSearchKeywords(memberId);
+        return ApiResponse.onSuccess(SearchSuccessCode.DELETE_ALL_RECENT_SEARCH_KEYWORDS_SUCCESS, resDto);
+    }
 }

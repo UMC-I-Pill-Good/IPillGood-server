@@ -88,6 +88,23 @@ public class ProductSearchConverter {
                 .build();
     }
 
+    public static ProductSearchResponse.DeletedKeyword toDeletedKeyword(
+            MemberSearchKeyword keyword
+    ) {
+        return ProductSearchResponse.DeletedKeyword.builder()
+                .deleted(true)
+                .keywordId(keyword.getId())
+                .build();
+    }
+
+    public static ProductSearchResponse.DeletedKeywords toDeletedKeywords(
+            Integer deletedCount
+    ){
+        return ProductSearchResponse.DeletedKeywords.builder()
+                .deletedCount(deletedCount)
+                .build();
+    }
+
     private static String toImageUrl(List<ProductSearchProjection.Ingredient> ingredients, S3Service s3Service) {
         String imageKey = ingredients.size() == 1
                 ? ingredients.get(0).imageKey()

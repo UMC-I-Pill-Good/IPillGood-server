@@ -2,9 +2,11 @@ package com.ipillgood.server.domain.search.service;
 
 import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
 import com.ipillgood.server.domain.ingredient.entity.enums.TargetGender;
+import com.ipillgood.server.domain.search.code.SearchErrorCode;
 import com.ipillgood.server.domain.search.converter.ProductSearchConverter;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.search.entity.MemberSearchKeyword;
+import com.ipillgood.server.domain.search.exception.SearchException;
 import com.ipillgood.server.domain.search.repository.MemberSearchKeywordRepository;
 import com.ipillgood.server.domain.search.repository.ProductSearchCondition;
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
@@ -101,6 +103,29 @@ public class ProductSearchService {
                 });
 
         return ProductSearchConverter.toRecentSearchKeyword(recentKeyword);
+    }
+
+
+    @Transactional
+    public ProductSearchResponse.DeletedKeyword deleteRecentSearchKeyword(Long memberId, Long keywordId) {
+        MemberSearchKeyword keyword = memberSearchKeywordRepository.findById(keywordId)
+                .orElseThrow(() -> new SearchException(SearchErrorCode.SEARCH_KEYWORD_NOT_FOUND));
+
+        if(!keyword.getMember().getId().equals(memberId)) {
+            throw new SearchException(SearchErrorCode.RECENT_KEYWORD_FORBIDDEN);
+        }
+        memberSearchKeywordRepository.delete(keyword);
+        return ProductSearchConverter.toDeletedKeyword(keyword);
+    }
+
+
+    @Transactional
+    public ProductSearchResponse.DeletedKeywords deleteAllRecentSearchKeywords(Long memberId) {
+         List<MemberSearchKeyword> keywords = memberSearchKeywordRepository.findByMemberId(memberId);
+
+         Integer deletedCount = keywords.size();
+         memberSearchKeywordRepository.deleteAll(keywords);
+         return ProductSearchConverter.toDeletedKeywords(deletedCount);
     }
 
     private ProductSearchCondition toProductSearchCondition(

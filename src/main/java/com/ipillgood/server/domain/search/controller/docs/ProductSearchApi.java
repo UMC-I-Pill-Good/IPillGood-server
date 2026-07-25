@@ -235,4 +235,103 @@ public interface ProductSearchApi {
             Long memberId,
             @Valid ProductSearchRequest.RecentSearchKeyword request
     );
+
+    @Operation(
+            summary = "최근 검색어 개별 삭제",
+            description = "본인의 최근 검색어를 개별 삭제합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "최근 검색어 개별 삭제 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SEARCH200_3",
+                                              "message": "최근 검색 개별 삭제에 성공했습니다.",
+                                              "result": {
+                                                "deleted": true,
+                                                "keywordId": 1
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인의 검색어가 아님",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "SEARCH403_1",
+                                              "message": "해당 키워드 삭제 권한이 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "검색어 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "SEARCH404_1",
+                                              "message": "검색 키워드가 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductSearchResponse.DeletedKeyword> deleteRecentSearchKeyword(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(description = "삭제할 최근 검색어 ID", example = "1")
+            Long keywordId
+    );
+
+    @Operation(
+            summary = "최근 검색어 전체 삭제",
+            description = "로그인한 회원의 최근 검색어를 전체 삭제합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "최근 검색어 전체 삭제 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SEARCH200_4",
+                                              "message": "최근 검색어 전체 삭제에 성공했습니다.",
+                                              "result": {
+                                                "deletedCount": 10
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductSearchResponse.DeletedKeywords> deleteAllRecentSearchKeywords(
+            @Parameter(hidden = true)
+            Long memberId
+    );
 }

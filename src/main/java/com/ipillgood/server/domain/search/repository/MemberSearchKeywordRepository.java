@@ -13,4 +13,6 @@ public interface MemberSearchKeywordRepository extends JpaRepository<MemberSearc
     List<MemberSearchKeyword> findTop10ByMemberIdOrderBySearchedAtDesc(Long memberId);
 
     Optional<MemberSearchKeyword> findByMemberIdAndKeyword(Long memberId, String keyword);
+
+    List<MemberSearchKeyword> findByMemberId(Long memberId);
 }
