@@ -1,0 +1,47 @@
+package com.ipillgood.server.domain.product.converter;
+
+import com.ipillgood.server.domain.ingredient.entity.Ingredient;
+import com.ipillgood.server.domain.product.dto.ProductResponse;
+import com.ipillgood.server.domain.product.entity.Product;
+import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
+import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
+
+import java.util.List;
+import java.util.function.Function;
+
+public class ProductConverter {
+
+    public static ProductResponse.ProductInfo toProductInfo(
+            Product product,
+            List<Ingredient> includedIngredients,
+            ProductReviewResponse.ReviewSummary reviewSummary,
+            Function<String, String> toImageUrl
+    ) {
+        String imageKey = includedIngredients.size() >= 2
+                ? EtcProductImageKeyResolver.resolve(product.getId())
+                : includedIngredients.get(0).getImageKey();
+
+        List<String> adClaimRiskIngredients = extractAdClaimRiskIngredients(includedIngredients);
+
+        return ProductResponse.ProductInfo.builder()
+                .productId(product.getId())
+                .productName(product.getName())
+                .brand(product.getBrand())
+                .imageUrl(toImageUrl.apply(imageKey))
+                .description(product.getDescription())
+                .purchaseUrl(product.getPurchaseUrl())
+                .mfdsCertified(product.isMfdsCertified())
+                .ratingAverage(reviewSummary.ratingAverage())
+                .reviewCount(reviewSummary.reviewCount())
+                .adClaimRisk(!adClaimRiskIngredients.isEmpty())
+                .adClaimRiskIngredients(adClaimRiskIngredients)
+                .build();
+    }
+
+    private static List<String> extractAdClaimRiskIngredients(List<Ingredient> ingredients) {
+        return ingredients.stream()
+                .filter(Ingredient::isAdClaimRisk)
+                .map(Ingredient::getName)
+                .toList();
+    }
+}
