@@ -45,4 +45,38 @@ public class ProductResponse {
             @Schema(description = "과대광고 위험 성분명 목록(없으면 빈 배열)", example = "[\"비타민C\"]")
             List<String> adClaimRiskIngredients
     ) {}
+
+    @Schema(description = "상품 성분 정보 조회 응답")
+    @Builder
+    public record ProductIngredientsInfo(
+            @Schema(description = "영양제 상품 ID", example = "1")
+            Long productId,
+
+            @Schema(description = "포함 성분 수", example = "2")
+            Integer ingredientCount,
+
+            @Schema(description = "성분 정보 목록")
+            List<ProductIngredientInfo> ingredientInfos
+    ) {
+
+        @Schema(description = "성분 정보 항목")
+        @Builder
+        public record ProductIngredientInfo(
+                @Schema(description = "성분 ID", example = "2")
+                Long ingredientId,
+
+                @Schema(description = "성분명", example = "비타민 D")
+                String name,
+
+                @Schema(description = "성분 설명", example = "칼슘 흡수와 뼈 건강에 도움을 주는 성분입니다.")
+                String description,
+
+                @Schema(description = "성분 이미지 URL",
+                        example = "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png")
+                String imageUrl,
+
+                @Schema(description = "효능 키워드 목록(없으면 빈 배열)", example = "[\"뼈 건강\", \"면역\"]")
+                List<String> effectKeywords
+        ) {}
+    }
 }

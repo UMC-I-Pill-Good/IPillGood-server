@@ -28,4 +28,13 @@ public class ProductController implements ProductApi {
         ProductResponse.ProductInfo resDto = productService.getProductInfo(productId);
         return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_VIEW_SUCCESS, resDto);
     }
+
+    @Override
+    @GetMapping("/{productId}/ingredients")
+    public ApiResponse<ProductResponse.ProductIngredientsInfo> getProductIngredients(
+            @PathVariable Long productId
+    ) {
+        ProductResponse.ProductIngredientsInfo resDto = productService.getProductIngredients(productId);
+        return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_INGREDIENTS_VIEW_SUCCESS, resDto);
+    }
 }

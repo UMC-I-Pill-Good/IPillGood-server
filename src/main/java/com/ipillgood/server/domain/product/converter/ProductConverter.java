@@ -7,6 +7,7 @@ import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
 import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class ProductConverter {
@@ -38,10 +39,45 @@ public class ProductConverter {
                 .build();
     }
 
+    public static ProductResponse.ProductIngredientsInfo toProductIngredientsInfo(
+            Long productId,
+            List<Ingredient> ingredients,
+            Map<Long, List<String>> ingredientEffectKeywords,
+            Function<String, String> toImageUrl
+    ) {
+
+        List<ProductResponse.ProductIngredientsInfo.ProductIngredientInfo> ingredientInfos = ingredients.stream()
+                .map(ingredient -> toIngredientInfo(
+                        ingredient,
+                        ingredientEffectKeywords.getOrDefault(ingredient.getId(), List.of()),
+                        toImageUrl))
+                .toList();
+
+        return ProductResponse.ProductIngredientsInfo.builder()
+                .productId(productId)
+                .ingredientCount(ingredients.size())
+                .ingredientInfos(ingredientInfos)
+                .build();
+    }
+
     private static List<String> extractAdClaimRiskIngredients(List<Ingredient> ingredients) {
         return ingredients.stream()
                 .filter(Ingredient::isAdClaimRisk)
                 .map(Ingredient::getName)
                 .toList();
+    }
+
+    private static ProductResponse.ProductIngredientsInfo.ProductIngredientInfo toIngredientInfo(
+            Ingredient ingredient,
+            List<String> effectKeywords,
+            Function<String, String> toImageUrl
+    ) {
+        return ProductResponse.ProductIngredientsInfo.ProductIngredientInfo.builder()
+                .ingredientId(ingredient.getId())
+                .name(ingredient.getName())
+                .description(ingredient.getDescription())
+                .imageUrl(toImageUrl.apply(ingredient.getImageKey()))
+                .effectKeywords(effectKeywords)
+                .build();
     }
 }
