@@ -4,6 +4,6 @@ public class ProductReviewProjection {
 
     public record ReviewSummary(
             Double ratingAverage,
-            Integer reviewCount
+            Long reviewCount
     ) {}
 }

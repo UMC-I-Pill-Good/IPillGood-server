@@ -27,6 +27,6 @@ public class ProductReviewService {
 
     public ProductReviewResponse.ReviewSummary getReviewSummary(Product product){
         ProductReviewProjection.ReviewSummary summary = productReviewRepository.findActiveSummaryByProduct(product);
-        return new ProductReviewResponse.ReviewSummary(summary.ratingAverage(), summary.reviewCount());
+        return new ProductReviewResponse.ReviewSummary(summary.ratingAverage(), summary.reviewCount().intValue());
     }
 }

@@ -13,7 +13,7 @@ import java.util.List;
 public interface ProductReviewRepository extends JpaRepository<ProductReview, Long> {
 
     @Query("""
-            select coalesce(avg(r.rating), 0) as ratingAverage,
+            select coalesce(avg(r.rating), 0.0) as ratingAverage,
                 count(r) as reviewCount
             from ProductReview r
             where r.product = :product
