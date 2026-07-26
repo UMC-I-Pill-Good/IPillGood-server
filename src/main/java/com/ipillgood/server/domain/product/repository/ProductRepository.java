@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
@@ -17,4 +18,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
               and p.deletedAt is null
             """)
     List<Product> findActiveByIdIn(@Param("productIds") Collection<Long> productIds);
+
+    @Query("""
+            select p
+            from Product p
+            where p.id = :productId
+              and p.deletedAt is null
+            """)
+    Optional<Product> findActiveById(@Param("productId") Long productId);
 }

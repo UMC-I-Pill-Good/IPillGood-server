@@ -1,7 +1,7 @@
 package com.ipillgood.server.domain.review.controller.docs;
 
-import com.ipillgood.server.domain.review.dto.ReviewRequest;
-import com.ipillgood.server.domain.review.dto.ReviewResponse;
+import com.ipillgood.server.domain.review.dto.ProductReviewRequest;
+import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Review API", description = "후기 관련 API")
-public interface ReviewApi {
+public interface ProductReviewApi {
 
     @Operation(
             summary = "후기 이미지 업로드 URL 발급",
@@ -48,9 +48,9 @@ public interface ReviewApi {
                     )
             )
     })
-    ApiResponse<ReviewResponse.ImagePresigns> createImageUploadUrls(
+    ApiResponse<ProductReviewResponse.ImagePresigns> createImageUploadUrls(
             @Parameter(hidden = true)
             Long memberId,
-            ReviewRequest.ImagePresign request
+            ProductReviewRequest.ImagePresign request
     );
 }

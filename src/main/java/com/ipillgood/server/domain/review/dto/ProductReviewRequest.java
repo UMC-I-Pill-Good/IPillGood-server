@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-public class ReviewRequest {
+public class ProductReviewRequest {
 
     @Schema(description = "후기 이미지 업로드 URL 발급 요청")
     public record ImagePresign(
