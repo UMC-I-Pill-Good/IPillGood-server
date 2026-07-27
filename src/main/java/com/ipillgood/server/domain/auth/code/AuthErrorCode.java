@@ -14,7 +14,7 @@ public enum AuthErrorCode implements BaseErrorCode {
     INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_2", "올바른 이메일 형식이 아닙니다."),
     USERNAME_CHECK_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH400_3", "아이디 중복 확인을 해주세요."),
     INVALID_USERNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_4", "2~10자 이내로 입력해주세요."),
-    INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_5", "8~16자의 영문, 숫자를 조합해 주세요."),
+    INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_5", "8~16자의 영문, 숫자, 특수문자를 조합해 주세요."),
     PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH400_6", "비밀번호가 일치하지 않습니다."),
     KAKAO_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_7", "카카오 로그인에 실패했습니다. 다시 시도해주세요."),
     NAVER_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_8", "네이버 로그인에 실패했습니다. 다시 시도해주세요."),
