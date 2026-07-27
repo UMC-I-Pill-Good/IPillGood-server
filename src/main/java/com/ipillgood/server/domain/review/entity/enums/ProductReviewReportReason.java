@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum ReviewReportReason {
+public enum ProductReviewReportReason {
     AD_PROMOTION("광고·홍보"),
     ABUSE("욕설·비방"),
     FALSE_INFO("허위 정보"),

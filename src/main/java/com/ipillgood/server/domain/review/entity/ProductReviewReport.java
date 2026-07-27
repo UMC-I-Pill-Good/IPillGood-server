@@ -1,7 +1,7 @@
 package com.ipillgood.server.domain.review.entity;
 
 import com.ipillgood.server.domain.member.entity.Member;
-import com.ipillgood.server.domain.review.entity.enums.ReviewReportReason;
+import com.ipillgood.server.domain.review.entity.enums.ProductReviewReportReason;
 import com.ipillgood.server.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,7 +43,7 @@ public class ProductReviewReport extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "reason", nullable = false)
-    private ReviewReportReason reason;
+    private ProductReviewReportReason reason;
 
     @Column(name = "detail", length = 200)
     private String detail;
