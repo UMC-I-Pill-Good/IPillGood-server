@@ -13,6 +13,7 @@ import com.ipillgood.server.domain.intake.repository.DailyTakenProductRow;
 import com.ipillgood.server.domain.intake.repository.TodayIntakeRecordRow;
 import com.ipillgood.server.domain.intake.repository.TodayScheduledProductRow;
 import com.ipillgood.server.domain.product.entity.Product;
+import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,13 +22,10 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 public class IntakeConverter {
 
-    private static final int MULTI_INGREDIENT_THUMBNAIL_MIN = 1;
-    private static final int MULTI_INGREDIENT_THUMBNAIL_MAX = 4;
     private static final DateTimeFormatter INTAKE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private IntakeConverter() {
@@ -214,6 +212,7 @@ public class IntakeConverter {
                 .brand(row.brand())
                 .productName(row.productName())
                 .thumbnailImageUrl(toThumbnailImageUrl(
+                        row.productId(),
                         row.ingredientCount(),
                         row.singleIngredientImageKey(),
                         imageUrlResolver
@@ -335,17 +334,18 @@ public class IntakeConverter {
             ActiveProductRow row,
             Function<String, String> imageUrlResolver
     ) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
+        return toThumbnailImageUrl(row.productId(), row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
     private static String toThumbnailImageUrl(
+            Long productId,
             Long ingredientCount,
             String singleIngredientImageKey,
             Function<String, String> imageUrlResolver
     ) {
         String imageKey = ingredientCount != null && ingredientCount == 1L
                 ? singleIngredientImageKey
-                : randomMultiIngredientImageKey();
+                : EtcProductImageKeyResolver.resolve(productId);
         return imageUrlResolver.apply(imageKey);
     }
 
@@ -356,12 +356,6 @@ public class IntakeConverter {
 
         long dayCount = ChronoUnit.DAYS.between(startedOn, currentDate) + 1;
         return (int) Math.max(dayCount, 1);
-    }
-
-    private static String randomMultiIngredientImageKey() {
-        int imageNumber = ThreadLocalRandom.current()
-                .nextInt(MULTI_INGREDIENT_THUMBNAIL_MIN, MULTI_INGREDIENT_THUMBNAIL_MAX + 1);
-        return "ingredients/other" + imageNumber + ".png";
     }
 
 }

@@ -292,7 +292,7 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.products[0].brand").value("테스트브랜드"))
                 .andExpect(jsonPath("$.result.products[0].productName").value("멀티비타민 제품"))
                 .andExpect(jsonPath("$.result.products[0].thumbnailImageUrl")
-                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")))
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"))
                 .andExpect(jsonPath("$.result.products[0].averageRating").value(5.0))
                 .andExpect(jsonPath("$.result.products[0].reviewCount").value(1))
                 .andExpect(jsonPath("$.result.products[0].ingredientTags", contains("기본 영양", "항산화")))
@@ -448,7 +448,7 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.products[*].productId", contains(101, 100)))
                 .andExpect(jsonPath("$.result.products[0].productName").value("멀티비타민 제품"))
                 .andExpect(jsonPath("$.result.products[0].thumbnailImageUrl")
-                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")))
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"))
                 .andExpect(jsonPath("$.result.products[0].isActiveIntake").value(false))
                 .andExpect(jsonPath("$.result.products[0].activeProductId").doesNotExist())
                 .andExpect(jsonPath("$.result.products[0].addedAt").value("2026-07-21T10:00:00"))
@@ -674,7 +674,7 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.brand").value("테스트브랜드"))
                 .andExpect(jsonPath("$.result.productName").value("멀티비타민 제품"))
                 .andExpect(jsonPath("$.result.thumbnailImageUrl")
-                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")))
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"))
                 .andExpect(jsonPath("$.result.isActiveIntake").value(false))
                 .andExpect(jsonPath("$.result.hasMyReview").value(true))
                 .andExpect(jsonPath("$.result.ingredients.length()").value(2))
@@ -687,6 +687,9 @@ class CabinetControllerTest {
     @Test
     @DisplayName("캐비닛에 영양제를 복수 추가한다")
     void addProducts_withValidProducts_returnsCreated() throws Exception {
+        insertProduct(105L, "복수 성분 추가 제품", "테스트브랜드", null);
+        insertProductIngredient(7L, 105L, 1L);
+        insertProductIngredient(8L, 105L, 3L);
         int beforeCount = countMemberProducts();
 
         mockMvc.perform(post(CABINET_PRODUCTS_URL)
@@ -694,17 +697,21 @@ class CabinetControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "productIds": [102, 104]
+                                  "productIds": [102, 104, 105]
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS201_1"))
                 .andExpect(jsonPath("$.message").value("리소스가 성공적으로 생성되었습니다."))
-                .andExpect(jsonPath("$.result.addedCount").value(2))
-                .andExpect(jsonPath("$.result.addedProducts.length()").value(2))
-                .andExpect(jsonPath("$.result.addedProducts[*].productId", contains(102, 104)))
-                .andExpect(jsonPath("$.result.addedProducts[*].brand", contains("테스트브랜드", "테스트브랜드")))
+                .andExpect(jsonPath("$.result.addedCount").value(3))
+                .andExpect(jsonPath("$.result.addedProducts.length()").value(3))
+                .andExpect(jsonPath("$.result.addedProducts[*].productId", contains(102, 104, 105)))
+                .andExpect(jsonPath("$.result.addedProducts[*].brand", contains(
+                        "테스트브랜드",
+                        "테스트브랜드",
+                        "테스트브랜드"
+                )))
                 .andExpect(jsonPath("$.result.addedProducts[0].productName").value("삭제된 보유 제품"))
                 .andExpect(jsonPath("$.result.addedProducts[0].thumbnailImageUrl")
                         .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/4.png"))
@@ -712,12 +719,16 @@ class CabinetControllerTest {
                         .value(matchesPattern("\\d{4}-\\d{2}-\\d{2}T.+")))
                 .andExpect(jsonPath("$.result.addedProducts[1].productName").value("다른 회원 제품"))
                 .andExpect(jsonPath("$.result.addedProducts[1].thumbnailImageUrl")
-                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"));
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"))
+                .andExpect(jsonPath("$.result.addedProducts[2].productName").value("복수 성분 추가 제품"))
+                .andExpect(jsonPath("$.result.addedProducts[2].thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"));
 
-        assertEquals(beforeCount + 2, countMemberProducts());
+        assertEquals(beforeCount + 3, countMemberProducts());
         assertEquals(2, countMemberProducts(MEMBER_ID, 102L));
         assertEquals(1, countActiveMemberProducts(MEMBER_ID, 102L));
         assertEquals(1, countActiveMemberProducts(MEMBER_ID, 104L));
+        assertEquals(1, countActiveMemberProducts(MEMBER_ID, 105L));
     }
 
     @Test
