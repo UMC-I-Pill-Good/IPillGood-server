@@ -31,15 +31,10 @@ public class PolicyService {
     private final PolicyDocumentRepository policyDocumentRepository;
     private final MemberPolicyAgreementRepository memberPolicyAgreementRepository;
 
-    // 약관/정책 목록 조회 (활성 여부 필터)
-    public PolicyResponse.DocumentList getDocuments(Boolean activeOnly) {
+    // 약관/정책 목록 조회 (활성 문서만)
+    public PolicyResponse.DocumentList getDocuments() {
 
-        boolean onlyActive = activeOnly == null || activeOnly;
-        List<PolicyDocument> documents = onlyActive
-                ? policyDocumentRepository.findByActiveTrue()
-                : policyDocumentRepository.findAll();
-
-        List<PolicyDocument> sorted = documents.stream()
+        List<PolicyDocument> sorted = policyDocumentRepository.findByActiveTrue().stream()
                 .sorted(Comparator.comparing(PolicyDocument::getId))
                 .toList();
 

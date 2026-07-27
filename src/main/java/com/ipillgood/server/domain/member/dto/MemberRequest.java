@@ -9,8 +9,8 @@ public class MemberRequest {
      * 프로필 수정 요청
      */
     public record UpdateProfile(
-            @NotBlank(message = "1~10자 이내로 입력해주세요.")
-            @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "1~10자 이내로 입력해주세요.")
+            @NotBlank(message = "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요.")
+            @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요.")
             String nickname
     ) {
     }

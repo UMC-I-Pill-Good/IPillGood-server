@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// 앱 기동 시 약관 문서가 비어있으면 기본 5종을 등록 (본문은 PM 확정 전까지 placeholder)
+// 앱 기동 시 약관 문서가 비어있으면 기본 4종을 등록 (본문 확정됨)
 @Component
 @RequiredArgsConstructor
 public class PolicyDocumentSeeder implements ApplicationRunner {
@@ -31,10 +31,9 @@ public class PolicyDocumentSeeder implements ApplicationRunner {
         LocalDateTime now = LocalDateTime.now();
         policyDocumentRepository.saveAll(List.of(
                 document(PolicyDocumentType.SERVICE_TERMS, "서비스 이용약관", true, now),
-                document(PolicyDocumentType.PRIVACY_COLLECTION, "개인정보 수집 및 이용 동의", true, now),
-                document(PolicyDocumentType.HEALTH_INFO_COLLECTION, "건강정보 수집 및 이용 동의", true, now),
-                document(PolicyDocumentType.MARKETING, "마케팅 정보 수신 동의", false, now),
-                document(PolicyDocumentType.PRIVACY_POLICY, "개인정보 처리방침", false, now)
+                document(PolicyDocumentType.PRIVACY_COLLECTION, "개인정보 수집 및 이용", true, now),
+                document(PolicyDocumentType.HEALTH_INFO_COLLECTION, "건강 정보 수집 및 이용", true, now),
+                document(PolicyDocumentType.MARKETING, "마케팅 정보 수신", false, now)
         ));
     }
 

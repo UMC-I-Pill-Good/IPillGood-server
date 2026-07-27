@@ -15,7 +15,7 @@ public interface PolicyApi {
 
     @Operation(summary = "약관/정책 목록 조회",
             description = "활성 약관/정책 목록을 조회합니다.")
-    ApiResponse<PolicyResponse.DocumentList> getDocuments(Boolean activeOnly);
+    ApiResponse<PolicyResponse.DocumentList> getDocuments();
 
     @Operation(summary = "최신 약관/정책 조회",
             description = "문서 유형 기준 최신 약관/정책을 본문과 함께 조회합니다.")

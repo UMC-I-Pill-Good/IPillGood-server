@@ -16,8 +16,8 @@ public class AuthRequest {
      */
     public record SignUp(
             // 공백 입력
-            @NotBlank(message = "1~10자 이내로 입력해주세요.")
-            @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "1~10자 이내로 입력해주세요.")
+            @NotBlank(message = "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요.")
+            @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요.")
             String nickname,
 
             // '아이디' 필드
