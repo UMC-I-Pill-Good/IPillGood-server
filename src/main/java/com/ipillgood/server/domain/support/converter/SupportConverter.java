@@ -1,7 +1,9 @@
 package com.ipillgood.server.domain.support.converter;
 
+import com.ipillgood.server.domain.support.dto.AdminFaqResponse;
 import com.ipillgood.server.domain.support.dto.SupportResponse;
 import com.ipillgood.server.domain.support.entity.Faq;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -42,6 +44,56 @@ public class SupportConverter {
                 .contactEmail(contactEmail)
                 .operatingHours(operatingHours)
                 .closedDays(closedDays)
+                .build();
+    }
+
+    /**
+     * 관리자 FAQ 목록 조회 - 페이징된 엔티티 목록 -> DTO 변환
+     */
+    public static AdminFaqResponse.FaqList toAdminFaqList(Page<Faq> faqPage) {
+        return AdminFaqResponse.FaqList.builder()
+                .faqs(faqPage.getContent().stream()
+                        .map(SupportConverter::toFaqSummary)
+                        .toList())
+                .totalCount(faqPage.getTotalElements())
+                .totalPages(faqPage.getTotalPages())
+                .currentPage(faqPage.getNumber())
+                .build();
+    }
+
+    private static AdminFaqResponse.FaqSummary toFaqSummary(Faq faq) {
+        return AdminFaqResponse.FaqSummary.builder()
+                .faqId(faq.getId())
+                .question(faq.getQuestion())
+                .answer(faq.getAnswer())
+                .category(faq.getCategory())
+                .updatedAt(faq.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * 관리자 FAQ 등록 - 엔티티 -> DTO 변환
+     */
+    public static AdminFaqResponse.FaqCreated toFaqCreated(Faq faq) {
+        return AdminFaqResponse.FaqCreated.builder()
+                .faqId(faq.getId())
+                .question(faq.getQuestion())
+                .answer(faq.getAnswer())
+                .category(faq.getCategory())
+                .createdAt(faq.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 관리자 FAQ 수정 - 엔티티 -> DTO 변환
+     */
+    public static AdminFaqResponse.FaqUpdated toFaqUpdated(Faq faq) {
+        return AdminFaqResponse.FaqUpdated.builder()
+                .faqId(faq.getId())
+                .question(faq.getQuestion())
+                .answer(faq.getAnswer())
+                .category(faq.getCategory())
+                .updatedAt(faq.getUpdatedAt())
                 .build();
     }
 }

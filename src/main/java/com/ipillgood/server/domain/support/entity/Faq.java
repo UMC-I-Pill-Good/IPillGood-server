@@ -50,4 +50,11 @@ public class Faq extends BaseEntity {
         this.displayOrder = displayOrder;
         this.active = active;
     }
+
+    // 관리자 FAQ 수정 - 질문/답변/카테고리 갱신 (노출 순서, 활성화 여부는 그대로 유지)
+    public void updateContent(FaqCategory category, String question, String answer) {
+        this.category = category;
+        this.question = question;
+        this.answer = answer;
+    }
 }

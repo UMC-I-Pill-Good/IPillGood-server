@@ -1,5 +1,6 @@
 package com.ipillgood.server.global.config;
 
+import com.ipillgood.server.global.security.jwt.JwtAccessDeniedHandler;
 import com.ipillgood.server.global.security.jwt.JwtAuthFilter;
 import com.ipillgood.server.global.security.jwt.JwtAuthenticationEntryPoint;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
@@ -22,6 +23,7 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     // 인증 없이 접근 허용 API
     private final String[] allowUris = {
@@ -55,13 +57,16 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // 접근 허용 API
                         .requestMatchers(allowUris).permitAll()
+                        // 관리자 전용 API - ADMIN 권한 필요
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         // 나머지 모든 경로는 인증 필요
                         .anyRequest().authenticated()
                 )
 
-                // 인증 실패 시 401 응답 처리
+                // 인증 실패(401) / 권한 부족(403) 응답 처리
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler)
                 )
 
                 // JWT 인증 후 인가 검사(AuthorizationFilter) 진행
