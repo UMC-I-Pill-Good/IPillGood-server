@@ -9,6 +9,7 @@ import com.ipillgood.server.domain.cabinet.repository.CabinetProductIngredientKe
 import com.ipillgood.server.domain.cabinet.repository.CabinetProductRow;
 import com.ipillgood.server.domain.cabinet.repository.CabinetReviewPromptRow;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
+import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -17,13 +18,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 public class CabinetConverter {
 
-    private static final int MULTI_INGREDIENT_THUMBNAIL_MIN = 1;
-    private static final int MULTI_INGREDIENT_THUMBNAIL_MAX = 4;
     private static final DateTimeFormatter INTAKE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private CabinetConverter() {
@@ -133,7 +131,7 @@ public class CabinetConverter {
                 .productId(detailRow.productId())
                 .brand(detailRow.brand())
                 .productName(detailRow.productName())
-                .thumbnailImageUrl(toDetailThumbnailImageUrl(ingredientRows, imageUrlResolver))
+                .thumbnailImageUrl(toDetailThumbnailImageUrl(detailRow.productId(), ingredientRows, imageUrlResolver))
                 .isActiveIntake(activeProductId != null)
                 .hasMyReview(detailRow.hasMyReview())
                 .ingredients(toProductIngredients(ingredientRows, imageUrlResolver))
@@ -208,14 +206,14 @@ public class CabinetConverter {
             CabinetProductRow row,
             Function<String, String> imageUrlResolver
     ) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
+        return toThumbnailImageUrl(row.productId(), row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
     private static String toThumbnailImageUrl(
             CabinetProductCandidateRow row,
             Function<String, String> imageUrlResolver
     ) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
+        return toThumbnailImageUrl(row.productId(), row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
     private static CabinetResponse.AddedProduct toAddedProduct(
@@ -236,7 +234,7 @@ public class CabinetConverter {
             CabinetAddedProductRow row,
             Function<String, String> imageUrlResolver
     ) {
-        return toThumbnailImageUrl(row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
+        return toThumbnailImageUrl(row.productId(), row.ingredientCount(), row.singleIngredientImageKey(), imageUrlResolver);
     }
 
     private static List<CabinetResponse.ProductIngredient> toProductIngredients(
@@ -304,6 +302,7 @@ public class CabinetConverter {
     }
 
     private static String toDetailThumbnailImageUrl(
+            Long productId,
             List<CabinetProductIngredientKeywordRow> rows,
             Function<String, String> imageUrlResolver
     ) {
@@ -314,25 +313,20 @@ public class CabinetConverter {
 
         String imageKey = imageKeysByIngredientId.size() == 1
                 ? imageKeysByIngredientId.values().iterator().next()
-                : randomMultiIngredientImageKey();
+                : EtcProductImageKeyResolver.resolve(productId);
         return imageUrlResolver.apply(imageKey);
     }
 
     private static String toThumbnailImageUrl(
+            Long productId,
             Long ingredientCount,
             String singleIngredientImageKey,
             Function<String, String> imageUrlResolver
     ) {
         String imageKey = ingredientCount != null && ingredientCount == 1L
                 ? singleIngredientImageKey
-                : randomMultiIngredientImageKey();
+                : EtcProductImageKeyResolver.resolve(productId);
         return imageUrlResolver.apply(imageKey);
-    }
-
-    private static String randomMultiIngredientImageKey() {
-        int imageNumber = ThreadLocalRandom.current()
-                .nextInt(MULTI_INGREDIENT_THUMBNAIL_MIN, MULTI_INGREDIENT_THUMBNAIL_MAX + 1);
-        return "ingredients/other" + imageNumber + ".png";
     }
 
     private record ProductIngredientAccumulator(

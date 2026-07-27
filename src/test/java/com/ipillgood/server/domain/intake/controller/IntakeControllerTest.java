@@ -1263,7 +1263,7 @@ class IntakeControllerTest {
                         .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/1.png"))
                 .andExpect(jsonPath("$.result.activeProducts[2].productName").value("멀티비타민 제품"))
                 .andExpect(jsonPath("$.result.activeProducts[2].thumbnailImageUrl")
-                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")));
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"));
     }
 
     @Test
@@ -1562,7 +1562,7 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.result.productId").value(107))
                 .andExpect(jsonPath("$.result.productName").value("철 마그네슘 제품"))
                 .andExpect(jsonPath("$.result.thumbnailImageUrl")
-                        .value(matchesPattern("https://ipillgood-bucket\\.s3\\.ap-northeast-2\\.amazonaws\\.com/ingredients/other[1-4]\\.png")))
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other4.png"))
                 .andExpect(jsonPath("$.result.notificationEnabled").value(true))
                 .andExpect(jsonPath("$.result.intakeTime").value("08:30"))
                 .andExpect(jsonPath("$.result.frequency").value("EVERY_2_DAYS"))
@@ -1724,6 +1724,41 @@ class IntakeControllerTest {
         assertEquals(LocalDate.of(2026, 7, 1), findScheduleAnchorOn(10L));
         assertEquals(1, countScheduleHistories(10L));
         assertEquals(1, countActiveScheduleHistories(10L));
+    }
+
+    @Test
+    @DisplayName("복수 성분 섭취 중 영양제 설정 변경은 productId 기준 기타 썸네일을 반환한다")
+    void updateActiveProductSettings_withMultiIngredientProduct_returnsProductIdBasedThumbnail() throws Exception {
+        LocalDate currentDate = currentDate();
+        int intakeDayCount = toIntakeDayCount(LocalDate.of(2026, 7, 1), currentDate);
+
+        mockMvc.perform(patch(activeProductUrl(11L))
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "notificationEnabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.activeProductId").value(11))
+                .andExpect(jsonPath("$.result.memberProductId").value(2))
+                .andExpect(jsonPath("$.result.productId").value(101))
+                .andExpect(jsonPath("$.result.brand").value("테스트브랜드"))
+                .andExpect(jsonPath("$.result.productName").value("멀티비타민 제품"))
+                .andExpect(jsonPath("$.result.thumbnailImageUrl")
+                        .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"))
+                .andExpect(jsonPath("$.result.startedOn").value("2026-07-01"))
+                .andExpect(jsonPath("$.result.intakeDayCount").value(intakeDayCount))
+                .andExpect(jsonPath("$.result.notificationEnabled").value(false))
+                .andExpect(jsonPath("$.result.intakeTime").value("09:00"))
+                .andExpect(jsonPath("$.result.frequency").value("EVERY_DAY"))
+                .andExpect(jsonPath("$.result.frequencyLabel").value("매일"))
+                .andExpect(jsonPath("$.result.frequencyIntervalDays").value(1))
+                .andExpect(jsonPath("$.result.scheduleAnchorOn").value("2026-07-01"));
+
+        assertEquals(false, findNotificationEnabled(11L));
     }
 
     @Test
