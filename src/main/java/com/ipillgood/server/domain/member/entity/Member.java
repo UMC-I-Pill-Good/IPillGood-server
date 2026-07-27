@@ -16,7 +16,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 // 회원 기본 정보
 @Entity
@@ -25,8 +27,20 @@ import java.util.Locale;
 @Table(name = "member")
 public class Member extends BaseEntity {
 
-    // 기본 프로필 이미지 키
+    // 기본 프로필 이미지 키 (profileImageKey 미지정 시 선택되게끔 남김)
     private static final String DEFAULT_PROFILE_IMAGE_KEY = "mascot-default";
+
+    // 회원가입 시 랜덤 배정할 마스코트 프로필 이미지 3종
+    private static final List<String> PROFILE_IMAGE_KEYS = List.of(
+            "profileImage/profile1.png",
+            "profileImage/profile2.png",
+            "profileImage/profile3.png"
+    );
+
+    // 마스코트 프로필 이미지 후보 중 하나를 랜덤으로 반환
+    public static String randomProfileImageKey() {
+        return PROFILE_IMAGE_KEYS.get(ThreadLocalRandom.current().nextInt(PROFILE_IMAGE_KEYS.size()));
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

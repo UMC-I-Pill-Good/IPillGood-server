@@ -24,6 +24,7 @@ public class AuthConverter {
                 .email(request.email())
                 .password(encodedPassword)
                 .role(Role.USER)
+                .profileImageKey(Member.randomProfileImageKey())
                 .build();
     }
 
