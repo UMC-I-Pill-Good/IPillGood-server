@@ -155,6 +155,7 @@ public class MemberService {
         Member member = memberRepository.save(Member.builder()
                 .nickname(nickname)
                 .email(email)
+                .profileImageKey(Member.randomProfileImageKey())
                 .build());
 
         memberSocialAccountRepository.save(MemberSocialAccount.of(member, provider, providerUserId, email));
