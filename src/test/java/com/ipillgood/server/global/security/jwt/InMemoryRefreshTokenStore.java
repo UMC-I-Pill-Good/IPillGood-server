@@ -17,26 +17,40 @@ import java.util.concurrent.ConcurrentHashMap;
 @Profile("test")
 public class InMemoryRefreshTokenStore implements RefreshTokenStore {
 
-    // 여러 스레드 접근에 안전한 ConcurrentHashMap 사용
-    private final Map<Long, String> store = new ConcurrentHashMap<>();
+    // key: memberId:sessionId, 여러 스레드 접근에 안전한 ConcurrentHashMap 사용
+    private final Map<String, String> store = new ConcurrentHashMap<>();
 
     @Override
-    public void save(Long memberId, String refreshToken, Duration ttl) {
-        store.put(memberId, refreshToken);
+    public void save(Long memberId, String sessionId, String refreshToken, Duration ttl) {
+        store.put(key(memberId, sessionId), refreshToken);
     }
 
     @Override
-    public Optional<String> find(Long memberId) {
-        return Optional.ofNullable(store.get(memberId));
+    public Optional<String> find(Long memberId, String sessionId) {
+        return Optional.ofNullable(store.get(key(memberId, sessionId)));
     }
 
     @Override
-    public void delete(Long memberId) {
-        store.remove(memberId);
+    public void delete(Long memberId, String sessionId) {
+        store.remove(key(memberId, sessionId));
+    }
+
+    @Override
+    public void deleteAll(Long memberId) {
+        store.keySet().removeIf(k -> k.startsWith(memberId + ":"));
     }
 
     // 매 테스트 시작 전 호출해서 저장소를 비움
     public void clear() {
         store.clear();
+    }
+
+    // 테스트 전용: 해당 회원의 세션(기기)이 하나도 저장돼 있지 않은지 확인
+    public boolean hasNoSession(Long memberId) {
+        return store.keySet().stream().noneMatch(k -> k.startsWith(memberId + ":"));
+    }
+
+    private String key(Long memberId, String sessionId) {
+        return memberId + ":" + sessionId;
     }
 }

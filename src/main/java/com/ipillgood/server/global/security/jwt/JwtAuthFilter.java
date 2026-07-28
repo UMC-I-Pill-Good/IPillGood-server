@@ -31,6 +31,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     // 토큰 검증 실패 원인을 JwtAuthenticationEntryPoint에 전달하는 request 속성 키
     public static final String ERROR_CODE_ATTRIBUTE = "jwtErrorCode";
 
+    // 인증된 액세스 토큰의 세션(기기) 식별자를 컨트롤러에 전달하는 request 속성 키
+    // 로그아웃 했을 때 기기 단위로 처리하는 용도
+    public static final String SESSION_ID_ATTRIBUTE = "jwtSessionId";
+
     private final JwtProvider jwtProvider;
 
     @Override
@@ -53,6 +57,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
                 context.setAuthentication(toAuthentication(claims));
                 SecurityContextHolder.setContext(context);
+
+                // 기기 단위 처리(로그아웃 등)가 필요한 컨트롤러한테 전달용 (세션 식별자 전달)
+                request.setAttribute(SESSION_ID_ATTRIBUTE, jwtProvider.getSessionId(claims));
 
             } catch (JwtAuthenticationException e) {
                 // 4. 토큰 검증 실패 -> 인증 정보 비우고 request에 에러 코드만 담음 (EntryPoint가 처리)

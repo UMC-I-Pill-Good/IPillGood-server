@@ -18,6 +18,8 @@ import com.ipillgood.server.domain.policy.dto.PolicyRequest;
 import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
 import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
 import com.ipillgood.server.global.security.jwt.InMemoryRefreshTokenStore;
+import com.ipillgood.server.global.security.jwt.JwtProvider;
+import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,6 +78,15 @@ class SocialAuthServiceTest {
     @Autowired
     private MemberPolicyAgreementRepository memberPolicyAgreementRepository;
 
+    @Autowired
+    private JwtProvider jwtProvider;
+
+    // 리프레시 토큰 안의 세션(기기) 식별자를 꺼내 저장소 조회에 사용
+    private String sessionIdOf(String refreshToken) {
+        Claims claims = jwtProvider.parseRefreshToken(refreshToken);
+        return jwtProvider.getSessionId(claims);
+    }
+
     @BeforeEach
     void setUp() {
 
@@ -128,7 +139,8 @@ class SocialAuthServiceTest {
         assertEquals("Bearer", response.tokenType());
 
         // 재발급 검증에 쓰이도록 리프레시 토큰이 저장소에 보관되어야 한다
-        assertEquals(response.refreshToken(), refreshTokenStore.find(member.getId()).orElse(null));
+        assertEquals(response.refreshToken(),
+                refreshTokenStore.find(member.getId(), sessionIdOf(response.refreshToken())).orElse(null));
     }
 
     @Test
@@ -194,8 +206,9 @@ class SocialAuthServiceTest {
                 .existsByProviderAndProviderUserId(SocialProvider.KAKAO, PROVIDER_USER_ID));
         assertFalse(memberPolicyAgreementRepository.findAll().isEmpty());
 
-        // 소셜 회원가입은 자동 로그인하지 않으므로 리프레시 토큰이 저장 x
-        assertTrue(refreshTokenStore.find(response.memberId()).isEmpty());
+        // 해당 회원이 가지고 있는 모든 세션의 리프레시 토큰 존재 여부 확인
+        // 회원가입 후 자동 로그인되지 않기 때문
+        assertTrue(refreshTokenStore.hasNoSession(response.memberId()));
     }
 
     @Test
@@ -269,7 +282,8 @@ class SocialAuthServiceTest {
         // 소셜 계정이 실제로 연동되고, 리프레시 토큰이 저장된다
         assertTrue(memberSocialAccountRepository
                 .existsByProviderAndProviderUserId(SocialProvider.KAKAO, PROVIDER_USER_ID));
-        assertEquals(response.refreshToken(), refreshTokenStore.find(member.getId()).orElse(null));
+        assertEquals(response.refreshToken(),
+                refreshTokenStore.find(member.getId(), sessionIdOf(response.refreshToken())).orElse(null));
     }
 
     @Test

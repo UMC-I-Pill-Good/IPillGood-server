@@ -92,8 +92,8 @@ public class MemberService {
         // 4. 비밀번호 변경 성공
         member.changePassword(passwordEncoder.encode(request.newPassword()));
 
-        // 5. 기존 리프레시 토큰 폐기 - 액세스 토큰 만료 후 재로그인 필요
-        refreshTokenStore.delete(memberId);
+        // 5. 모든 기기의 리프레시 토큰 폐기 - 액세스 토큰 만료 후 모든 기기 재로그인 필요
+        refreshTokenStore.deleteAll(memberId);
     }
 
     /**
@@ -105,7 +105,8 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        refreshTokenStore.delete(memberId);
+        // 모든 기기의 리프레시 토큰 폐기
+        refreshTokenStore.deleteAll(memberId);
         memberRepository.delete(member);
     }
 
