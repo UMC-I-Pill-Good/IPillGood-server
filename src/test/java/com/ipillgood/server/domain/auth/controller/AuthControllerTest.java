@@ -65,33 +65,45 @@ class AuthControllerTest {
         memberId = memberRepository.save(member).getId();
     }
 
-    @Test
-    @DisplayName("로그아웃 시 필터가 전달한 세션 식별자로 해당 기기의 세션만 삭제된다")
-    void logout_realHttpFlow_removesOnlyThisSession() throws Exception {
-        // 1. 실제 로그인 API 호출로 진짜 액세스 토큰 발급
+    // 실제 로그인 API를 호출해 [accessToken, refreshToken]을 반환
+    private String[] login() throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + USERNAME + "\",\"password\":\"" + RAW_PASSWORD + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode result = mapper.readTree(loginResult.getResponse().getContentAsString()).get("result");
-        String accessToken = result.get("accessToken").asText();
-        String refreshToken = result.get("refreshToken").asText();
+        JsonNode result = new ObjectMapper().readTree(loginResult.getResponse().getContentAsString()).get("result");
+        return new String[]{result.get("accessToken").asText(), result.get("refreshToken").asText()};
+    }
 
+    private String sessionIdOf(String refreshToken) {
         Claims claims = jwtProvider.parseRefreshToken(refreshToken);
-        String sessionId = jwtProvider.getSessionId(claims);
+        return jwtProvider.getSessionId(claims);
+    }
 
-        // 로그인 직후엔 세션이 저장돼 있어야 함
-        assertTrue(refreshTokenStore.find(memberId, sessionId).isPresent());
+    @Test
+    @DisplayName("로그아웃 시 필터가 전달한 세션 식별자로 해당 기기의 세션만 삭제되고, 다른 기기의 세션은 보존된다")
+    void logout_realHttpFlow_removesOnlyThisSession() throws Exception {
+        // 1. 두 번 로그인해 서로 다른 기기(세션)를 재현
+        String[] deviceA = login();
+        String[] deviceB = login();
 
-        // 2. 실제 로그아웃 API 호출 (JwtAuthFilter -> @RequestAttribute 경로를 실제로 태움)
+        String sessionIdA = sessionIdOf(deviceA[1]);
+        String sessionIdB = sessionIdOf(deviceB[1]);
+
+        // 로그인 직후엔 두 세션 다 저장돼 있어야 함
+        assertTrue(refreshTokenStore.find(memberId, sessionIdA).isPresent());
+        assertTrue(refreshTokenStore.find(memberId, sessionIdB).isPresent());
+
+        // 2. A 기기의 액세스 토큰으로 로그아웃 (JwtAuthFilter -> @RequestAttribute 경로를 실제로 태움)
         mockMvc.perform(post("/api/v1/auth/logout")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + deviceA[0]))
                 .andExpect(status().isOk());
 
-        // 3. 필터가 넘겨준 sessionId로 정확히 그 세션만 삭제됐는지 확인
-        assertTrue(refreshTokenStore.find(memberId, sessionId).isEmpty());
+        // 3. 필터가 넘겨준 sessionId로 A 세션만 삭제되고, B 세션은 그대로 남아있어야 함
+        //    (세션이 하나뿐이었다면 deleteAll로 잘못 구현돼도 통과했을 검증)
+        assertTrue(refreshTokenStore.find(memberId, sessionIdA).isEmpty());
+        assertTrue(refreshTokenStore.find(memberId, sessionIdB).isPresent());
     }
 }
