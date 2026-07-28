@@ -55,7 +55,7 @@ class SupportControllerTest {
         // 비활성 FAQ: displayOrder가 가장 낮아도 목록/미리보기 모두에서 제외되어야 함
         insertFaq(14L, "ETC", "비활성 문의입니다", "비활성 처리된 FAQ입니다.", 0, false);
 
-        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
+        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
     }
 
     // ---------- FAQ 목록 조회 ----------

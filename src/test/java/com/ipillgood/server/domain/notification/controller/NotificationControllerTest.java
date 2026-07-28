@@ -59,8 +59,8 @@ class NotificationControllerTest {
         insertMember(MEMBER_ID, "알림유저", "2026-07-01 00:00:00");
         insertMember(ONBOARDING_INCOMPLETE_MEMBER_ID, "미완료", null);
 
-        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
-        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER");
+        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
+        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER", "test-session");
     }
 
     @Test

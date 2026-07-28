@@ -79,7 +79,7 @@ class IngredientControllerTest {
         insertMemberProduct(1L, MEMBER_ID, 100L, null);
         insertMemberProduct(2L, MEMBER_ID, 101L, "2026-01-01 00:00:00");
 
-        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
+        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
     }
 
     @Test

@@ -106,9 +106,9 @@ class CabinetControllerTest {
 
         insertProductReview(1L, 101L, MEMBER_ID);
 
-        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
-        emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER");
-        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER");
+        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
+        emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER", "test-session");
+        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER", "test-session");
     }
 
     private LocalDate currentDate() {
