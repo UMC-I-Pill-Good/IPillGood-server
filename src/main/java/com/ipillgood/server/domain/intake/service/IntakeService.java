@@ -60,8 +60,7 @@ public class IntakeService {
 
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final List<CombinationType> WARNING_COMBINATION_TYPES = List.of(
-            CombinationType.CAUTION,
-            CombinationType.CONTRAINDICATION
+            CombinationType.CAUTION
     );
     private static final Pattern INTAKE_TIME_PATTERN = Pattern.compile("^(?:[01]\\d|2[0-3]):[0-5]\\d$");
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");

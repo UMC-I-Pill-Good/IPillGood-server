@@ -17,6 +17,7 @@ import com.ipillgood.server.domain.cabinet.repository.MemberProductRepository;
 import com.ipillgood.server.domain.intake.entity.MemberActiveProduct;
 import com.ipillgood.server.domain.intake.repository.MemberActiveProductRepository;
 import com.ipillgood.server.domain.intake.service.ActiveProductStopService;
+import com.ipillgood.server.domain.ingredient.entity.Ingredient;
 import com.ipillgood.server.domain.intake.service.TodayIntakeCompletionService;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
@@ -213,6 +214,16 @@ public class CabinetService {
         }
 
         return response;
+    }
+
+    public long getOwnedProductCount(Long memberId) {
+        getMember(memberId);
+        return memberProductRepository.countOwnedProductsByMemberId(memberId);
+    }
+
+    public List<Ingredient> getOwnedIngredients(Long memberId) {
+        getMember(memberId);
+        return memberProductRepository.findOwnedIngredientsByMemberId(memberId);
     }
 
     private LocalDate currentDate() {

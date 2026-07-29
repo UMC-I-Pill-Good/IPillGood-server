@@ -6,6 +6,7 @@ import com.ipillgood.server.domain.product.dto.ProductResponse;
 import com.ipillgood.server.domain.product.service.ProductService;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,5 +37,25 @@ public class ProductController implements ProductApi {
     ) {
         ProductResponse.ProductIngredientsInfo resDto = productService.getProductIngredients(productId);
         return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_INGREDIENTS_VIEW_SUCCESS, resDto);
+    }
+
+    @Override
+    @GetMapping("/{productId}/combinations")
+    public ApiResponse<ProductResponse.ProductCombinations> getProductCombinations(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long productId
+    ) {
+        ProductResponse.ProductCombinations resDto = productService.getProductCombinations(memberId, productId);
+        return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_COMBINATIONS_VIEW_SUCCESS, resDto);
+    }
+
+    @Override
+    @GetMapping("/{productId}/purchase-check")
+    public ApiResponse<ProductResponse.ProductPurchaseCautionCheck> getCautionCombinations(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long productId
+    ) {
+        ProductResponse.ProductPurchaseCautionCheck resDto = productService.getCautionCombinations(memberId, productId);
+        return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_CAUTION_COMBINATIONS_CHECK_SUCCESS, resDto);
     }
 }

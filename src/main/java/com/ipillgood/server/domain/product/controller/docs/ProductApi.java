@@ -145,4 +145,141 @@ public interface ProductApi {
             )
             Long productId
     );
+
+    @Operation(
+            summary = "상품 성분 궁합 조회 (캐비닛 기준)",
+            description = "로그인 사용자가 캐비닛에 보유한 영양제 성분 중, 조회 상품의 성분과 함께 섭취하면 "
+                    + "좋은 조합(GOOD)·주의가 필요한 조합(CAUTION)에 해당하는 성분을 반환합니다. "
+                    + "상품 자체에 이미 포함된 성분은 제외되며, ownedProductCount는 '보유 중인 영양제 N개 기준' "
+                    + "문구에 사용됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "상품 성분 궁합 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "PRODUCT200_3",
+                                              "message": "상품의 성분 궁합 정보를 성공적으로 조회했습니다.",
+                                              "result": {
+                                                "productId": 1,
+                                                "ownedProductCount": 6,
+                                                "goodCombinations": [
+                                                  {
+                                                    "targetIngredientId": 2,
+                                                    "targetIngredientName": "비타민 D"
+                                                  }
+                                                ],
+                                                "cautionCombinations": [
+                                                  {
+                                                    "targetIngredientId": 5,
+                                                    "targetIngredientName": "칼슘"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "PRODUCT404_1",
+                                              "message": "해당 상품은 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductResponse.ProductCombinations> getProductCombinations(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "조회할 상품 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "1")
+            )
+            Long productId
+    );
+
+    @Operation(
+            summary = "상품 추가 시 주의 조합 확인 (캐비닛 기준)",
+            description = "상품을 캐비닛에 추가하기 전, 로그인 사용자가 보유한 성분과 해당 상품 성분 사이에 "
+                    + "함께 복용 시 주의가 필요한 조합이 있는지 확인합니다. 충돌이 있으면 hasConflict=true와 함께 "
+                    + "각 조합의 보유 성분(current)·상품 성분(purchase)·사유(reason)를 반환하며, 프론트는 이를 "
+                    + "주의 조합 알림 모달로 노출합니다. 충돌이 없으면 conflicts는 빈 배열입니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "주의 조합 확인 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "PRODUCT200_4",
+                                              "message": "섭취 중인 성분들과 함께 복용 시 주의가 필요한 조합을 성공적으로 조회했습니다.",
+                                              "result": {
+                                                "productId": 1,
+                                                "purchaseUrl": "https://smartstore.naver.com/ipillgood/products/123456",
+                                                "hasConflict": true,
+                                                "conflicts": [
+                                                  {
+                                                    "type": "CAUTION",
+                                                    "currentIngredientId": 3,
+                                                    "currentIngredientName": "종합비타민",
+                                                    "purchaseProductIngredientId": 7,
+                                                    "purchaseIngredientName": "철분",
+                                                    "reason": "철분 과다 섭취 위험, 위장 장애, 변비 유발 가능"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "PRODUCT404_1",
+                                              "message": "해당 상품은 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductResponse.ProductPurchaseCautionCheck> getCautionCombinations(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "추가하려는 상품 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "1")
+            )
+            Long productId
+    );
 }
