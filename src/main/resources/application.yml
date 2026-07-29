@@ -31,6 +31,11 @@ jwt:
   access-token-validity: 3600000
   refresh-token-validity: 1209600000
 
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - https://ipillgood.vercel.app
+
 social:
   kakao:
     user-info-uri: https://kapi.kakao.com/v2/user/me
