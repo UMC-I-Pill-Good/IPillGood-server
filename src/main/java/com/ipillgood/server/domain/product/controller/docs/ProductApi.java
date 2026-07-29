@@ -145,4 +145,73 @@ public interface ProductApi {
             )
             Long productId
     );
+
+    @Operation(
+            summary = "상품 성분 궁합 조회 (캐비닛 기준)",
+            description = "로그인 사용자가 캐비닛에 보유한 영양제 성분 중, 조회 상품의 성분과 함께 섭취하면 "
+                    + "좋은 조합(GOOD)·주의가 필요한 조합(CAUTION)에 해당하는 성분을 반환합니다. "
+                    + "상품 자체에 이미 포함된 성분은 제외되며, ownedProductCount는 '보유 중인 영양제 N개 기준' "
+                    + "문구에 사용됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "상품 성분 궁합 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "PRODUCT200_3",
+                                              "message": "상품의 성분 궁합 정보를 성공적으로 조회했습니다.",
+                                              "result": {
+                                                "productId": 1,
+                                                "ownedProductCount": 6,
+                                                "goodCombinations": [
+                                                  {
+                                                    "targetIngredientId": 2,
+                                                    "targetIngredientName": "비타민 D"
+                                                  }
+                                                ],
+                                                "cautionCombinations": [
+                                                  {
+                                                    "targetIngredientId": 5,
+                                                    "targetIngredientName": "칼슘"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "상품 없음",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "PRODUCT404_1",
+                                              "message": "해당 상품은 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductResponse.ProductCombinations> getProductCombinations(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "조회할 상품 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "1")
+            )
+            Long productId
+    );
 }

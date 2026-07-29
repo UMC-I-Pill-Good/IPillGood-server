@@ -1,6 +1,7 @@
 package com.ipillgood.server.domain.cabinet.repository;
 
 import com.ipillgood.server.domain.cabinet.entity.MemberProduct;
+import com.ipillgood.server.domain.ingredient.entity.Ingredient;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -306,4 +307,25 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
             @Param("memberId") Long memberId,
             @Param("memberProductIds") Collection<Long> memberProductIds
     );
+
+    @Query("""
+            select count(mp)
+            from MemberProduct mp
+                join mp.product p
+            where mp.member.id = :memberId
+                and mp.deletedAt is null
+                and p.deletedAt is null
+    """)
+    long countOwnedProductsByMemberId(@Param("memberId") Long memberId);
+
+    @Query("""
+            select distinct pi.ingredient
+            from MemberProduct mp
+                join mp.product p
+                join ProductIngredient pi on pi.product = p
+            where mp.member.id = :memberId
+                and mp.deletedAt is null
+                and p.deletedAt is null
+    """)
+    List<Ingredient> findOwnedIngredientsByMemberId(@Param("memberId") Long memberId);
 }

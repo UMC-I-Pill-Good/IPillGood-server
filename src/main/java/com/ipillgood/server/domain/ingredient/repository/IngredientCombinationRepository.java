@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Set;
 
 public interface IngredientCombinationRepository extends JpaRepository<IngredientCombination, Long> {
 
@@ -26,4 +27,22 @@ public interface IngredientCombinationRepository extends JpaRepository<Ingredien
             @Param("ingredientId") Long ingredientId,
             @Param("type") CombinationType type
     );
+
+    @Query("""
+            select combination
+            from IngredientCombination combination
+                join fetch combination.ingredientA
+                join fetch combination.ingredientB
+            where combination.type = :type
+              and (
+                    combination.ingredientA.id in :ingredientIds
+                    or combination.ingredientB.id in :ingredientIds
+              )
+            order by combination.id asc
+            """)
+    List<IngredientCombination> findWithIngredientsByIngredientIdInAndType(
+            @Param("ingredientIds") Set<Long> ingredientIds,
+            @Param("type") CombinationType type
+    );
+
 }

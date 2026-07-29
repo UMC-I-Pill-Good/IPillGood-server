@@ -8,6 +8,7 @@ import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public class ProductConverter {
@@ -57,6 +58,32 @@ public class ProductConverter {
                 .productId(productId)
                 .ingredientCount(ingredients.size())
                 .ingredientInfos(ingredientInfos)
+                .build();
+    }
+
+    public static ProductResponse.ProductCombinations toProductCombinations(
+            Long productId,
+            Long ownedProductCount,
+            Set<Ingredient> goodIngredients,
+            Set<Ingredient> cautionIngredients
+    ) {
+        return ProductResponse.ProductCombinations.builder()
+                .productId(productId)
+                .ownedProductCount(ownedProductCount)
+                .goodCombinations(goodIngredients.stream()
+                        .map(i -> ProductResponse.ProductCombinations.ProductCombination.builder()
+                                .targetIngredientId(i.getId())
+                                .targetIngredientName(i.getName())
+                                .build())
+                        .toList()
+                )
+                .cautionCombinations(cautionIngredients.stream()
+                        .map(i -> ProductResponse.ProductCombinations.ProductCombination.builder()
+                                .targetIngredientId(i.getId())
+                                .targetIngredientName(i.getName())
+                                .build())
+                        .toList()
+                )
                 .build();
     }
 

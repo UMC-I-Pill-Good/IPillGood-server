@@ -12,6 +12,7 @@ public enum ProductSuccessCode implements BaseSuccessCode {
     // 200 OK
     PRODUCT_VIEW_SUCCESS(HttpStatus.OK, "PRODUCT200_1", "상품 상세 정보를 성공적으로 조회했습니다."),
     PRODUCT_INGREDIENTS_VIEW_SUCCESS(HttpStatus.OK, "PRODUCT200_2", "상품의 성분 정보를 성공적으로 조회했습니다."),
+    PRODUCT_COMBINATIONS_VIEW_SUCCESS(HttpStatus.OK, "PRODUCT200_3", "상품의 성분 궁합 정보를 성공적으로 조회했습니다."),
     ;
 
     private final HttpStatus status;

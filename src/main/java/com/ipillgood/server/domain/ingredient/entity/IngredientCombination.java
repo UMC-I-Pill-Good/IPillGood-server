@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 // 성분 궁합
 @Entity
 @Getter
@@ -38,4 +40,8 @@ public class IngredientCombination extends BaseEntity {
 
     @Column(name = "reason", columnDefinition = "TEXT")
     private String reason;
+
+    public Ingredient getPartnerOf(Set<Long> baseIngredientIds) {
+        return baseIngredientIds.contains(ingredientA.getId()) ? ingredientB : ingredientA;
+    }
 }

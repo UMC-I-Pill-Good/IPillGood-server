@@ -79,4 +79,31 @@ public class ProductResponse {
                 List<String> effectKeywords
         ) {}
     }
+
+    @Schema(description = "상품 성분 궁합 조회 응답 (캐비닛 보유 성분 기준)")
+    @Builder
+    public record ProductCombinations(
+            @Schema(description = "영양제 상품 ID", example = "1")
+            Long productId,
+
+            @Schema(description = "사용자가 캐비닛에 보유한 영양제 수('보유 중인 영양제 N개 기준'에 사용)", example = "6")
+            Long ownedProductCount,
+
+            @Schema(description = "함께 섭취하면 좋은 조합 성분 목록(보유 성분 기준, 없으면 빈 배열)")
+            List<ProductCombination> goodCombinations,
+
+            @Schema(description = "주의가 필요한 조합 성분 목록(보유 성분 기준, 없으면 빈 배열)")
+            List<ProductCombination> cautionCombinations
+    ) {
+
+        @Schema(description = "궁합 상대 성분 항목")
+        @Builder
+        public record ProductCombination(
+                @Schema(description = "궁합 상대 성분 ID", example = "2")
+                Long targetIngredientId,
+
+                @Schema(description = "궁합 상대 성분명", example = "비타민 D")
+                String targetIngredientName
+        ) {}
+    }
 }
