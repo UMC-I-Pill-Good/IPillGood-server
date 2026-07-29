@@ -10,6 +10,7 @@ import com.ipillgood.server.domain.auth.service.AuthService;
 import com.ipillgood.server.domain.auth.service.SocialAuthService;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+import com.ipillgood.server.global.security.jwt.JwtAuthFilter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -57,11 +59,12 @@ public class AuthController implements AuthApi {
         return ApiResponse.onSuccess(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, response);
     }
 
-    // 로그아웃
+    // 로그아웃 (이 기기만 로그아웃, 다른 기기 로그인은 유지)
     @Override
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(@AuthenticationPrincipal Long memberId) {
-        authService.logout(memberId);
+    public ApiResponse<Void> logout(@AuthenticationPrincipal Long memberId,
+                                    @RequestAttribute(JwtAuthFilter.SESSION_ID_ATTRIBUTE) String sessionId) {
+        authService.logout(memberId, sessionId);
         return ApiResponse.onSuccess(AuthSuccessCode.LOGOUT_SUCCESS, null);
     }
 

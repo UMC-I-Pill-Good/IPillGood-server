@@ -154,11 +154,12 @@ public class SocialAuthService {
         MemberSocialAccount socialAccount = memberService.linkSocialAccount(
                 member, provider, pending.providerUserId(), pending.providerEmail());
 
-        // 6. 연동 즉시 로그인 처리 - 토큰 발급 후 재발급 검증용으로 저장
+        // 6. 연동 즉시 로그인 처리 - 신규 세션(기기) 발급 후 토큰 발급, 재발급 검증용으로 저장
         String role = member.getRole().name();
-        String accessToken = jwtProvider.createAccessToken(member.getId(), role);
-        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role);
-        refreshTokenStore.save(member.getId(), refreshToken, jwtProvider.getRefreshTokenValidity());
+        String sessionId = jwtProvider.generateSessionId();
+        String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
+        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
+        refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
 
         return AuthConverter.toSocialLinkResponse(member, socialAccount, accessToken, refreshToken,
                 jwtProvider.getAccessTokenExpiresIn());
@@ -169,9 +170,10 @@ public class SocialAuthService {
      */
     private AuthResponse.SocialLogin issueLoginTokens(Member member) {
         String role = member.getRole().name();
-        String accessToken = jwtProvider.createAccessToken(member.getId(), role);
-        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role);
-        refreshTokenStore.save(member.getId(), refreshToken, jwtProvider.getRefreshTokenValidity());
+        String sessionId = jwtProvider.generateSessionId();
+        String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
+        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
+        refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
 
         return AuthConverter.toSocialLoginResponse(member, accessToken, refreshToken,
                 jwtProvider.getAccessTokenExpiresIn());

@@ -32,8 +32,8 @@ public interface AuthApi {
     ApiResponse<AuthResponse.Login> reissue(@Valid AuthRequest.Reissue request);
 
     @Operation(summary = "로그아웃",
-            description = "저장된 리프레시 토큰을 폐기합니다. (액세스 토큰은 만료 시점까지 유효)")
-    ApiResponse<Void> logout(Long memberId);
+            description = "이 기기(세션)의 리프레시 토큰만 폐기합니다. 다른 기기에서의 로그인은 유지됩니다. (액세스 토큰은 만료 시점까지 유효)")
+    ApiResponse<Void> logout(Long memberId, String sessionId);
 
     @Operation(summary = "아이디 중복확인", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
     ApiResponse<Void> checkUsername(

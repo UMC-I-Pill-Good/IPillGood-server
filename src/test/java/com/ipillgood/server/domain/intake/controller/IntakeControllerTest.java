@@ -134,9 +134,9 @@ class IntakeControllerTest {
         insertMemberActiveProduct(15L, 6L, OTHER_MEMBER_ID, null, "2026-07-01 08:00:00");
         insertMemberActiveProduct(20L, 7L, MEMBER_ID, null, "2026-06-30 09:00:00");
 
-        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
-        emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER");
-        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER");
+        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
+        emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER", "test-session");
+        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER", "test-session");
     }
 
     @Test

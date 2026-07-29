@@ -26,10 +26,11 @@ public class JwtProvider {
 
     /**
      * JWT Claims Key
-     * 예) { "role": "USER", "type": "access" }
+     * 예) { "role": "USER", "type": "access", "sid": "..." }
      */
     private static final String CLAIM_ROLE = "role";
     private static final String CLAIM_TYPE = "type";
+    private static final String CLAIM_SESSION_ID = "sid";
 
     // JWT type Claim 값 (Access / Refresh 구분)
     private static final String TYPE_ACCESS = "access";
@@ -65,26 +66,32 @@ public class JwtProvider {
         }
     }
 
-    // Access Token 생성
-    public String createAccessToken(Long memberId, String role) {
-        return createToken(memberId, role, TYPE_ACCESS, accessTokenValidity);
+    // Access Token 생성 (다중 기기 지원을 위해 세션(기기) 식별자 포함)
+    public String createAccessToken(Long memberId, String role, String sessionId) {
+        return createToken(memberId, role, TYPE_ACCESS, accessTokenValidity, sessionId);
     }
 
     // Refresh Token 생성
-    public String createRefreshToken(Long memberId, String role) {
-        return createToken(memberId, role, TYPE_REFRESH, refreshTokenValidity);
+    public String createRefreshToken(Long memberId, String role, String sessionId) {
+        return createToken(memberId, role, TYPE_REFRESH, refreshTokenValidity, sessionId);
+    }
+
+    // 신규 로그인 시 발급할 세션(기기) 식별자 생성
+    public String generateSessionId() {
+        return UUID.randomUUID().toString();
     }
 
     /**
      * Access/Refresh Token 생성 공통 메서드
      *
-     * @param memberId 회원 PK
-     * @param role     사용자 권한
-     * @param type     토큰 종류 (access/refresh)
-     * @param validity 토큰 유효 시간
+     * @param memberId  회원 PK
+     * @param role      사용자 권한
+     * @param type      토큰 종류 (access/refresh)
+     * @param validity  토큰 유효 시간
+     * @param sessionId 세션(기기) 식별자
      * @return 생성된 토큰 문자열
      */
-    private String createToken(Long memberId, String role, String type, long validity) {
+    private String createToken(Long memberId, String role, String type, long validity, String sessionId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + validity);
 
@@ -93,6 +100,7 @@ public class JwtProvider {
                 .subject(String.valueOf(memberId))      // 토큰 주체(PK 저장)
                 .claim(CLAIM_ROLE, role)                // 권한(USER/ADMIN)
                 .claim(CLAIM_TYPE, type)                // access / refresh 구분
+                .claim(CLAIM_SESSION_ID, sessionId)     // 세션(기기) 식별자
                 .issuedAt(now)                          // 토큰 발급 시간
                 .expiration(expiration)                 // 토큰 만료 시간
                 .signWith(secretKey)                    // secretKey 객체로 서명
@@ -151,6 +159,11 @@ public class JwtProvider {
     // JWT role 클레임 추출
     public String getRole(Claims claims) {
         return claims.get(CLAIM_ROLE, String.class);
+    }
+
+    // JWT 세션(기기) 식별자 클레임 추출
+    public String getSessionId(Claims claims) {
+        return claims.get(CLAIM_SESSION_ID, String.class);
     }
 
     // 리프레시 토큰 유효기간 (Redis 저장 TTL로 사용)

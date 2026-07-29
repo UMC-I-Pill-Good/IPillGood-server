@@ -96,8 +96,8 @@ class ProductSearchControllerTest {
         insertMemberSearchKeyword(3L, OTHER_MEMBER_ID, "마그네슘", "2026-07-20 10:00:00");
         restartMemberSearchKeywordIdentity(); // JPA IDENTITY 생성 id가 수동 삽입분과 충돌하지 않도록
 
-        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER");
-        otherAccessToken = jwtProvider.createAccessToken(OTHER_MEMBER_ID, "USER");
+        accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
+        otherAccessToken = jwtProvider.createAccessToken(OTHER_MEMBER_ID, "USER", "test-session");
     }
 
     @Test
