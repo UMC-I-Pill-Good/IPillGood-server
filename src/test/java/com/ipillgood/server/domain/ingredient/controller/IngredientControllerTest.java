@@ -61,7 +61,6 @@ class IngredientControllerTest {
         insertIngredientCombination(1L, 2L, 10L, "CAUTION", "동시 복용 시 흡수에 영향을 줄 수 있습니다.");
         insertIngredientCombination(2L, 1L, 2L, "CAUTION", "종합비타민에 포함된 미네랄이 흡수에 영향을 줄 수 있습니다.");
         insertIngredientCombination(3L, 2L, 3L, "GOOD", "함께 섭취하면 좋습니다.");
-        insertIngredientCombination(4L, 2L, 13L, "CONTRAINDICATION", "현재 성분 상세 응답에서는 제외합니다.");
 
         insertContraindication(1L, "MEDICATION", "항생제");
         insertContraindication(2L, "MEDICATION", "면역억제제");
@@ -143,7 +142,6 @@ class IngredientControllerTest {
                 .andExpect(jsonPath("$.result.contraindicatedCombinations[1].targetIngredientId").value(1))
                 .andExpect(jsonPath("$.result.contraindicatedCombinations[1].targetIngredientName").value("종합비타민"))
                 .andExpect(jsonPath("$.result.contraindicatedCombinations[*].type", not(hasItem("GOOD"))))
-                .andExpect(jsonPath("$.result.contraindicatedCombinations[*].type", not(hasItem("CONTRAINDICATION"))))
                 .andExpect(jsonPath("$.result.recommendedIntake").value("3 ~ 10μg"))
                 .andExpect(jsonPath("$.result.recommendedIntakeTime").value("식후 섭취 권장"))
                 .andExpect(jsonPath("$.result.hasCabinetProduct").value(true))

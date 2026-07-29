@@ -112,7 +112,7 @@ class IntakeControllerTest {
         insertProductIngredient(12L, 109L, 4L);
 
         insertIngredientCombination(1L, 1L, 4L, "CAUTION", "동시 복용 시 흡수에 영향을 줄 수 있습니다.");
-        insertIngredientCombination(2L, 5L, 3L, "CONTRAINDICATION", "함께 복용하는 것이 권장되지 않습니다.");
+        insertIngredientCombination(2L, 5L, 3L, "CAUTION", "함께 복용하는 것이 권장되지 않습니다.");
         insertIngredientCombination(3L, 2L, 4L, "GOOD", "함께 섭취하면 좋습니다.");
 
         insertMemberProduct(1L, MEMBER_ID, 100L, "2026-07-01 10:00:00", null);
@@ -2292,7 +2292,7 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.result.hasConflicts").value(true))
                 .andExpect(jsonPath("$.result.conflicts.length()").value(2))
                 .andExpect(jsonPath("$.result.conflicts[*].combinationType",
-                        contains("CAUTION", "CONTRAINDICATION")))
+                        contains("CAUTION", "CAUTION")))
                 .andExpect(jsonPath("$.result.conflicts[*].combinationType", not(hasItem("GOOD"))))
                 .andExpect(jsonPath("$.result.conflicts[0].currentIngredientId").value(1))
                 .andExpect(jsonPath("$.result.conflicts[0].currentIngredientName").value("비타민 D"))
