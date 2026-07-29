@@ -39,7 +39,7 @@ public class Ingredient extends BaseEntity {
 
     @Column(name = "ad_claim_risk", nullable = false)
     private boolean adClaimRisk = false;
-의
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

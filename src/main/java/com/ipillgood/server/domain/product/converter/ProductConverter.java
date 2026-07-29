@@ -87,6 +87,18 @@ public class ProductConverter {
                 .build();
     }
 
+    public static ProductResponse.ProductPurchaseCautionCheck toProductPurchaseCautionCheck(
+            Product product,
+            List<ProductResponse.ProductPurchaseCautionCheck.CautionCombination> conflicts
+    ) {
+        return ProductResponse.ProductPurchaseCautionCheck.builder()
+                .productId(product.getId())
+                .purchaseUrl(product.getPurchaseUrl())
+                .hasConflict(!conflicts.isEmpty())
+                .conflicts(conflicts)
+                .build();
+    }
+
     private static List<String> extractAdClaimRiskIngredients(List<Ingredient> ingredients) {
         return ingredients.stream()
                 .filter(Ingredient::isAdClaimRisk)

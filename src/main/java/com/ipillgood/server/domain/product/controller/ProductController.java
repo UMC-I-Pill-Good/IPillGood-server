@@ -48,4 +48,14 @@ public class ProductController implements ProductApi {
         ProductResponse.ProductCombinations resDto = productService.getProductCombinations(memberId, productId);
         return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_COMBINATIONS_VIEW_SUCCESS, resDto);
     }
+
+    @Override
+    @GetMapping("/{productId}/purchase-check")
+    public ApiResponse<ProductResponse.ProductPurchaseCautionCheck> getCautionCombinations(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long productId
+    ) {
+        ProductResponse.ProductPurchaseCautionCheck resDto = productService.getCautionCombinations(memberId, productId);
+        return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_CAUTION_COMBINATIONS_CHECK_SUCCESS, resDto);
+    }
 }

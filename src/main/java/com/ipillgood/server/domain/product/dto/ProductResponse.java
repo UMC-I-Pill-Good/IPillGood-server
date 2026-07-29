@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.product.dto;
 
+import com.ipillgood.server.domain.ingredient.entity.enums.CombinationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -104,6 +105,46 @@ public class ProductResponse {
 
                 @Schema(description = "궁합 상대 성분명", example = "비타민 D")
                 String targetIngredientName
+        ) {}
+    }
+
+    @Schema(description = "상품 추가 시 주의 조합 확인 응답 (캐비닛 보유 성분 기준)")
+    @Builder
+    public record ProductPurchaseCautionCheck(
+            @Schema(description = "확인 대상 상품 ID", example = "1")
+            Long productId,
+
+            @Schema(description = "상품 구매 링크 URL",
+                    example = "https://smartstore.naver.com/ipillgood/products/123456")
+            String purchaseUrl,
+
+            @Schema(description = "보유 성분과 주의 조합이 하나라도 있는지 여부", example = "true")
+            Boolean hasConflict,
+
+            @Schema(description = "주의가 필요한 조합 목록(없으면 빈 배열)")
+            List<CautionCombination> conflicts
+    ) {
+
+        @Schema(description = "보유 성분 ↔ 상품 성분 간 주의 조합 항목")
+        @Builder
+        public record CautionCombination(
+                @Schema(description = "조합 유형", example = "CAUTION")
+                CombinationType type,
+
+                @Schema(description = "사용자가 보유한(섭취 중인) 성분 ID", example = "3")
+                Long currentIngredientId,
+
+                @Schema(description = "사용자가 보유한(섭취 중인) 성분명", example = "종합비타민")
+                String currentIngredientName,
+
+                @Schema(description = "추가하려는 상품에 포함된 성분 ID", example = "7")
+                Long purchaseProductIngredientId,
+
+                @Schema(description = "추가하려는 상품에 포함된 성분명", example = "철분")
+                String purchaseIngredientName,
+
+                @Schema(description = "함께 복용 시 주의 사유", example = "철분 과다 섭취 위험, 위장 장애, 변비 유발 가능")
+                String reason
         ) {}
     }
 }

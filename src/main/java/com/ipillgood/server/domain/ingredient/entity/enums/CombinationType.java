@@ -7,8 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum CombinationType {
     GOOD("좋음"),
-    CAUTION("주의"),
-    CONTRAINDICATION("금기");
+    CAUTION("주의");
 
     private final String label;
 }
