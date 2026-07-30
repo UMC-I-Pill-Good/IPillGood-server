@@ -35,6 +35,7 @@ cors:
   allowed-origins:
     - http://localhost:3000
     - https://ipillgood.vercel.app
+    - https://ipillgood.p-e.kr
 
 social:
   kakao:
