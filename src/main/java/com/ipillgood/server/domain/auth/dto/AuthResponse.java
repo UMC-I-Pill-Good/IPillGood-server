@@ -28,7 +28,6 @@ public class AuthResponse {
     @Builder
     public record Login(
             String accessToken,
-            String refreshToken,
             String tokenType,
             Long expiresIn,
             Long memberId,

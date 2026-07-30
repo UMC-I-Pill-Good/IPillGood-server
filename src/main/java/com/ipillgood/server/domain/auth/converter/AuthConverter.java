@@ -45,12 +45,11 @@ public class AuthConverter {
 
     /**
      * 2. 로컬 로그인 - 발급된 토큰 -> DTO 변환
+     * 리프레시 토큰 포함 X
      */
-    public static AuthResponse.Login toLoginResponse(Member member, String accessToken,
-                                                     String refreshToken, long expiresIn) {
+    public static AuthResponse.Login toLoginResponse(Member member, String accessToken, long expiresIn) {
         return AuthResponse.Login.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType(TOKEN_TYPE_BEARER)
                 .expiresIn(expiresIn)
                 .memberId(member.getId())
@@ -105,7 +104,7 @@ public class AuthConverter {
      * 자동 로그인하지 않으므로 토큰은 담지 않음
      */
     public static AuthResponse.SocialSignUp toSocialSignUpResponse(Member member, SocialProvider provider,
-                                                                    Function<String, String> imageUrlResolver) {
+                                                                   Function<String, String> imageUrlResolver) {
         return AuthResponse.SocialSignUp.builder()
                 .memberId(member.getId())
                 .provider(provider)

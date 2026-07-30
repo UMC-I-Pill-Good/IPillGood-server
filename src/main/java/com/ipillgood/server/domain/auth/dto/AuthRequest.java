@@ -57,15 +57,6 @@ public class AuthRequest {
     }
 
     /**
-     * 액세스 토큰 재발급 요청
-     */
-    public record Reissue(
-            @NotBlank(message = "리프레시 토큰이 필요합니다.")
-            String refreshToken
-    ) {
-    }
-
-    /**
      * 소셜 로그인 요청
      * 이메일은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회함
      */

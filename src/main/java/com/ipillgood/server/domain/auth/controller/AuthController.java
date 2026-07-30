@@ -10,11 +10,14 @@ import com.ipillgood.server.domain.auth.service.AuthService;
 import com.ipillgood.server.domain.auth.service.SocialAuthService;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+import com.ipillgood.server.global.security.jwt.CookieUtil;
 import com.ipillgood.server.global.security.jwt.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +37,7 @@ public class AuthController implements AuthApi {
 
     private final AuthService authService;
     private final SocialAuthService socialAuthService;
+    private final CookieUtil cookieUtil;
 
     // 로컬 회원가입
     @Override
@@ -46,25 +50,33 @@ public class AuthController implements AuthApi {
     // 로컬 로그인
     @Override
     @PostMapping("/login")
-    public ApiResponse<AuthResponse.Login> login(@Valid @RequestBody AuthRequest.Login request) {
-        AuthResponse.Login response = authService.login(request);
-        return ApiResponse.onSuccess(AuthSuccessCode.LOGIN_SUCCESS, response);
+    public ApiResponse<AuthResponse.Login> login(@Valid @RequestBody AuthRequest.Login request,
+                                                 HttpServletResponse response) {
+        AuthResponse.Login result = authService.login(request, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.LOGIN_SUCCESS, result);
     }
 
     // 토큰 재발급
+    // [액세스 토큰 만료 / 소셜 로그인 콜백 직후 프론트의 accessToken 발급 요청] 둘 다 이 API를 사용
     @Override
     @PostMapping("/reissue")
-    public ApiResponse<AuthResponse.Login> reissue(@Valid @RequestBody AuthRequest.Reissue request) {
-        AuthResponse.Login response = authService.reissue(request);
-        return ApiResponse.onSuccess(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, response);
+    public ApiResponse<AuthResponse.Login> reissue(
+            @CookieValue(value = CookieUtil.REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletResponse response) {
+        AuthResponse.Login result = authService.reissue(refreshToken, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, result);
     }
 
     // 로그아웃 (이 기기만 로그아웃, 다른 기기 로그인은 유지)
     @Override
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@AuthenticationPrincipal Long memberId,
-                                    @RequestAttribute(JwtAuthFilter.SESSION_ID_ATTRIBUTE) String sessionId) {
+                                    @RequestAttribute(JwtAuthFilter.SESSION_ID_ATTRIBUTE) String sessionId,
+                                    HttpServletResponse response) {
         authService.logout(memberId, sessionId);
+
+        // refreshToken 쿠키 삭제
+        cookieUtil.clearRefreshTokenCookie(response);
         return ApiResponse.onSuccess(AuthSuccessCode.LOGOUT_SUCCESS, null);
     }
 
