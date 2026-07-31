@@ -9,9 +9,6 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum SearchErrorCode implements BaseErrorCode {
 
-    // 400 BAD_REQUEST
-    SEARCH_CURSOR_INVALID(HttpStatus.BAD_REQUEST, "SEARCH400_1", "검색 커서가 올바르지 않습니다."),
-
     // 403 FORBIDDEN
     RECENT_KEYWORD_FORBIDDEN(HttpStatus.FORBIDDEN, "SEARCH403_1", "해당 키워드 삭제 권한이 없습니다."),
 

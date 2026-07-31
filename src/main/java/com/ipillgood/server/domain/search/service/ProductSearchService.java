@@ -15,6 +15,7 @@ import com.ipillgood.server.domain.search.repository.ProductSearchProjection;
 import com.ipillgood.server.domain.search.repository.ProductSearchRepository;
 import com.ipillgood.server.global.enums.AgeGroup;
 import com.ipillgood.server.global.enums.Gender;
+import com.ipillgood.server.global.pagination.CursorPage;
 import com.ipillgood.server.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,25 +52,26 @@ public class ProductSearchService {
                 keyword, sort, ageGroups, gender, mfdsCertified, healthConcernMajorCategories, size, cursor);
 
         List<ProductSearchProjection.Product> rows = productSearchRepository.searchProducts(condition);
-        boolean hasNext = rows.size() > condition.size();
-        List<ProductSearchProjection.Product> pageRows = hasNext ? rows.subList(0, condition.size()) : rows;
+        CursorPage<ProductSearchProjection.Product> page = CursorPage.of(
+                rows,
+                condition.size(),
+                lastRow -> ProductSearchCursorCodec.encode(condition.sort(), lastRow));
 
-        List<Long> productIds = pageRows.stream().map(ProductSearchProjection.Product::productId).toList();
+        List<Long> productIds = page.content().stream()
+                .map(ProductSearchProjection.Product::productId)
+                .toList();
         List<ProductSearchProjection.Ingredient> ingredientRows =
                 productSearchRepository.findIngredientsByProductIds(productIds);
 
         long totalCount = productSearchRepository.countProducts(condition);
-        String nextCursor = hasNext
-                ? ProductSearchCursorCodec.encode(condition.sort(), pageRows.get(pageRows.size() - 1))
-                : null;
 
         return ProductSearchConverter.toProductSearch(
                 condition.keyword(),
                 condition.size(),
                 totalCount,
-                hasNext,
-                nextCursor,
-                pageRows,
+                page.hasNext(),
+                page.nextCursor(),
+                page.content(),
                 ingredientRows,
                 s3Service
         );
