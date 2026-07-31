@@ -101,10 +101,11 @@ public class AuthController implements AuthApi {
     @PostMapping("/social/{provider}/login")
     public ApiResponse<AuthResponse.SocialLogin> socialLogin(
             @PathVariable String provider,
-            @Valid @RequestBody AuthRequest.SocialLogin request) {
+            @Valid @RequestBody AuthRequest.SocialLogin request,
+            HttpServletResponse response) {
 
-        AuthResponse.SocialLogin response = socialAuthService.login(toSocialProvider(provider), request);
-        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, response);
+        AuthResponse.SocialLogin result = socialAuthService.login(toSocialProvider(provider), request, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, result);
     }
 
     // 소셜 회원가입
@@ -123,10 +124,11 @@ public class AuthController implements AuthApi {
     @PostMapping("/social/{provider}/link")
     public ApiResponse<AuthResponse.SocialLink> socialLink(
             @PathVariable String provider,
-            @Valid @RequestBody AuthRequest.SocialLink request) {
+            @Valid @RequestBody AuthRequest.SocialLink request,
+            HttpServletResponse response) {
 
-        AuthResponse.SocialLink response = socialAuthService.link(toSocialProvider(provider), request);
-        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LINK_SUCCESS, response);
+        AuthResponse.SocialLink result = socialAuthService.link(toSocialProvider(provider), request, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LINK_SUCCESS, result);
     }
 
     /**

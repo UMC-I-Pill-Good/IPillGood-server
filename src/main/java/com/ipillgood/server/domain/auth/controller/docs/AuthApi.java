@@ -56,7 +56,7 @@ public interface AuthApi {
     @Operation(summary = "소셜 로그인",
             description = """
                     소셜 액세스 토큰을 검증하고 사용자 상태에 따라 세 경우로 응답합니다.
-                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken, refreshToken 발급)
+                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
                     - 같은 이메일의 기존 회원이 존재하면 연동 동의 필요합니다. (accountLinkRequired=true + accountLinkToken 발급)
                     - 신규 사용자라면 회원가입 필요합니다. (signupRequired=true)
                     이메일 제공에 동의하지 않은 경우 로그인에 실패합니다. (AUTH400_10)
@@ -70,7 +70,8 @@ public interface AuthApi {
                     )
             )
             String provider,
-            @Valid AuthRequest.SocialLogin request);
+            @Valid AuthRequest.SocialLogin request,
+            HttpServletResponse response);
 
     @Operation(summary = "소셜 회원가입",
             description = """
@@ -93,7 +94,7 @@ public interface AuthApi {
     @Operation(summary = "소셜 계정 연동",
             description = """
                     소셜 로그인 중 발급받은 임시 토큰으로 기존 회원에 소셜 계정을 연동합니다.
-                    연동 즉시 로그인 처리되어 토큰을 함께 발급합니다.
+                    연동 즉시 로그인 처리되어 토큰을 함께 발급합니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
                     임시 토큰이 만료·위조되었거나 URL의 제공자와 다르면 실패합니다. (AUTH401_3)
                     """)
     ApiResponse<AuthResponse.SocialLink> socialLink(
@@ -105,5 +106,6 @@ public interface AuthApi {
                     )
             )
             String provider,
-            @Valid AuthRequest.SocialLink request);
+            @Valid AuthRequest.SocialLink request,
+            HttpServletResponse response);
 }
