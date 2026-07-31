@@ -2,6 +2,7 @@ package com.ipillgood.server.domain.review.controller.docs;
 
 import com.ipillgood.server.domain.review.dto.ProductReviewRequest;
 import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
+import com.ipillgood.server.domain.review.entity.enums.ProductReviewSort;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,6 +11,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @Tag(name = "Review API", description = "후기 관련 API")
 public interface ProductReviewApi {
@@ -51,6 +55,135 @@ public interface ProductReviewApi {
     ApiResponse<ProductReviewResponse.ImagePresigns> createImageUploadUrls(
             @Parameter(hidden = true)
             Long memberId,
-            ProductReviewRequest.ImagePresign request
+            @Valid ProductReviewRequest.ImagePresign request
+    );
+
+    @Operation(
+            summary = "상품 후기 목록 조회",
+            description = "특정 영양제 상품의 후기를 커서 페이지네이션으로 조회합니다. "
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "후기 목록 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW200_2",
+                                              "message": "해당 상품 리뷰 목록 조회에 성공했습니다.",
+                                              "result": {
+                                                "productId": 101,
+                                                "reviewCount": 42,
+                                                "ratingAverage": 4.5,
+                                                "sort": "LATEST",
+                                                "size": 20,
+                                                "hasNext": true,
+                                                "nextCursor": "23|2026-07-18T09:12:00",
+                                                "reviews": [
+                                                  {
+                                                    "reviewId": 42,
+                                                    "nickname": "약먹는곰",
+                                                    "profileImageUrl": "https://cdn.ipillgood.com/profileImage/profile1.png",
+                                                    "ageGroup": "TWENTIES",
+                                                    "gender": "FEMALE",
+                                                    "rating": 5,
+                                                    "content": "먹고 나서 컨디션이 좋아졌어요.",
+                                                    "reviewImageUrls": [
+                                                      "https://cdn.ipillgood.com/reviews/3f2a9c1e-0b4d-4a2f-9c3e-1a2b3c4d5e6f.jpg"
+                                                    ],
+                                                    "helpfulCount": 12,
+                                                    "helpedByMe": false,
+                                                    "mine": false,
+                                                    "createdAt": "2026-07-20T15:00:00"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "파라미터 형식/제약 오류(COMMON400_1) 또는 커서 오류(COMMON400_4)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "파라미터 형식/제약 오류",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "COMMON400_1",
+                                                      "message": "잘못된 요청입니다.",
+                                                      "result": {
+                                                        "size": "1에서 100 사이여야 합니다"
+                                                      }
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "커서 오류",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "COMMON400_4",
+                                                      "message": "유효하지 않은 커서 값입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 상품",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "PRODUCT404_1",
+                                              "message": "해당 상품은 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ProductReviews> getReviews(
+            @Parameter(hidden = true)
+            Long memberId,
+
+            @Parameter(
+                    description = "영양제 상품 ID입니다.",
+                    example = "101"
+            )
+            Long productId,
+            @Parameter(
+                    description = "정렬 기준입니다. 기본값 LATEST.",
+                    example = "LATEST"
+            )
+            ProductReviewSort sort,
+            @Parameter(
+                    description = "페이지 크기입니다. 1~100, 기본값 20.",
+                    example = "20"
+            )
+            @Min(1) @Max(100) Integer size,
+            @Parameter(
+                    description = "커서입니다. 이전 응답의 nextCursor 값({후기ID}|{정렬값})을 그대로 전달하며, "
+                            + "생략하면 첫 페이지를 조회합니다. "
+                            + "정렬값은 LATEST면 최신순, LIKE_COUNT_DESC면 좋아요순입니다. "
+                            + "sort를 바꾸면 커서 없이 처음부터 조회하세요.",
+                    example = "23|2026-07-18T09:12:00"
+            )
+            String cursor
     );
 }

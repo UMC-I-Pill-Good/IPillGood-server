@@ -7,10 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
-public interface ProductReviewRepository extends JpaRepository<ProductReview, Long> {
+public interface ProductReviewRepository extends JpaRepository<ProductReview, Long>, ProductReviewQueryDsl {
 
     @Query("""
             select coalesce(avg(r.rating), 0.0) as ratingAverage,

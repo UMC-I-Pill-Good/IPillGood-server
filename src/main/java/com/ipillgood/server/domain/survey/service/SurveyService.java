@@ -15,24 +15,24 @@ import com.ipillgood.server.domain.survey.converter.SurveyConverter;
 import com.ipillgood.server.domain.survey.dto.SurveyRequest;
 import com.ipillgood.server.domain.survey.dto.SurveyResult;
 import com.ipillgood.server.domain.survey.code.SurveyErrorCode;
-import com.ipillgood.server.domain.survey.entity.SurveyContraindicationSelection;
-import com.ipillgood.server.domain.survey.entity.SurveyCurrentIngredientSelection;
-import com.ipillgood.server.domain.survey.entity.SurveyOnboardingConcernSelection;
 import com.ipillgood.server.domain.survey.entity.SurveyResponse;
 import com.ipillgood.server.domain.survey.exception.SurveyException;
 import com.ipillgood.server.domain.survey.repository.SurveyContraindicationSelectionRepository;
 import com.ipillgood.server.domain.survey.repository.SurveyCurrentIngredientSelectionRepository;
 import com.ipillgood.server.domain.survey.repository.SurveyOnboardingConcernSelectionRepository;
+import com.ipillgood.server.domain.survey.repository.SurveyProjection;
 import com.ipillgood.server.domain.survey.repository.SurveyResponseRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
 import com.ipillgood.server.global.enums.Gender;
 import java.time.LocalDateTime;
 import java.time.Year;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -105,6 +105,28 @@ public class SurveyService {
         eventPublisher.publishEvent(new RecommendationGenerationRequestedEvent(recommendation.getId()));
 
         return SurveyConverter.toSubmitResult(surveyResponse, recommendation);
+    }
+
+    public Map<Long, SurveyProjection.MemberProfile> getLatestProfiles(Collection<Long> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, SurveyResponse> latestByMemberId = surveyResponseRepository
+                .findLatestCompletedByMemberIds(memberIds).stream()
+                .collect(Collectors.toMap(
+                        response -> response.getMember().getId(),
+                        Function.identity()
+                        )
+                );
+
+        return latestByMemberId.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> new SurveyProjection.MemberProfile(
+                                entry.getKey(),
+                                entry.getValue().getBirthYear(),
+                                entry.getValue().getGender())));
     }
 
     private void validateBirthYear(Integer birthYear) {
