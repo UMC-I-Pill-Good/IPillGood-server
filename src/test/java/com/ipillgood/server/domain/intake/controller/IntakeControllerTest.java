@@ -14,12 +14,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 import static org.hamcrest.Matchers.contains;
@@ -136,7 +137,8 @@ class IntakeControllerTest {
 
         accessToken = jwtProvider.createAccessToken(MEMBER_ID, "USER", "test-session");
         emptyMemberAccessToken = jwtProvider.createAccessToken(EMPTY_MEMBER_ID, "USER", "test-session");
-        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER", "test-session");
+        onboardingIncompleteAccessToken = jwtProvider.createAccessToken(ONBOARDING_INCOMPLETE_MEMBER_ID, "USER",
+                "test-session");
     }
 
     @Test
@@ -384,7 +386,6 @@ class IntakeControllerTest {
     @DisplayName("복용 캘린더는 주기 이력 기준으로 날짜별 연속 섭취 상태를 계산한다")
     void getIntakeCalendar_withScheduleHistory_returnsDailyStreakStatuses() throws Exception {
         LocalDate currentDate = currentDate();
-        YearMonth targetMonth = YearMonth.from(currentDate);
         LocalDate completedOn = currentDate.minusDays(3);
         LocalDate scheduleChangedOn = currentDate.minusDays(2);
         LocalDate maintainedOn = currentDate.minusDays(1);
@@ -406,10 +407,7 @@ class IntakeControllerTest {
         );
         insertTodayIntakeRecord(101L, 101L, 30L, 109L, true, completedOn + " 08:00:00");
 
-        mockMvc.perform(get(CALENDAR_URL)
-                        .param("year", String.valueOf(targetMonth.getYear()))
-                        .param("month", String.valueOf(targetMonth.getMonthValue()))
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken)))
+        performCalendarRequest(YearMonth.from(completedOn), emptyMemberAccessToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.days[%d].date".formatted(completedOn.getDayOfMonth() - 1))
@@ -425,19 +423,35 @@ class IntakeControllerTest {
                 .andExpect(jsonPath("$.result.days[%d].takenCount".formatted(completedOn.getDayOfMonth() - 1))
                         .value(1))
                 .andExpect(jsonPath("$.result.days[%d].completedAt".formatted(completedOn.getDayOfMonth() - 1))
-                        .value(completedOn + "T08:00:00"))
+                        .value(completedOn + "T08:00:00"));
+
+        performCalendarRequest(YearMonth.from(scheduleChangedOn), emptyMemberAccessToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(scheduleChangedOn.getDayOfMonth() - 1))
                         .value("BROKEN"))
                 .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(scheduleChangedOn.getDayOfMonth() - 1))
-                        .value(false))
+                        .value(false));
+
+        performCalendarRequest(YearMonth.from(maintainedOn), emptyMemberAccessToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(maintainedOn.getDayOfMonth() - 1))
                         .value("MAINTAINED"))
                 .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(maintainedOn.getDayOfMonth() - 1))
-                        .value(true))
+                        .value(true));
+
+        performCalendarRequest(YearMonth.from(currentDate), emptyMemberAccessToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(currentDate.getDayOfMonth() - 1))
                         .value("PENDING"))
                 .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(currentDate.getDayOfMonth() - 1))
-                        .value(false))
+                        .value(false));
+
+        performCalendarRequest(YearMonth.from(upcomingOn), emptyMemberAccessToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.days[%d].streakStatus".formatted(upcomingOn.getDayOfMonth() - 1))
                         .value("UPCOMING"))
                 .andExpect(jsonPath("$.result.days[%d].streakIncluded".formatted(upcomingOn.getDayOfMonth() - 1))
@@ -2896,6 +2910,13 @@ class IntakeControllerTest {
 
     private LocalDate currentDate() {
         return LocalDate.now(SERVICE_ZONE_ID);
+    }
+
+    private ResultActions performCalendarRequest(YearMonth targetMonth, String token) throws Exception {
+        return mockMvc.perform(get(CALENDAR_URL)
+                .param("year", String.valueOf(targetMonth.getYear()))
+                .param("month", String.valueOf(targetMonth.getMonthValue()))
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(token)));
     }
 
     private LocalDateTime findAutoPopupShownAt(Long memberId, LocalDate intakeOn) {
