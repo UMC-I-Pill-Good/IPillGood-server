@@ -86,6 +86,21 @@ public class ProductReviewConverter {
                 .build();
     }
 
+    public static ProductReviewResponse.ReviewUpdate toReviewUpdate(
+            ProductReview productReview,
+            Function<String, String> toImageUrl
+    ) {
+        return ProductReviewResponse.ReviewUpdate.builder()
+                .reviewId(productReview.getId())
+                .rating(productReview.getRating())
+                .content(productReview.getContent())
+                .imageUrls(productReview.getReviewImages().stream()
+                        .map(reviewImage -> toImageUrl.apply(reviewImage.getImageKey()))
+                        .toList())
+                .updatedAt(productReview.getUpdatedAt())
+                .build();
+    }
+
     private static ProductReviewResponse.ProductReviews.Review toReview(
             ProductReviewProjection.Review row,
             Long memberId,

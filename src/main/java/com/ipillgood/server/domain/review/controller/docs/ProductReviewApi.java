@@ -318,4 +318,129 @@ public interface ProductReviewApi {
             Long productId,
             @Valid ProductReviewRequest.Review reqDto
     );
+
+    @Operation(
+            summary = "상품 후기 수정",
+            description = "본인이 작성한 후기의 별점·내용·첨부 이미지를 수정합니다. "
+                    + "imageKeys는 부분 변경이 아니라 전체 대체입니다. "
+                    + "수정 후 유지할 key를 원하는 노출 순서대로 모두 전달해야 하며, 빈 배열이면 모든 이미지가 삭제됩니다. "
+                    + "key는 후기 이미지 디렉터리에 실제로 업로드된 것이어야 합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "후기 수정 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW200_3",
+                                              "message": "후기 수정에 성공했습니다.",
+                                              "result": {
+                                                "reviewId": 1,
+                                                "rating": 4,
+                                                "content": "내용을 수정합니다.",
+                                                "imageUrls": [],
+                                                "updatedAt": "2026-07-20T15:20:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "요청 값 검증 실패(COMMON400_1) 또는 후기 이미지 디렉터리가 아닌 키 전달(S3400_3)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "요청 값 검증 실패",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "COMMON400_1",
+                                                      "message": "잘못된 요청입니다.",
+                                                      "result": {
+                                                        "rating": "평점을 입력해주세요."
+                                                      }
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "유효하지 않은 이미지 키",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "S3400_3",
+                                                      "message": "유효하지 않은 이미지 키입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인이 작성하지 않은 후기를 수정하려는 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW403_1",
+                                              "message": "본인이 작성한 후기만 수정할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 후기(REVIEW404_1) 또는 업로드되지 않은 이미지 키(S3404_1)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "존재하지 않는 후기",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_1",
+                                                      "message": "해당 후기가 존재하지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "업로드되지 않은 이미지",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "S3404_1",
+                                                      "message": "업로드되지 않은 이미지입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewUpdate> updateReview(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "수정할 후기 ID입니다.",
+                    example = "1"
+            )
+            Long reviewId,
+            @Valid ProductReviewRequest.ReviewUpdate reqDto
+    );
 }

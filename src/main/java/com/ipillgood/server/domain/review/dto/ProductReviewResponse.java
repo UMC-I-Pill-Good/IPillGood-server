@@ -118,4 +118,23 @@ public class ProductReviewResponse {
             @Schema(description = "작성 일시", example = "2026-07-20T15:00:00")
             LocalDateTime createdAt
     ) {}
+
+    @Schema(description = "후기 수정 응답")
+    @Builder
+    public record ReviewUpdate(
+            @Schema(description = "수정된 후기 ID", example = "1")
+            Long reviewId,
+
+            @Schema(description = "별점", example = "4")
+            Short rating,
+
+            @Schema(description = "후기 내용", example = "내용을 수정합니다.")
+            String content,
+
+            @Schema(description = "수정 후 첨부된 이미지 URL 목록", example = "[]")
+            List<String> imageUrls,
+
+            @Schema(description = "수정 일시", example = "2026-07-20T15:20:00")
+            LocalDateTime updatedAt
+    ) {}
 }

@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface ProductReviewRepository extends JpaRepository<ProductReview, Long>, ProductReviewQueryDsl {
 
@@ -21,4 +23,6 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, Lo
     ProductReviewProjection.ReviewSummary findActiveSummaryByProduct(@Param("product") Product product);
 
     boolean existsByMemberAndProductAndDeletedAtIsNull(Member member, Product product);
+
+    Optional<ProductReview> findByIdAndDeletedAtIsNull(Long reviewId);
 }

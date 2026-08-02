@@ -3,8 +3,6 @@ package com.ipillgood.server.domain.review.entity;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.global.entity.BaseSoftDeleteEntity;
-import com.ipillgood.server.global.enums.AgeGroup;
-import com.ipillgood.server.global.enums.Gender;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
@@ -57,5 +55,14 @@ public class ProductReview extends BaseSoftDeleteEntity {
                 .displayOrder((short)(reviewImages.size() + 1))
                 .build()
         );
+    }
+
+    public void updateContent(Short rating, String content) {
+        this.rating = rating;
+        this.content = content;
+    }
+
+    public void clearPhotos() {
+        reviewImages.clear();
     }
 }

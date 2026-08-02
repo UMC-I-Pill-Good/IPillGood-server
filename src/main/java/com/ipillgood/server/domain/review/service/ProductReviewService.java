@@ -133,6 +133,33 @@ public class ProductReviewService {
         return ProductReviewConverter.toReviewCreate(newReview, s3Service::getPublicUrl);
     }
 
+    @Transactional
+    public ProductReviewResponse.ReviewUpdate updateReview(
+            Long memberId,
+            Long reviewId,
+            ProductReviewRequest.ReviewUpdate reqDto
+    ) {
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getMember().getId().equals(memberId)) {
+            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_FORBIDDEN);
+        }
+
+        review.updateContent(reqDto.rating(), reqDto.content());
+        review.clearPhotos();
+        productReviewRepository.flush();
+
+        List<String> imageKeys = reqDto.imageKeys();
+        if(imageKeys != null){
+            imageKeys.forEach(key -> s3Service.validateUploadedKey(ImageDirectory.REVIEW, key));
+            imageKeys.forEach(review::addPhoto);
+        }
+
+        productReviewRepository.flush();
+        return ProductReviewConverter.toReviewUpdate(review, s3Service::getPublicUrl);
+    }
+
     private ProductReviewCondition toReviewCondition(
             Product product,
             ProductReviewSort sort,
