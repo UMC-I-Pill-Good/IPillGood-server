@@ -206,6 +206,22 @@ public class ProductReviewService {
         return ProductReviewConverter.toReviewHelpful(true, review);
     }
 
+    @Transactional
+    public ProductReviewResponse.ReviewHelpful deleteHelpful(Long memberId, Long reviewId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
+
+        ProductReviewHelpful helpful = productReviewHelpfulRepository.findByMemberAndReview(member, review)
+                .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_HELPFUL_NOT_FOUND));
+
+        productReviewHelpfulRepository.delete(helpful);
+        review.decreaseHelpfulCount();
+
+        return ProductReviewConverter.toReviewHelpful(false, review);
+    }
+
     private ProductReviewCondition toReviewCondition(
             Product product,
             ProductReviewSort sort,

@@ -706,4 +706,88 @@ public interface ProductReviewApi {
             )
             Long reviewId
     );
+
+    @Operation(
+            summary = "후기 도움됨 취소",
+            description = "후기에 표시한 도움됨을 취소합니다. "
+                    + "도움됨 이력이 없는 상태에서 취소를 요청하면 404(REVIEW404_2)를 반환합니다. "
+                    + "취소 후에는 같은 후기에 도움됨을 다시 표시할 수 있습니다. "
+                    + "응답의 helpfulCount는 이번 요청이 반영된 뒤의 값이므로, 목록 화면의 도움됨 수를 이 값으로 갱신하면 됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "도움됨 취소 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW200_6",
+                                              "message": "해당 리뷰에 도움됨을 취소했습니다.",
+                                              "result": {
+                                                "helpful": false,
+                                                "reviewId": 1,
+                                                "helpfulCount": 12
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 후기(REVIEW404_1), 도움됨 이력이 없는 경우(REVIEW404_2), "
+                            + "또는 존재하지 않는 회원(MEMBER404_1)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "존재하지 않는 후기",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_1",
+                                                      "message": "해당 후기가 존재하지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "도움됨 이력 없음",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_2",
+                                                      "message": "해당 후기에 도움됨 이력을 남긴 적이 없습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "존재하지 않는 회원",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "MEMBER404_1",
+                                                      "message": "회원을 찾을 수 없습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewHelpful> deleteHelpful(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "도움됨을 취소할 후기 ID입니다.",
+                    example = "1"
+            )
+            Long reviewId
+    );
 }
