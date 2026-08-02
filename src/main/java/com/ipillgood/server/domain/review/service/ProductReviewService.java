@@ -24,6 +24,7 @@ import com.ipillgood.server.global.pagination.CursorPage;
 import com.ipillgood.server.global.s3.ImageDirectory;
 import com.ipillgood.server.global.s3.S3Service;
 import com.ipillgood.server.global.s3.dto.PresignedUpload;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,13 +56,6 @@ public class ProductReviewService {
         return new ProductReviewResponse.ReviewSummary(
                 toRoundedAverageRating(summary.ratingAverage()),
                 summary.reviewCount().intValue());
-    }
-
-    private Double toRoundedAverageRating(Double averageRating) {
-        if (averageRating == null) {
-            return null;
-        }
-        return Math.round(averageRating * 10) / 10.0;
     }
 
     public ProductReviewResponse.ProductReviews getReviews(
@@ -143,7 +137,7 @@ public class ProductReviewService {
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         if (!review.getMember().getId().equals(memberId)) {
-            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_FORBIDDEN);
+            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_UPDATE_FORBIDDEN);
         }
 
         review.updateContent(reqDto.rating(), reqDto.content());
@@ -158,6 +152,19 @@ public class ProductReviewService {
 
         productReviewRepository.flush();
         return ProductReviewConverter.toReviewUpdate(review, s3Service::getPublicUrl);
+    }
+
+    @Transactional
+    public ProductReviewResponse.ReviewDelete deleteReview(Long memberId, Long reviewId) {
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getMember().getId().equals(memberId)) {
+            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_DELETE_FORBIDDEN);
+        }
+
+        review.markDeleted(LocalDateTime.now());
+        return new ProductReviewResponse.ReviewDelete(true, reviewId);
     }
 
     private ProductReviewCondition toReviewCondition(
@@ -179,5 +186,12 @@ public class ProductReviewService {
     private Product getActiveProduct(Long productId) {
         return productRepository.findActiveById(productId)
                 .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
+    }
+
+    private Double toRoundedAverageRating(Double averageRating) {
+        if (averageRating == null) {
+            return null;
+        }
+        return Math.round(averageRating * 10) / 10.0;
     }
 }

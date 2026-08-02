@@ -443,4 +443,77 @@ public interface ProductReviewApi {
             Long reviewId,
             @Valid ProductReviewRequest.ReviewUpdate reqDto
     );
+
+    @Operation(
+            summary = "상품 후기 삭제",
+            description = "본인이 작성한 후기를 삭제합니다. "
+                    + "삭제된 후기는 목록과 평점 집계에서 즉시 제외되며, 같은 상품에 후기를 다시 등록할 수 있습니다. "
+                    + "이미 삭제된 후기를 다시 삭제하면 404를 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "후기 삭제 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW200_4",
+                                              "message": "후기 삭제에 성공했습니다.",
+                                              "result": {
+                                                "deleted": true,
+                                                "reviewId": 1
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인이 작성하지 않은 후기를 삭제하려는 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW403_2",
+                                              "message": "본인이 작성한 후기만 삭제할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 이미 삭제된 후기",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW404_1",
+                                              "message": "해당 후기가 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewDelete> deleteReview(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "삭제할 후기 ID입니다.",
+                    example = "1"
+            )
+            Long reviewId
+    );
 }

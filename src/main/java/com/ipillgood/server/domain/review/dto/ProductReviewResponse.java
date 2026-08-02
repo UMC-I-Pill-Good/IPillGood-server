@@ -137,4 +137,14 @@ public class ProductReviewResponse {
             @Schema(description = "수정 일시", example = "2026-07-20T15:20:00")
             LocalDateTime updatedAt
     ) {}
+
+    @Builder
+    @Schema(description = "후기 삭제 응답")
+    public record ReviewDelete(
+            @Schema(description = "삭제 여부", example = "true")
+            boolean deleted,
+
+            @Schema(description = "삭제된 후기 ID", example = "1")
+            Long reviewId
+    ) {}
 }

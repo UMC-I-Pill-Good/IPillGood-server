@@ -66,4 +66,14 @@ public class ProductReviewController implements ProductReviewApi {
         ProductReviewResponse.ReviewUpdate resDto = reviewService.updateReview(memberId, reviewId, reqDto);
         return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_UPDATE_SUCCESS, resDto);
     }
+
+    @Override
+    @DeleteMapping("/{reviewId}")
+    public ApiResponse<ProductReviewResponse.ReviewDelete> deleteReview(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long reviewId
+    ) {
+        ProductReviewResponse.ReviewDelete resDto = reviewService.deleteReview(memberId, reviewId);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_DELETE_SUCCESS, resDto);
+    }
 }
