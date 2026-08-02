@@ -15,13 +15,14 @@ public record SocialProperties(
 
     /**
      * 카카오 연동 설정
-     * appId는 토큰 치환 방어에 사용할 우리 카카오 앱 ID
-     * appId 값이 정해지기 전까지는 공란으로 두며, 공란이면 해당 검증을 건너뜀
      */
     public record Kakao(
             String userInfoUri,
-            String tokenInfoUri,
-            String appId
+            String authorizeUri,
+            String tokenUri,
+            String clientId,
+            String clientSecret,
+            String redirectUri
     ) {
     }
 
@@ -29,7 +30,12 @@ public record SocialProperties(
      * 네이버 연동 설정
      */
     public record Naver(
-            String userInfoUri
+            String userInfoUri,
+            String authorizeUri,
+            String tokenUri,
+            String clientId,
+            String clientSecret,
+            String redirectUri
     ) {
     }
 }

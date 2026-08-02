@@ -28,6 +28,11 @@ class SocialProfileClientResolverTest {
             public SocialProfile fetch(String providerAccessToken) {
                 return new SocialProfile("id", "email@example.com", "닉네임");
             }
+
+            @Override
+            public SocialProfile fetchByCode(String code, String state) {
+                return fetch(code);
+            }
         };
     }
 

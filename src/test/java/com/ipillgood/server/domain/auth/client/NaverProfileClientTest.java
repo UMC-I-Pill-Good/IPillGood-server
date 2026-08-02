@@ -12,22 +12,31 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * 네이버를 실제로 호출하지 않고 응답 파싱과 예외 변환을 검증
+ * 네이버를 실제로 호출하지 않고 토큰 교환·응답 파싱·예외 변환을 검증
  * 네이버는 실패도 200으로 내려주므로 resultcode 확인이 동작하는지 확인
  */
 class NaverProfileClientTest {
 
     private static final String USER_INFO_URI = "https://openapi.naver.com/v1/nid/me";
+    private static final String TOKEN_URI = "https://nid.naver.com/oauth2.0/token";
+    private static final String AUTHORIZE_URI = "https://nid.naver.com/oauth2.0/authorize";
+    private static final String CLIENT_ID = "test-client-id";
+    private static final String CLIENT_SECRET = "test-client-secret";
+    private static final String REDIRECT_URI = "https://example.com/api/v1/auth/naver/callback";
     private static final String ACCESS_TOKEN = "naver-access-token";
+    private static final String AUTH_CODE = "naver-auth-code";
+    private static final String STATE = "sample-state";
 
     private RestClient.Builder restClientBuilder;
     private MockRestServiceServer server;
@@ -41,7 +50,7 @@ class NaverProfileClientTest {
     private NaverProfileClient client() {
         SocialProperties properties = new SocialProperties(
                 null,
-                new SocialProperties.Naver(USER_INFO_URI));
+                new SocialProperties.Naver(USER_INFO_URI, AUTHORIZE_URI, TOKEN_URI, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI));
         return new NaverProfileClient(properties, restClientBuilder.build());
     }
 
@@ -115,5 +124,78 @@ class NaverProfileClientTest {
 
         AuthException exception = assertThrows(AuthException.class, () -> client.fetch(ACCESS_TOKEN));
         assertEquals(AuthErrorCode.NAVER_AUTH_FAILED.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("인가 코드와 state를 access_token으로 교환할 때 필요한 파라미터를 전부 담아 요청한다")
+    void fetchByCode_sendsExpectedFormParametersAndReturnsProfile() {
+        server.expect(requestTo(TOKEN_URI))
+                .andExpect(content().string(containsString("grant_type=authorization_code")))
+                .andExpect(content().string(containsString("client_id=" + CLIENT_ID)))
+                .andExpect(content().string(containsString("client_secret=" + CLIENT_SECRET)))
+                .andExpect(content().string(containsString("code=" + AUTH_CODE)))
+                .andExpect(content().string(containsString("state=" + STATE)))
+                .andRespond(withSuccess("{\"access_token\": \"" + ACCESS_TOKEN + "\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(USER_INFO_URI))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer " + ACCESS_TOKEN))
+                .andRespond(withSuccess("""
+                        {
+                          "resultcode": "00",
+                          "response": {
+                            "id": "abc-def-ghi",
+                            "email": "kim@example.com"
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        SocialProfile profile = client().fetchByCode(AUTH_CODE, STATE);
+
+        assertEquals("abc-def-ghi", profile.providerUserId());
+        assertEquals("kim@example.com", profile.email());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("인가 코드가 만료·위조됐으면 토큰 교환 단계에서 실패한다")
+    void fetchByCode_throwsWhenCodeExchangeFails() {
+        server.expect(requestTo(TOKEN_URI))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST));
+
+        NaverProfileClient client = client();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> client.fetchByCode(AUTH_CODE, STATE));
+        assertEquals(AuthErrorCode.NAVER_AUTH_FAILED.getCode(), exception.getCode().getCode());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("토큰 교환 응답이 200이어도 access_token이 없으면 실패한다")
+    void fetchByCode_throwsWhenAccessTokenMissingInResponse() {
+        server.expect(requestTo(TOKEN_URI))
+                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        NaverProfileClient client = client();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> client.fetchByCode(AUTH_CODE, STATE));
+        assertEquals(AuthErrorCode.NAVER_AUTH_FAILED.getCode(), exception.getCode().getCode());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("토큰 교환은 성공했지만 사용자 정보 조회에 실패하면 네이버 로그인 실패 예외를 던진다")
+    void fetchByCode_throwsWhenUserInfoFailsAfterSuccessfulExchange() {
+        server.expect(requestTo(TOKEN_URI))
+                .andRespond(withSuccess("{\"access_token\": \"" + ACCESS_TOKEN + "\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(USER_INFO_URI))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+
+        NaverProfileClient client = client();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> client.fetchByCode(AUTH_CODE, STATE));
+        assertEquals(AuthErrorCode.NAVER_AUTH_FAILED.getCode(), exception.getCode().getCode());
+        server.verify();
     }
 }

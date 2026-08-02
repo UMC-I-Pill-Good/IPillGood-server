@@ -12,23 +12,30 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * 카카오를 실제로 호출하지 않고 응답 파싱과 예외 변환을 검증
+ * 카카오를 실제로 호출하지 않고 토큰 교환·응답 파싱·예외 변환을 검증
  * MockRestServiceServer가 정해둔 응답을 돌려주므로 네트워크/토큰 없이 실행 가능
  */
 class KakaoProfileClientTest {
 
     private static final String USER_INFO_URI = "https://kapi.kakao.com/v2/user/me";
-    private static final String TOKEN_INFO_URI = "https://kapi.kakao.com/v1/user/access_token_info";
+    private static final String TOKEN_URI = "https://kauth.kakao.com/oauth/token";
+    private static final String AUTHORIZE_URI = "https://kauth.kakao.com/oauth/authorize";
+    private static final String CLIENT_ID = "test-client-id";
+    private static final String REDIRECT_URI = "https://example.com/api/v1/auth/kakao/callback";
     private static final String ACCESS_TOKEN = "kakao-access-token";
+    private static final String AUTH_CODE = "kakao-auth-code";
 
     private RestClient.Builder restClientBuilder;
     private MockRestServiceServer server;
@@ -39,10 +46,14 @@ class KakaoProfileClientTest {
         server = MockRestServiceServer.bindTo(restClientBuilder).build();
     }
 
-    // appId가 null이면 토큰 치환 검증을 건너뛴다
-    private KakaoProfileClient client(String appId) {
+    private KakaoProfileClient client() {
+        return client(null);
+    }
+
+    // clientSecret 유무에 따른 요청 차이를 테스트하기 위해 지정 가능하게 분리
+    private KakaoProfileClient client(String clientSecret) {
         SocialProperties properties = new SocialProperties(
-                new SocialProperties.Kakao(USER_INFO_URI, TOKEN_INFO_URI, appId),
+                new SocialProperties.Kakao(USER_INFO_URI, AUTHORIZE_URI, TOKEN_URI, CLIENT_ID, clientSecret, REDIRECT_URI),
                 null);
         return new KakaoProfileClient(properties, restClientBuilder.build());
     }
@@ -65,7 +76,7 @@ class KakaoProfileClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
+        SocialProfile profile = client().fetch(ACCESS_TOKEN);
 
         assertEquals("12345678", profile.providerUserId());
         assertEquals("kim@example.com", profile.email());
@@ -79,7 +90,7 @@ class KakaoProfileClientTest {
         server.expect(requestTo(USER_INFO_URI))
                 .andRespond(withSuccess("{\"id\": 12345678}", MediaType.APPLICATION_JSON));
 
-        SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
+        SocialProfile profile = client().fetch(ACCESS_TOKEN);
 
         assertEquals("12345678", profile.providerUserId());
         assertNull(profile.email());
@@ -101,7 +112,7 @@ class KakaoProfileClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
+        SocialProfile profile = client().fetch(ACCESS_TOKEN);
 
         assertNull(profile.email());
     }
@@ -122,7 +133,7 @@ class KakaoProfileClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        SocialProfile profile = client(null).fetch(ACCESS_TOKEN);
+        SocialProfile profile = client().fetch(ACCESS_TOKEN);
 
         assertNull(profile.email());
     }
@@ -133,37 +144,27 @@ class KakaoProfileClientTest {
         server.expect(requestTo(USER_INFO_URI))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
-        KakaoProfileClient client = client(null);
+        KakaoProfileClient client = client();
 
         // RestClientException 대신 AuthException이 나가도록 ('로그인 실패')
         AuthException exception = assertThrows(AuthException.class, () -> client.fetch(ACCESS_TOKEN));
         assertEquals(AuthErrorCode.KAKAO_AUTH_FAILED.getCode(), exception.getCode().getCode());
     }
 
-    // 토큰 치환 공격 방어
     @Test
-    @DisplayName("앱 ID가 설정되면 다른 앱에서 발급된 토큰을 차단한다")
-    void fetch_rejectsTokenFromAnotherApp() {
-        server.expect(requestTo(TOKEN_INFO_URI))
-                .andRespond(withSuccess("{\"id\": 12345678, \"app_id\": 99999}", MediaType.APPLICATION_JSON));
-
-        KakaoProfileClient client = client("12345");
-
-        assertThrows(AuthException.class, () -> client.fetch(ACCESS_TOKEN));
-
-        // 앱 검증에서 막혔으므로 사용자 정보 조회 불가능
-        server.verify();
-    }
-
-    @Test
-    @DisplayName("앱 ID가 일치하면 사용자 정보 조회까지 진행한다")
-    void fetch_acceptsTokenFromThisApp() {
-        server.expect(requestTo(TOKEN_INFO_URI))
-                .andRespond(withSuccess("{\"app_id\": 12345}", MediaType.APPLICATION_JSON));
+    @DisplayName("인가 코드를 access_token으로 교환할 때 필요한 파라미터를 전부 담아 요청한다")
+    void fetchByCode_sendsExpectedFormParametersAndReturnsProfile() {
+        server.expect(requestTo(TOKEN_URI))
+                .andExpect(content().string(containsString("grant_type=authorization_code")))
+                .andExpect(content().string(containsString("client_id=" + CLIENT_ID)))
+                .andExpect(content().string(containsString("redirect_uri=")))
+                .andExpect(content().string(containsString("code=" + AUTH_CODE)))
+                .andRespond(withSuccess("{\"access_token\": \"" + ACCESS_TOKEN + "\"}", MediaType.APPLICATION_JSON));
         server.expect(requestTo(USER_INFO_URI))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer " + ACCESS_TOKEN))
                 .andRespond(withSuccess("""
                         {
-                          "id": 777,
+                          "id": 12345678,
                           "kakao_account": {
                             "is_email_valid": true,
                             "is_email_verified": true,
@@ -172,10 +173,83 @@ class KakaoProfileClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        SocialProfile profile = client("12345").fetch(ACCESS_TOKEN);
+        SocialProfile profile = client().fetchByCode(AUTH_CODE, "unused-state");
 
-        assertEquals("777", profile.providerUserId());
+        assertEquals("12345678", profile.providerUserId());
         assertEquals("kim@example.com", profile.email());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("client_secret이 설정돼 있으면 토큰 교환 요청에 포함한다")
+    void fetchByCode_includesClientSecretWhenConfigured() {
+        String clientSecret = "test-client-secret";
+        server.expect(requestTo(TOKEN_URI))
+                .andExpect(content().string(containsString("client_secret=" + clientSecret)))
+                .andRespond(withSuccess("{\"access_token\": \"" + ACCESS_TOKEN + "\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(USER_INFO_URI))
+                .andRespond(withSuccess("{\"id\": 12345678}", MediaType.APPLICATION_JSON));
+
+        client(clientSecret).fetchByCode(AUTH_CODE, "unused-state");
+
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("client_secret이 설정돼 있지 않으면 토큰 교환 요청에서 생략한다")
+    void fetchByCode_omitsClientSecretWhenNotConfigured() {
+        server.expect(requestTo(TOKEN_URI))
+                .andExpect(content().string(not(containsString("client_secret"))))
+                .andRespond(withSuccess("{\"access_token\": \"" + ACCESS_TOKEN + "\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(USER_INFO_URI))
+                .andRespond(withSuccess("{\"id\": 12345678}", MediaType.APPLICATION_JSON));
+
+        client(null).fetchByCode(AUTH_CODE, "unused-state");
+
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("인가 코드가 만료·위조됐으면 토큰 교환 단계에서 실패한다")
+    void fetchByCode_throwsWhenCodeExchangeFails() {
+        server.expect(requestTo(TOKEN_URI))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST));
+
+        KakaoProfileClient client = client();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> client.fetchByCode(AUTH_CODE, "unused-state"));
+        assertEquals(AuthErrorCode.KAKAO_AUTH_FAILED.getCode(), exception.getCode().getCode());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("토큰 교환 응답이 200이어도 access_token이 없으면 실패한다")
+    void fetchByCode_throwsWhenAccessTokenMissingInResponse() {
+        server.expect(requestTo(TOKEN_URI))
+                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        KakaoProfileClient client = client();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> client.fetchByCode(AUTH_CODE, "unused-state"));
+        assertEquals(AuthErrorCode.KAKAO_AUTH_FAILED.getCode(), exception.getCode().getCode());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("토큰 교환은 성공했지만 사용자 정보 조회에 실패하면 카카오 로그인 실패 예외를 던진다")
+    void fetchByCode_throwsWhenUserInfoFailsAfterSuccessfulExchange() {
+        server.expect(requestTo(TOKEN_URI))
+                .andRespond(withSuccess("{\"access_token\": \"" + ACCESS_TOKEN + "\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(USER_INFO_URI))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+
+        KakaoProfileClient client = client();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> client.fetchByCode(AUTH_CODE, "unused-state"));
+        assertEquals(AuthErrorCode.KAKAO_AUTH_FAILED.getCode(), exception.getCode().getCode());
         server.verify();
     }
 }

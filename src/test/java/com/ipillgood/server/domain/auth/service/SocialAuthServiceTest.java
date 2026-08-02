@@ -368,5 +368,10 @@ class SocialAuthServiceTest {
         public SocialProfile fetch(String providerAccessToken) {
             return profile;
         }
+
+        @Override
+        public SocialProfile fetchByCode(String code, String state) {
+            return profile;
+        }
     }
 }
