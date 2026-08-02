@@ -68,7 +68,7 @@ public interface ProductSearchApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "파라미터 형식/제약 오류(COMMON400_1) 또는 커서 오류(SEARCH400_1)",
+                    description = "파라미터 형식/제약 오류(COMMON400_1) 또는 커서 오류(COMMON400_4)",
                     content = @Content(
                             mediaType = "application/json",
                             examples = {
@@ -90,8 +90,8 @@ public interface ProductSearchApi {
                                             value = """
                                                     {
                                                       "isSuccess": false,
-                                                      "code": "SEARCH400_1",
-                                                      "message": "검색 커서가 올바르지 않습니다.",
+                                                      "code": "COMMON400_4",
+                                                      "message": "유효하지 않은 커서 값입니다.",
                                                       "result": null
                                                     }
                                                     """

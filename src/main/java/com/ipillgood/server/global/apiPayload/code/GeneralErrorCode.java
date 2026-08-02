@@ -20,6 +20,7 @@ public enum GeneralErrorCode implements BaseErrorCode {
             "예기치 않은 서버 에러가 발생했습니다."),
     VALID_FAIL(HttpStatus.BAD_REQUEST, "COMMON400_2", "검증에 실패했습니다."),
     INVALID_PAGE(HttpStatus.BAD_REQUEST, "COMMON400_3", "유효하지 않은 페이지 값입니다."),
+    INVALID_CURSOR(HttpStatus.BAD_REQUEST, "COMMON400_4", "유효하지 않은 커서 값입니다."),
     ;
 
     private final HttpStatus status;

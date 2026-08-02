@@ -52,7 +52,8 @@ public class ProductSearchResponse {
             @Schema(description = "포함 성분명 목록", example = "[\"비타민 D\", \"칼슘\"]")
             List<String> ingredientNames,
 
-            @Schema(description = "평균 별점(소수 첫째 자리 반올림)", nullable = true, example = "4.5")
+            @Schema(description = "평균 별점(소수 둘째 자리에서 반올림). 후기가 없으면 null",
+                    nullable = true, example = "4.5")
             Double averageRating,
 
             @Schema(description = "후기 수", example = "12")

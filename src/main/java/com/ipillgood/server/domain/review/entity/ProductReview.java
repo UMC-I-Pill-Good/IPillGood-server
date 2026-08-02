@@ -3,30 +3,21 @@ package com.ipillgood.server.domain.review.entity;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.global.entity.BaseSoftDeleteEntity;
-import com.ipillgood.server.global.enums.AgeGroup;
-import com.ipillgood.server.global.enums.Gender;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
+import java.util.ArrayList;
+import java.util.List;
 
 // 상품 후기
 // 삭제되지 않은 후기만 중복 방지
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 @Table(name = "product_review")
 public class ProductReview extends BaseSoftDeleteEntity {
 
@@ -43,14 +34,6 @@ public class ProductReview extends BaseSoftDeleteEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "reviewer_age_group", nullable = false)
-    private AgeGroup reviewerAgeGroup;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "reviewer_gender", nullable = false)
-    private Gender reviewerGender;
-
     @Column(name = "rating", nullable = false)
     private Short rating;
 
@@ -58,5 +41,29 @@ public class ProductReview extends BaseSoftDeleteEntity {
     private String content;
 
     @Column(name = "helpful_count", nullable = false)
+    @Builder.Default
     private int helpfulCount = 0;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    List<ProductReviewImage> reviewImages = new ArrayList<>();
+
+    public void addPhoto(String imageKey){
+        reviewImages.add(ProductReviewImage.builder()
+                .review(this)
+                .imageKey(imageKey)
+                .displayOrder((short)(reviewImages.size() + 1))
+                .build()
+        );
+    }
+
+    public void updateContent(Short rating, String content) {
+        this.rating = rating;
+        this.content = content;
+    }
+
+    public void clearPhotos() {
+        reviewImages.clear();
+    }
 }

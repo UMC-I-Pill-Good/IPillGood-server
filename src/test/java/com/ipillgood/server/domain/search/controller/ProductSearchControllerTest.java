@@ -354,13 +354,13 @@ class ProductSearchControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"not-a-valid-cursor", "abc|3", "101"})
-    @DisplayName("형식이 잘못된 커서를 보내면 400(SEARCH400_1)을 반환한다")
+    @DisplayName("형식이 잘못된 커서를 보내면 400(COMMON400_4)을 반환한다")
     void searchProducts_withMalformedCursor_returnsBadRequest(String cursor) throws Exception {
         mockMvc.perform(get(SEARCH_PRODUCTS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .param("cursor", cursor))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("SEARCH400_1"));
+                .andExpect(jsonPath("$.code").value("COMMON400_4"));
     }
 
     // ---------- 최근 검색어 조회 ----------
@@ -654,8 +654,6 @@ class ProductSearchControllerTest {
                             id,
                             product_id,
                             member_id,
-                            reviewer_age_group,
-                            reviewer_gender,
                             rating,
                             content,
                             helpful_count,
@@ -663,7 +661,7 @@ class ProductSearchControllerTest {
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, 'TWENTIES', 'FEMALE', ?, '좋아요', 0, ?,
+                        VALUES (?, ?, ?, ?, '좋아요', 0, ?,
                                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
