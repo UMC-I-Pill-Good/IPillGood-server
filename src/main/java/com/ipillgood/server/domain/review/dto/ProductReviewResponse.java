@@ -138,7 +138,35 @@ public class ProductReviewResponse {
             LocalDateTime updatedAt
     ) {}
 
+    @Schema(description = "작성한 후기 단건 조회 응답")
     @Builder
+    public record ReviewDetail(
+            @Schema(description = "후기 ID", example = "1")
+            Long reviewId,
+
+            @Schema(description = "영양제 상품 ID", example = "101")
+            Long productId,
+
+            @Schema(description = "별점", example = "5")
+            Short rating,
+
+            @Schema(description = "후기 내용", example = "먹고 나서 컨디션이 좋아졌어요.")
+            String content,
+
+            @Schema(description = "첨부 이미지 key 목록(노출 순서). 수정 요청 시 유지할 이미지를 이 값으로 전달합니다.",
+                    example = "[\"reviews/3f2a9c1e-0b4d-4a2f-9c3e-1a2b3c4d5e6f.jpg\"]")
+            List<String> imageKeys,
+
+            @Schema(description = "첨부 이미지 URL 목록. imageKeys와 같은 순서입니다.")
+            List<String> imageUrls,
+
+            @Schema(description = "작성 일시", example = "2026-07-20T15:00:00")
+            LocalDateTime createdAt,
+
+            @Schema(description = "수정 일시", example = "2026-07-20T15:20:00")
+            LocalDateTime updatedAt
+    ) {}
+
     @Schema(description = "후기 삭제 응답")
     public record ReviewDelete(
             @Schema(description = "삭제 여부", example = "true")

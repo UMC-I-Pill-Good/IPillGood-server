@@ -102,6 +102,17 @@ public class ProductReviewService {
         );
     }
 
+    public ProductReviewResponse.ReviewDetail getMyReview(Long memberId, Long reviewId) {
+        ProductReview review = productReviewRepository.findWithImagesByIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
+
+        if (!review.getMember().getId().equals(memberId)) {
+            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_VIEW_FORBIDDEN);
+        }
+
+        return ProductReviewConverter.toReviewDetail(review, s3Service::getPublicUrl);
+    }
+
     @Transactional
     public ProductReviewResponse.ReviewCreate createReview(
             Long memberId,

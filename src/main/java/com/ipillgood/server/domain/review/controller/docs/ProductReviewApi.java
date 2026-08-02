@@ -516,4 +516,88 @@ public interface ProductReviewApi {
             )
             Long reviewId
     );
+
+    @Operation(
+            summary = "작성한 후기 단건 조회",
+            description = "본인이 작성한 후기를 조회합니다. 후기 수정 화면 진입 시 폼을 채우는 용도입니다. "
+                    + "imageKeys는 후기 수정 요청에 그대로 전달하면 되는 값이고, "
+                    + "imageUrls는 같은 순서의 표시용 URL입니다. "
+                    + "이미지를 바꾸지 않을 때는 imageKeys를 그대로 되돌려 보내면 재업로드가 필요 없습니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "후기 조회 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW200_5",
+                                              "message": "작성한 후기 조회에 성공했습니다.",
+                                              "result": {
+                                                "reviewId": 1,
+                                                "productId": 101,
+                                                "rating": 5,
+                                                "content": "먹고 나서 컨디션이 좋아졌어요.",
+                                                "imageKeys": [
+                                                  "reviews/3f2a9c1e-0b4d-4a2f-9c3e-1a2b3c4d5e6f.jpg"
+                                                ],
+                                                "imageUrls": [
+                                                  "https://cdn.ipillgood.com/reviews/3f2a9c1e-0b4d-4a2f-9c3e-1a2b3c4d5e6f.jpg"
+                                                ],
+                                                "createdAt": "2026-07-20T15:00:00",
+                                                "updatedAt": "2026-07-20T15:20:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인이 작성하지 않은 후기를 조회하려는 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW403_3",
+                                              "message": "본인이 작성한 후기만 조회할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 후기",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW404_1",
+                                              "message": "해당 후기가 존재하지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewDetail> getMyReview(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "조회할 후기 ID입니다.",
+                    example = "1"
+            )
+            Long reviewId
+    );
 }

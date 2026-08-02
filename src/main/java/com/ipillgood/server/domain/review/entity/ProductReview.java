@@ -45,6 +45,7 @@ public class ProductReview extends BaseSoftDeleteEntity {
     private int helpfulCount = 0;
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
     @Builder.Default
     List<ProductReviewImage> reviewImages = new ArrayList<>();
 

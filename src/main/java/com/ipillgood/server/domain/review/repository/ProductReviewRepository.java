@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.review.repository;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.domain.review.entity.ProductReview;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,4 +26,7 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, Lo
     boolean existsByMemberAndProductAndDeletedAtIsNull(Member member, Product product);
 
     Optional<ProductReview> findByIdAndDeletedAtIsNull(Long reviewId);
+
+    @EntityGraph(attributePaths = "reviewImages")
+    Optional<ProductReview> findWithImagesByIdAndDeletedAtIsNull(Long reviewId);
 }

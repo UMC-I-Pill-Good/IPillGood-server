@@ -5,6 +5,7 @@ import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.domain.review.dto.ProductReviewRequest;
 import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
 import com.ipillgood.server.domain.review.entity.ProductReview;
+import com.ipillgood.server.domain.review.entity.ProductReviewImage;
 import com.ipillgood.server.domain.review.entity.enums.ProductReviewSort;
 import com.ipillgood.server.domain.review.repository.ProductReviewProjection;
 import com.ipillgood.server.domain.survey.repository.SurveyProjection;
@@ -97,6 +98,26 @@ public class ProductReviewConverter {
                 .imageUrls(productReview.getReviewImages().stream()
                         .map(reviewImage -> toImageUrl.apply(reviewImage.getImageKey()))
                         .toList())
+                .updatedAt(productReview.getUpdatedAt())
+                .build();
+    }
+
+    public static ProductReviewResponse.ReviewDetail toReviewDetail(
+            ProductReview productReview,
+            Function<String, String> toImageUrl
+    ) {
+        List<String> imageKeys = productReview.getReviewImages().stream()
+                .map(ProductReviewImage::getImageKey)
+                .toList();
+
+        return ProductReviewResponse.ReviewDetail.builder()
+                .reviewId(productReview.getId())
+                .productId(productReview.getProduct().getId())
+                .rating(productReview.getRating())
+                .content(productReview.getContent())
+                .imageKeys(imageKeys)
+                .imageUrls(imageKeys.stream().map(toImageUrl).toList())
+                .createdAt(productReview.getCreatedAt())
                 .updatedAt(productReview.getUpdatedAt())
                 .build();
     }

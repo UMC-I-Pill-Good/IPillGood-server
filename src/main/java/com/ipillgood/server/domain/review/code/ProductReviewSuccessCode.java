@@ -14,6 +14,7 @@ public enum ProductReviewSuccessCode implements BaseSuccessCode {
     VIEW_REVIEWS_SUCCESS(HttpStatus.OK, "REVIEW200_2", "해당 상품 리뷰 목록 조회에 성공했습니다."),
     REVIEW_UPDATE_SUCCESS(HttpStatus.OK, "REVIEW200_3", "후기 수정에 성공했습니다."),
     REVIEW_DELETE_SUCCESS(HttpStatus.OK, "REVIEW200_4", "후기 삭제에 성공했습니다."),
+    VIEW_MY_REVIEW_SUCCESS(HttpStatus.OK, "REVIEW200_5", "작성한 후기 조회에 성공했습니다."),
 
     // 201
     REVIEW_CREATE_SUCCESS(HttpStatus.CREATED, "REVIEW201_1", "해당 영양제에 대한 리뷰가 등록되었습니다."),

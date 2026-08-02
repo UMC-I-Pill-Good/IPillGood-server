@@ -46,6 +46,16 @@ public class ProductReviewController implements ProductReviewApi {
     }
 
     @Override
+    @GetMapping("/me/{reviewId}")
+    public ApiResponse<ProductReviewResponse.ReviewDetail> getMyReview(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long reviewId
+    ) {
+        ProductReviewResponse.ReviewDetail resDto = reviewService.getMyReview(memberId, reviewId);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.VIEW_MY_REVIEW_SUCCESS, resDto);
+    }
+
+    @Override
     @PostMapping("/{productId}")
     public ApiResponse<ProductReviewResponse.ReviewCreate> createReview(
             @AuthenticationPrincipal Long memberId,
