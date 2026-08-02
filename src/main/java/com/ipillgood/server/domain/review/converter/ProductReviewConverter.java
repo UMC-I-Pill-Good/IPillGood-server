@@ -1,6 +1,10 @@
 package com.ipillgood.server.domain.review.converter;
 
+import com.ipillgood.server.domain.member.entity.Member;
+import com.ipillgood.server.domain.product.entity.Product;
+import com.ipillgood.server.domain.review.dto.ProductReviewRequest;
 import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
+import com.ipillgood.server.domain.review.entity.ProductReview;
 import com.ipillgood.server.domain.review.entity.enums.ProductReviewSort;
 import com.ipillgood.server.domain.review.repository.ProductReviewProjection;
 import com.ipillgood.server.domain.survey.repository.SurveyProjection;
@@ -53,6 +57,32 @@ public class ProductReviewConverter {
                 .hasNext(page.hasNext())
                 .nextCursor(page.nextCursor())
                 .reviews(reviews)
+                .build();
+    }
+
+    public static ProductReview toProductReview(Member member, Product product, ProductReviewRequest.Review reqDto){
+        return ProductReview.builder()
+                .product(product)
+                .member(member)
+                .rating(reqDto.rating())
+                .content(reqDto.content())
+                .build();
+    }
+
+    public static ProductReviewResponse.ReviewCreate toReviewCreate(
+            ProductReview productReview,
+            Function<String, String> toImageUrl
+    ){
+        return ProductReviewResponse.ReviewCreate.builder()
+                .reviewId(productReview.getId())
+                .productId(productReview.getProduct().getId())
+                .rating(productReview.getRating())
+                .content(productReview.getContent())
+                .imageUrls(productReview.getReviewImages().stream()
+                        .map(k -> toImageUrl.apply(k.getImageKey()))
+                        .toList())
+                .helpfulCount(productReview.getHelpfulCount())
+                .createdAt(productReview.getCreatedAt())
                 .build();
     }
 

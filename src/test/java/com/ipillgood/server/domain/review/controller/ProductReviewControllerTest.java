@@ -350,10 +350,10 @@ class ProductReviewControllerTest {
     ) {
         jdbcTemplate.update("""
                         INSERT INTO product_review (
-                            id, product_id, member_id, reviewer_age_group, reviewer_gender,
+                            id, product_id, member_id,
                             rating, content, helpful_count, deleted_at, created_at, updated_at
                         )
-                        VALUES (?, ?, ?, 'TWENTIES', 'FEMALE', ?, '좋아요', ?, ?, ?, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, ?, ?, '좋아요', ?, ?, ?, CURRENT_TIMESTAMP)
                         """,
                 id,
                 productId,

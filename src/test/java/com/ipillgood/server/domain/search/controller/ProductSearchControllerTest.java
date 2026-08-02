@@ -654,8 +654,6 @@ class ProductSearchControllerTest {
                             id,
                             product_id,
                             member_id,
-                            reviewer_age_group,
-                            reviewer_gender,
                             rating,
                             content,
                             helpful_count,
@@ -663,7 +661,7 @@ class ProductSearchControllerTest {
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, 'TWENTIES', 'FEMALE', ?, '좋아요', 0, ?,
+                        VALUES (?, ?, ?, ?, '좋아요', 0, ?,
                                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,

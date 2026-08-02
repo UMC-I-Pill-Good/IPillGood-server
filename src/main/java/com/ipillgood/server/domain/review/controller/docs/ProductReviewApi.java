@@ -186,4 +186,136 @@ public interface ProductReviewApi {
             )
             String cursor
     );
+
+    @Operation(
+            summary = "상품 후기 등록",
+            description = "특정 영양제 상품에 후기를 등록합니다. "
+                    + "한 회원은 한 상품에 후기를 하나만 등록할 수 있으며, 기존 후기를 삭제한 뒤에는 다시 등록할 수 있습니다. "
+                    + "이미지는 최대 3개까지 첨부할 수 있고, 업로드 URL 발급 API로 받은 key를 배열 순서대로 전달하면 "
+                    + "그 순서가 후기 이미지의 노출 순서가 됩니다. "
+                    + "key는 후기 이미지 디렉터리에 실제로 업로드된 것이어야 하며, 그렇지 않으면 등록이 거부됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "후기 등록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW201_1",
+                                              "message": "해당 영양제에 대한 리뷰가 등록되었습니다.",
+                                              "result": {
+                                                "reviewId": 42,
+                                                "productId": 101,
+                                                "rating": 5,
+                                                "content": "먹고 나서 컨디션이 좋아졌어요.",
+                                                "imageUrls": [
+                                                  "https://cdn.ipillgood.com/reviews/3f2a9c1e-0b4d-4a2f-9c3e-1a2b3c4d5e6f.jpg"
+                                                ],
+                                                "helpfulCount": 0,
+                                                "createdAt": "2026-07-20T15:00:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "요청 값 검증 실패(COMMON400_1) 또는 후기 이미지 디렉터리가 아닌 키 전달(S3400_3)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "요청 값 검증 실패",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "COMMON400_1",
+                                                      "message": "잘못된 요청입니다.",
+                                                      "result": {
+                                                        "rating": "평점을 입력해주세요.",
+                                                        "content": "리뷰 내용을 입력해주세요."
+                                                      }
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "유효하지 않은 이미지 키",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "S3400_3",
+                                                      "message": "유효하지 않은 이미지 키입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 상품(PRODUCT404_1), 존재하지 않는 회원(MEMBER404_1), "
+                            + "또는 S3에 업로드되지 않은 이미지 키(S3404_1)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "존재하지 않는 상품",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "PRODUCT404_1",
+                                                      "message": "해당 상품은 존재하지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "업로드되지 않은 이미지",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "S3404_1",
+                                                      "message": "업로드되지 않은 이미지입니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 해당 상품에 후기를 등록한 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW409_1",
+                                              "message": "해당 상품에 이미 리뷰를 등록했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewCreate> createReview(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "영양제 상품 ID입니다.",
+                    example = "101"
+            )
+            Long productId,
+            @Valid ProductReviewRequest.Review reqDto
+    );
 }

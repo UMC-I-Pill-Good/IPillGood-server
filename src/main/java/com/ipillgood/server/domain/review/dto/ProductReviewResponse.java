@@ -93,4 +93,29 @@ public class ProductReviewResponse {
                 LocalDateTime createdAt
         ){}
     }
+
+    @Schema(description = "후기 등록 응답")
+    @Builder
+    public record ReviewCreate(
+            @Schema(description = "등록된 후기 ID", example = "42")
+            Long reviewId,
+
+            @Schema(description = "영양제 상품 ID", example = "101")
+            Long productId,
+
+            @Schema(description = "별점", example = "5")
+            Short rating,
+
+            @Schema(description = "후기 내용", example = "먹고 나서 컨디션이 좋아졌어요.")
+            String content,
+
+            @Schema(description = "첨부 이미지 URL 목록 (요청한 key 순서)")
+            List<String> imageUrls,
+
+            @Schema(description = "도움됨 수. 등록 직후에는 항상 0", example = "0")
+            Integer helpfulCount,
+
+            @Schema(description = "작성 일시", example = "2026-07-20T15:00:00")
+            LocalDateTime createdAt
+    ) {}
 }

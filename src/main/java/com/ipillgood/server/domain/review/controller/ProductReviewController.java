@@ -44,4 +44,15 @@ public class ProductReviewController implements ProductReviewApi {
                 reviewService.getReviews(memberId, productId, sort, size, cursor);
         return ApiResponse.onSuccess(ProductReviewSuccessCode.VIEW_REVIEWS_SUCCESS, resDto);
     }
+
+    @Override
+    @PostMapping("/{productId}")
+    public ApiResponse<ProductReviewResponse.ReviewCreate> createReview(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long productId,
+            @RequestBody @Valid ProductReviewRequest.Review reqDto
+    ) {
+        ProductReviewResponse.ReviewCreate resDto = reviewService.createReview(memberId, productId, reqDto);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_CREATE_SUCCESS, resDto);
+    }
 }
