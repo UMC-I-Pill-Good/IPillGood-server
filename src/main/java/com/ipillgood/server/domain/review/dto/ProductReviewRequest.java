@@ -54,6 +54,7 @@ public class ProductReviewRequest {
                     + "전달한 목록으로 기존 이미지를 전부 대체하며, 빈 배열이면 모든 이미지가 삭제됩니다.",
                     example = "[]")
             @Size(max = 3, message = "이미지는 최대 3개까지 첨부할 수 있습니다.")
+            @NotNull(message = "유지할 이미지 목록을 전달해주세요. 이미지가 없으면 빈 배열을 보내주세요.")
             List<String> imageKeys
     ) {}
 }
