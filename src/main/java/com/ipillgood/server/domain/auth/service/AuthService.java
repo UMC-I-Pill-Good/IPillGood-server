@@ -9,9 +9,11 @@ import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.policy.service.PolicyService;
 import com.ipillgood.server.global.s3.S3Service;
+import com.ipillgood.server.global.security.jwt.CookieUtil;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final PolicyService policyService;
     private final S3Service s3Service;
+    private final CookieUtil cookieUtil;
 
     // 로컬 회원가입
     @Transactional
@@ -58,7 +61,7 @@ public class AuthService {
     }
 
     // 로컬 로그인
-    public AuthResponse.Login login(AuthRequest.Login request) {
+    public AuthResponse.Login login(AuthRequest.Login request, HttpServletResponse response) {
         // 1. 아이디로 회원 조회
         Member member = memberRepository.findByUsername(request.username())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.LOGIN_FAILED));
@@ -76,16 +79,23 @@ public class AuthService {
 
         // 4. 리프레시 토큰 저장 (재발급 검증용)
         refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
+        cookieUtil.setRefreshTokenCookie(response, refreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toLoginResponse(member, accessToken, refreshToken, jwtProvider.getAccessTokenExpiresIn());
+        return AuthConverter.toLoginResponse(member, accessToken, jwtProvider.getAccessTokenExpiresIn());
     }
 
     // 토큰 재발급 (Refresh Token Rotation)
-    public AuthResponse.Login reissue(AuthRequest.Reissue request) {
+    // refreshToken은 요청 본문이 아니라 httpOnly 쿠키에서 읽어온 값
+    public AuthResponse.Login reissue(String refreshToken, HttpServletResponse response) {
+
+        // 쿠키가 없으면 재로그인 진행
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID);
+        }
 
         // 1. 리프레시 토큰 검증
         // memberId = 토큰 주인(회원) 식별용, sessionId = 기기(세션) 식별용
-        Claims claims = jwtProvider.parseRefreshToken(request.refreshToken());
+        Claims claims = jwtProvider.parseRefreshToken(refreshToken);
         Long memberId = jwtProvider.getMemberId(claims);
         String sessionId = jwtProvider.getSessionId(claims);
 
@@ -94,7 +104,7 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID));
 
         // 3. 재사용 감지: 저장값과 다르면 탈취 의심 토큰 -> 해당 세션(기기)만 폐기 후 차단
-        if (!storedToken.equals(request.refreshToken())) {
+        if (!storedToken.equals(refreshToken)) {
             refreshTokenStore.delete(memberId, sessionId);
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID);
         }
@@ -108,12 +118,13 @@ public class AuthService {
         String newAccessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
         String newRefreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
         refreshTokenStore.save(member.getId(), sessionId, newRefreshToken, jwtProvider.getRefreshTokenValidity());
+        cookieUtil.setRefreshTokenCookie(response, newRefreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toLoginResponse(member, newAccessToken, newRefreshToken,
-                jwtProvider.getAccessTokenExpiresIn());
+        return AuthConverter.toLoginResponse(member, newAccessToken, jwtProvider.getAccessTokenExpiresIn());
     }
 
     // 로그아웃 (이 기기(세션)의 리프레시 토큰만 폐기, 다른 기기 로그인은 유지됨)
+    // 쿠키 삭제는 컨트롤러에서 처리 (저장소 삭제와 달리 별도 값이 필요 없는 순수 응답 헤더 조작)
     public void logout(Long memberId, String sessionId) {
         refreshTokenStore.delete(memberId, sessionId);
     }

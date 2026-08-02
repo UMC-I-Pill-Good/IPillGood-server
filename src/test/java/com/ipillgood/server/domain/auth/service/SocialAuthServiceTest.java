@@ -17,6 +17,7 @@ import com.ipillgood.server.domain.member.repository.MemberSocialAccountReposito
 import com.ipillgood.server.domain.policy.dto.PolicyRequest;
 import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
 import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
+import com.ipillgood.server.global.security.jwt.CookieUtil;
 import com.ipillgood.server.global.security.jwt.InMemoryRefreshTokenStore;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import io.jsonwebtoken.Claims;
@@ -29,6 +30,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
@@ -130,7 +132,8 @@ class SocialAuthServiceTest {
         memberSocialAccountRepository.save(
                 MemberSocialAccount.of(member, SocialProvider.KAKAO, PROVIDER_USER_ID, EMAIL));
 
-        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST);
+        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
+        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST, httpResponse);
 
         assertFalse(response.signupRequired());
         assertFalse(response.accountLinkRequired());
@@ -138,9 +141,10 @@ class SocialAuthServiceTest {
         assertEquals(member.getId(), response.memberId());
         assertEquals("Bearer", response.tokenType());
 
-        // 재발급 검증에 쓰이도록 리프레시 토큰이 저장소에 보관되어야 한다
-        assertEquals(response.refreshToken(),
-                refreshTokenStore.find(member.getId(), sessionIdOf(response.refreshToken())).orElse(null));
+        // 재발급 검증에 쓰이도록 리프레시 토큰이 쿠키로 발급되고 저장소에도 보관되어야 한다
+        String refreshToken = httpResponse.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME).getValue();
+        assertEquals(refreshToken,
+                refreshTokenStore.find(member.getId(), sessionIdOf(refreshToken)).orElse(null));
     }
 
     @Test
@@ -150,7 +154,7 @@ class SocialAuthServiceTest {
         FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null, NICKNAME));
 
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.login(SocialProvider.KAKAO, REQUEST));
+                () -> socialAuthService.login(SocialProvider.KAKAO, REQUEST, new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.SOCIAL_EMAIL_NOT_FOUND.getCode(), exception.getCode().getCode());
     }
@@ -160,7 +164,8 @@ class SocialAuthServiceTest {
     void login_returnsAccountLinkTokenWhenEmailMatches() {
         Member member = saveLocalMember();
 
-        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST);
+        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
+        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST, httpResponse);
 
         assertFalse(response.signupRequired());
         assertTrue(response.accountLinkRequired());
@@ -168,7 +173,7 @@ class SocialAuthServiceTest {
 
         // 아직 사용자가 동의하기 전이므로 로그인 토큰은 발급되지 않아야 한다
         assertNull(response.accessToken());
-        assertNull(response.refreshToken());
+        assertNull(httpResponse.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME));
 
         // 회원 ID는 응답에 싣지 않고 서버가 저장소에 보관한다
         assertNull(response.memberId());
@@ -181,7 +186,8 @@ class SocialAuthServiceTest {
     @Test
     @DisplayName("소셜 계정도 같은 이메일 회원도 없으면 회원가입이 필요하다고 응답한다")
     void login_returnsSignUpRequiredForNewUser() {
-        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST);
+        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST,
+                new MockHttpServletResponse());
 
         assertTrue(response.signupRequired());
         assertFalse(response.accountLinkRequired());
@@ -269,8 +275,9 @@ class SocialAuthServiceTest {
         Member member = saveLocalMember();
         String token = issueLinkToken(member, SocialProvider.KAKAO);
 
+        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
         AuthResponse.SocialLink response = socialAuthService.link(
-                SocialProvider.KAKAO, new AuthRequest.SocialLink(token));
+                SocialProvider.KAKAO, new AuthRequest.SocialLink(token), httpResponse);
 
         // 연동 결과 + 로그인 토큰이 함께 응답된다
         assertTrue(response.linked());
@@ -279,18 +286,20 @@ class SocialAuthServiceTest {
         assertNotNull(response.accessToken());
         assertEquals(member.getId(), response.memberId());
 
-        // 소셜 계정이 실제로 연동되고, 리프레시 토큰이 저장된다
+        // 소셜 계정이 실제로 연동되고, 리프레시 토큰이 쿠키로 발급되고 저장소에 저장된다
         assertTrue(memberSocialAccountRepository
                 .existsByProviderAndProviderUserId(SocialProvider.KAKAO, PROVIDER_USER_ID));
-        assertEquals(response.refreshToken(),
-                refreshTokenStore.find(member.getId(), sessionIdOf(response.refreshToken())).orElse(null));
+        String refreshToken = httpResponse.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME).getValue();
+        assertEquals(refreshToken,
+                refreshTokenStore.find(member.getId(), sessionIdOf(refreshToken)).orElse(null));
     }
 
     @Test
     @DisplayName("유효하지 않은 임시 토큰이면 연동에 실패한다")
     void link_throwsWhenTokenInvalid() {
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.link(SocialProvider.KAKAO, new AuthRequest.SocialLink("unknown-token")));
+                () -> socialAuthService.link(SocialProvider.KAKAO, new AuthRequest.SocialLink("unknown-token"),
+                        new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID.getCode(), exception.getCode().getCode());
     }
@@ -303,7 +312,8 @@ class SocialAuthServiceTest {
 
         // 토큰은 KAKAO인데 URL은 NAVER로 요청 -> 불일치
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.link(SocialProvider.NAVER, new AuthRequest.SocialLink(token)));
+                () -> socialAuthService.link(SocialProvider.NAVER, new AuthRequest.SocialLink(token),
+                        new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID.getCode(), exception.getCode().getCode());
     }
@@ -317,7 +327,8 @@ class SocialAuthServiceTest {
         String token = issueLinkToken(member, SocialProvider.KAKAO);
 
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.link(SocialProvider.KAKAO, new AuthRequest.SocialLink(token)));
+                () -> socialAuthService.link(SocialProvider.KAKAO, new AuthRequest.SocialLink(token),
+                        new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS.getCode(), exception.getCode().getCode());
     }

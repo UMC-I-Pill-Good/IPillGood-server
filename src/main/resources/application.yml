@@ -52,6 +52,8 @@ gemini:
   base-url: https://generativelanguage.googleapis.com
 
 app:
+  cookie:
+    same-site: ${COOKIE_SAME_SITE:None}
   image:
     base-url: ${IMAGE_BASE_URL:https://ipillgood-assets.s3.ap-northeast-2.amazonaws.com}
   storage:

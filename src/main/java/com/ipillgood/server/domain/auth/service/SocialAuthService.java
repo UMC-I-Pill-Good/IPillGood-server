@@ -15,8 +15,10 @@ import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.service.MemberService;
 import com.ipillgood.server.domain.policy.service.PolicyService;
 import com.ipillgood.server.global.s3.S3Service;
+import com.ipillgood.server.global.security.jwt.CookieUtil;
 import com.ipillgood.server.global.security.jwt.JwtProvider;
 import com.ipillgood.server.global.security.jwt.RefreshTokenStore;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,7 @@ public class SocialAuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final S3Service s3Service;
+    private final CookieUtil cookieUtil;
 
     /**
      * 소셜 로그인 요청 시 실행 - 4가지 케이스
@@ -47,7 +50,8 @@ public class SocialAuthService {
      * - 3. 같은 이메일의 기존 회원 존재 -> 연동 동의를 위한 임시 토큰 발급
      * - 4. 완전 신규 사용자 -> 회원가입 필요
      */
-    public AuthResponse.SocialLogin login(SocialProvider provider, AuthRequest.SocialLogin request) {
+    public AuthResponse.SocialLogin login(SocialProvider provider, AuthRequest.SocialLogin request,
+                                          HttpServletResponse response) {
 
         // 소셜 제공자에게 사용자 정보 조회 (액세스 토큰 유효한지 검증)
         SocialProfile profile = socialProfileClientResolver.resolve(provider)
@@ -56,7 +60,7 @@ public class SocialAuthService {
         // 1. 이미 연동된 소셜 계정 -> 로그인 토큰 발급
         Optional<Member> linkedMember = memberService.findBySocialAccount(provider, profile.providerUserId());
         if (linkedMember.isPresent()) {
-            return issueLoginTokens(linkedMember.get());
+            return issueLoginTokens(linkedMember.get(), response);
         }
 
         // 2. 이메일이 없으면 기존 회원 존재 여부를 판단할 수 없으므로 중단
@@ -129,7 +133,8 @@ public class SocialAuthService {
      * 임시 토큰의 기존 회원에 소셜 계정을 붙이고 로그인 토큰을 발급
      */
     @Transactional
-    public AuthResponse.SocialLink link(SocialProvider provider, AuthRequest.SocialLink request) {
+    public AuthResponse.SocialLink link(SocialProvider provider, AuthRequest.SocialLink request,
+                                        HttpServletResponse response) {
 
         // 1. 임시 토큰에서 연동 대기 정보를 꺼냄 (없거나 만료됐으면 실패)
         PendingSocialLink pending = accountLinkTokenStore.consume(request.accountLinkToken())
@@ -160,22 +165,24 @@ public class SocialAuthService {
         String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
         String refreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
         refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
+        cookieUtil.setRefreshTokenCookie(response, refreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toSocialLinkResponse(member, socialAccount, accessToken, refreshToken,
+        return AuthConverter.toSocialLinkResponse(member, socialAccount, accessToken,
                 jwtProvider.getAccessTokenExpiresIn());
     }
 
     /**
      * 로그인 토큰 발급 (로컬 로그인과 동일한 절차)
      */
-    private AuthResponse.SocialLogin issueLoginTokens(Member member) {
+    private AuthResponse.SocialLogin issueLoginTokens(Member member, HttpServletResponse response) {
         String role = member.getRole().name();
         String sessionId = jwtProvider.generateSessionId();
         String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
         String refreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
         refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
+        cookieUtil.setRefreshTokenCookie(response, refreshToken, jwtProvider.getRefreshTokenValidity());
 
-        return AuthConverter.toSocialLoginResponse(member, accessToken, refreshToken,
+        return AuthConverter.toSocialLoginResponse(member, accessToken,
                 jwtProvider.getAccessTokenExpiresIn());
     }
 }
