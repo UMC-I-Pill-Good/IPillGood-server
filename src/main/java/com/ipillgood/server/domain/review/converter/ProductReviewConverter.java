@@ -122,6 +122,17 @@ public class ProductReviewConverter {
                 .build();
     }
 
+    public static ProductReviewResponse.ReviewHelpful toReviewHelpful(
+            boolean helpful,
+            ProductReview review
+    ) {
+        return ProductReviewResponse.ReviewHelpful.builder()
+                .helpful(helpful)
+                .reviewId(review.getId())
+                .helpfulCount(review.getHelpfulCount())
+                .build();
+    }
+
     private static ProductReviewResponse.ProductReviews.Review toReview(
             ProductReviewProjection.Review row,
             Long memberId,

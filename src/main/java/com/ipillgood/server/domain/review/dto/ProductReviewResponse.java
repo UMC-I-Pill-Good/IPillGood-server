@@ -175,4 +175,17 @@ public class ProductReviewResponse {
             @Schema(description = "삭제된 후기 ID", example = "1")
             Long reviewId
     ) {}
+
+    @Schema(description = "후기 도움됨 응답")
+    @Builder
+    public record ReviewHelpful(
+            @Schema(description = "도움됨 여부", example = "true")
+            boolean helpful,
+
+            @Schema(description = "도움됨을 표시한 후기 ID", example = "1")
+            Long reviewId,
+
+            @Schema(description = "반영 후 해당 후기의 도움됨 수", example = "13")
+            Integer helpfulCount
+    ) {}
 }
