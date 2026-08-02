@@ -9,10 +9,21 @@ import com.ipillgood.server.domain.ingredient.entity.IngredientCombination;
 import com.ipillgood.server.domain.ingredient.entity.IngredientEffect;
 import com.ipillgood.server.domain.ingredient.entity.enums.ContraindicationType;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class IngredientConverter {
+
+    private static final int UNKNOWN_CONTRAINDICATION_DISPLAY_ORDER = Integer.MAX_VALUE;
+    private static final Map<Long, Integer> ALLERGY_SURVEY_DISPLAY_ORDER = Map.of(
+            32L, 1,
+            34L, 2,
+            35L, 3,
+            36L, 4,
+            33L, 5
+    );
 
     private IngredientConverter() {
     }
@@ -114,9 +125,24 @@ public class IngredientConverter {
                 .label(toSurveyLabel(type))
                 .items(contraindications.stream()
                         .filter(contraindication -> contraindication.getType() == type)
+                        .sorted(toContraindicationDisplayComparator(type))
                         .map(IngredientConverter::toContraindicationItem)
                         .toList())
                 .build();
+    }
+
+    private static Comparator<Contraindication> toContraindicationDisplayComparator(ContraindicationType type) {
+        if (type == ContraindicationType.ALLERGY) {
+            return Comparator
+                    .comparingInt((Contraindication contraindication) ->
+                            ALLERGY_SURVEY_DISPLAY_ORDER.getOrDefault(
+                                    contraindication.getId(),
+                                    UNKNOWN_CONTRAINDICATION_DISPLAY_ORDER
+                            ))
+                    .thenComparing(Contraindication::getId);
+        }
+
+        return Comparator.comparing(Contraindication::getId);
     }
 
     private static String toSurveyLabel(ContraindicationType type) {

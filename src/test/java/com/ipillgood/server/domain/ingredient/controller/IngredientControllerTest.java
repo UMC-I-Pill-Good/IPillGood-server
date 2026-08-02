@@ -70,6 +70,10 @@ class IngredientControllerTest {
         insertContraindication(23L, "UNDERLYING_DISEASE", "고칼슘혈증");
         insertContraindication(24L, "UNDERLYING_DISEASE", "천식");
         insertContraindication(32L, "ALLERGY", "피부 관련");
+        insertContraindication(33L, "ALLERGY", "기타 알러지");
+        insertContraindication(34L, "ALLERGY", "옻");
+        insertContraindication(35L, "ALLERGY", "대두");
+        insertContraindication(36L, "ALLERGY", "게/새우(갑각류)");
 
         insertProduct(100L, "비타민 D 제품", "테스트브랜드", null);
         insertProduct(101L, "비타민 C 제품", "테스트브랜드", null);
@@ -217,7 +221,10 @@ class IngredientControllerTest {
                         contains("기저질환", "현재 복용 중인 약", "알러지")))
                 .andExpect(jsonPath("$.result.groups[0].items[*].contraindicationId", contains(23, 24)))
                 .andExpect(jsonPath("$.result.groups[1].items[*].contraindicationId", contains(1, 2)))
-                .andExpect(jsonPath("$.result.groups[2].items[*].contraindicationId", contains(32)))
+                .andExpect(jsonPath("$.result.groups[2].items[*].contraindicationId", contains(32, 34, 35, 36, 33)))
+                .andExpect(jsonPath("$.result.groups[2].items[*].conditionName",
+                        contains("피부 관련", "옻", "대두", "게/새우(갑각류)", "기타 알러지")))
+                .andExpect(jsonPath("$.result.groups[2].items[4].contraindicationId").value(33))
                 .andExpect(jsonPath("$.result.contraindications").doesNotExist())
                 .andExpect(jsonPath("$.result.groupedByType").doesNotExist());
     }
