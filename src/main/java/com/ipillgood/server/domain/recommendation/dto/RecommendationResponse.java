@@ -49,8 +49,8 @@ public class RecommendationResponse {
             @Schema(description = "성분명", example = "마그네슘")
             String ingredientName,
 
-            @Schema(description = "성분 이미지 키", example = "ingredients/magnesium.png")
-            String ingredientImageKey,
+            @Schema(description = "성분 이미지 URL", example = "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/magnesium.png")
+            String imageUrl,
 
             @Schema(description = "효능 키워드 목록", example = "[\"긴장 완화\"]")
             List<String> effectKeywords,

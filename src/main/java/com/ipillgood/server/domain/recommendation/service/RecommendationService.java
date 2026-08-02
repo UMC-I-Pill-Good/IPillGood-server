@@ -14,6 +14,7 @@ import com.ipillgood.server.domain.recommendation.repository.RecommendationItemR
 import com.ipillgood.server.domain.recommendation.repository.RecommendationRepository;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import com.ipillgood.server.global.s3.S3Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class RecommendationService {
     private final RecommendationItemRepository recommendationItemRepository;
     private final EffectKeywordRepository effectKeywordRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final S3Service s3Service;
 
     public RecommendationResponse.Detail getCurrentRecommendation(Long memberId) {
         Recommendation recommendation = recommendationRepository
@@ -80,7 +82,7 @@ public class RecommendationService {
 
         Map<Long, List<String>> effectKeywordsByIngredientId = toEffectKeywordsByIngredientId(items);
 
-        return RecommendationConverter.toDetail(recommendation, items, effectKeywordsByIngredientId);
+        return RecommendationConverter.toDetail(recommendation, items, effectKeywordsByIngredientId, s3Service::getPublicUrl);
     }
 
     private Map<Long, List<String>> toEffectKeywordsByIngredientId(List<RecommendationItem> items) {
