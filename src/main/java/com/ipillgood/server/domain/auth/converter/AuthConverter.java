@@ -45,12 +45,11 @@ public class AuthConverter {
 
     /**
      * 2. 로컬 로그인 - 발급된 토큰 -> DTO 변환
+     * 리프레시 토큰 포함 X
      */
-    public static AuthResponse.Login toLoginResponse(Member member, String accessToken,
-                                                     String refreshToken, long expiresIn) {
+    public static AuthResponse.Login toLoginResponse(Member member, String accessToken, long expiresIn) {
         return AuthResponse.Login.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType(TOKEN_TYPE_BEARER)
                 .expiresIn(expiresIn)
                 .memberId(member.getId())
@@ -63,12 +62,11 @@ public class AuthConverter {
      * 로컬 로그인과 동일한 응답 구조 + 판정 플래그 2개만 추가
      */
     public static AuthResponse.SocialLogin toSocialLoginResponse(Member member, String accessToken,
-                                                                 String refreshToken, long expiresIn) {
+                                                                 long expiresIn) {
         return AuthResponse.SocialLogin.builder()
                 .signupRequired(false)
                 .accountLinkRequired(false)
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType(TOKEN_TYPE_BEARER)
                 .expiresIn(expiresIn)
                 .memberId(member.getId())
@@ -105,7 +103,7 @@ public class AuthConverter {
      * 자동 로그인하지 않으므로 토큰은 담지 않음
      */
     public static AuthResponse.SocialSignUp toSocialSignUpResponse(Member member, SocialProvider provider,
-                                                                    Function<String, String> imageUrlResolver) {
+                                                                   Function<String, String> imageUrlResolver) {
         return AuthResponse.SocialSignUp.builder()
                 .memberId(member.getId())
                 .provider(provider)
@@ -122,13 +120,12 @@ public class AuthConverter {
      * 연동 즉시 로그인 처리하므로 토큰을 함께 담음
      */
     public static AuthResponse.SocialLink toSocialLinkResponse(Member member, MemberSocialAccount socialAccount,
-                                                               String accessToken, String refreshToken, long expiresIn) {
+                                                               String accessToken, long expiresIn) {
         return AuthResponse.SocialLink.builder()
                 .linked(true)
                 .provider(socialAccount.getProvider())
                 .linkedAt(socialAccount.getLinkedAt())
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType(TOKEN_TYPE_BEARER)
                 .expiresIn(expiresIn)
                 .memberId(member.getId())

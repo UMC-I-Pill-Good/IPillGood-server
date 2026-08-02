@@ -28,7 +28,6 @@ public class AuthResponse {
     @Builder
     public record Login(
             String accessToken,
-            String refreshToken,
             String tokenType,
             Long expiresIn,
             Long memberId,
@@ -48,7 +47,6 @@ public class AuthResponse {
             Boolean accountLinkRequired,
             String accountLinkToken,
             String accessToken,
-            String refreshToken,
             String tokenType,
             Long expiresIn,
             Long memberId,
@@ -81,7 +79,6 @@ public class AuthResponse {
             SocialProvider provider,
             LocalDateTime linkedAt,
             String accessToken,
-            String refreshToken,
             String tokenType,
             Long expiresIn,
             Long memberId,

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -24,16 +25,22 @@ public interface AuthApi {
     ApiResponse<AuthResponse.SignUp> signUp(@Valid AuthRequest.SignUp request);
 
     @Operation(summary = "로컬 로그인",
-            description = "아이디와 비밀번호를 입력받아 로그인을 진행합니다.")
-    ApiResponse<AuthResponse.Login> login(@Valid AuthRequest.Login request);
+            description = "아이디와 비밀번호를 입력받아 로그인을 진행합니다. refreshToken은 httpOnly 쿠키로 발급됩니다.")
+    ApiResponse<AuthResponse.Login> login(@Valid AuthRequest.Login request, HttpServletResponse response);
 
     @Operation(summary = "토큰 재발급",
-            description = "리프레시 토큰으로 액세스/리프레시 토큰을 재발급합니다. 재발급 시 리프레시 토큰은 회전(RTR)됩니다.")
-    ApiResponse<AuthResponse.Login> reissue(@Valid AuthRequest.Reissue request);
+            description = """
+                    httpOnly 쿠키의 refreshToken을 검증해 액세스 토큰을 재발급합니다. 재발급 시 refreshToken도 새 토큰으로 재발급됩니다.
+                    액세스 토큰 만료 시 재발급 요청, 소셜 로그인 콜백 직후 프론트가 accessToken을 받을 때 모두 이 API를 사용합니다.
+                    """)
+    ApiResponse<AuthResponse.Login> reissue(
+            @Parameter(description = "httpOnly 쿠키로 전달되는 refreshToken (요청 본문 아님)", hidden = true)
+            String refreshToken,
+            HttpServletResponse response);
 
     @Operation(summary = "로그아웃",
-            description = "이 기기(세션)의 리프레시 토큰만 폐기합니다. 다른 기기에서의 로그인은 유지됩니다. (액세스 토큰은 만료 시점까지 유효)")
-    ApiResponse<Void> logout(Long memberId, String sessionId);
+            description = "이 기기(세션)의 리프레시 토큰만 폐기합니다. 다른 기기에서의 로그인은 유지됩니다. refreshToken 쿠키도 함께 삭제됩니다. (액세스 토큰은 만료 시점까지 유효)")
+    ApiResponse<Void> logout(Long memberId, String sessionId, HttpServletResponse response);
 
     @Operation(summary = "아이디 중복확인", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
     ApiResponse<Void> checkUsername(
@@ -49,7 +56,7 @@ public interface AuthApi {
     @Operation(summary = "소셜 로그인",
             description = """
                     소셜 액세스 토큰을 검증하고 사용자 상태에 따라 세 경우로 응답합니다.
-                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken, refreshToken 발급)
+                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
                     - 같은 이메일의 기존 회원이 존재하면 연동 동의 필요합니다. (accountLinkRequired=true + accountLinkToken 발급)
                     - 신규 사용자라면 회원가입 필요합니다. (signupRequired=true)
                     이메일 제공에 동의하지 않은 경우 로그인에 실패합니다. (AUTH400_10)
@@ -63,7 +70,8 @@ public interface AuthApi {
                     )
             )
             String provider,
-            @Valid AuthRequest.SocialLogin request);
+            @Valid AuthRequest.SocialLogin request,
+            HttpServletResponse response);
 
     @Operation(summary = "소셜 회원가입",
             description = """
@@ -86,7 +94,7 @@ public interface AuthApi {
     @Operation(summary = "소셜 계정 연동",
             description = """
                     소셜 로그인 중 발급받은 임시 토큰으로 기존 회원에 소셜 계정을 연동합니다.
-                    연동 즉시 로그인 처리되어 토큰을 함께 발급합니다.
+                    연동 즉시 로그인 처리되어 토큰을 함께 발급합니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
                     임시 토큰이 만료·위조되었거나 URL의 제공자와 다르면 실패합니다. (AUTH401_3)
                     """)
     ApiResponse<AuthResponse.SocialLink> socialLink(
@@ -98,5 +106,6 @@ public interface AuthApi {
                     )
             )
             String provider,
-            @Valid AuthRequest.SocialLink request);
+            @Valid AuthRequest.SocialLink request,
+            HttpServletResponse response);
 }
