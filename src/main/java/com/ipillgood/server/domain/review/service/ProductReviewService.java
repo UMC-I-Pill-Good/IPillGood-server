@@ -105,7 +105,7 @@ public class ProductReviewService {
     }
 
     public ProductReviewResponse.ReviewDetail getMyReview(Long memberId, Long reviewId) {
-        ProductReview review = productReviewRepository.findWithImagesByIdAndDeletedAtIsNull(reviewId)
+        ProductReview review = productReviewRepository.findWithImagesByIdAndDeletedAtIsNullAndHiddenFalse(reviewId)
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         if (!review.getMember().getId().equals(memberId)) {
@@ -146,7 +146,7 @@ public class ProductReviewService {
             Long reviewId,
             ProductReviewRequest.ReviewUpdate reqDto
     ) {
-        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNullAndHiddenFalse(reviewId)
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         if (!review.getMember().getId().equals(memberId)) {
@@ -169,7 +169,7 @@ public class ProductReviewService {
 
     @Transactional
     public ProductReviewResponse.ReviewDelete deleteReview(Long memberId, Long reviewId) {
-        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNullAndHiddenFalse(reviewId)
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         if (!review.getMember().getId().equals(memberId)) {
@@ -184,7 +184,7 @@ public class ProductReviewService {
     public ProductReviewResponse.ReviewHelpful createHelpful(Long memberId, Long reviewId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNullAndHiddenFalse(reviewId)
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         if (review.getMember().getId().equals(memberId)) {
@@ -209,7 +209,7 @@ public class ProductReviewService {
     public ProductReviewResponse.ReviewHelpful deleteHelpful(Long memberId, Long reviewId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNullAndHiddenFalse(reviewId)
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         ProductReviewHelpful helpful = productReviewHelpfulRepository.findByMemberAndReview(member, review)
@@ -229,7 +229,7 @@ public class ProductReviewService {
     ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
-        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNullAndHiddenFalse(reviewId)
                 .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
 
         if (review.getMember().getId().equals(memberId)) {
