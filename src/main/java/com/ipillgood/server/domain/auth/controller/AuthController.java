@@ -1,11 +1,9 @@
 package com.ipillgood.server.domain.auth.controller;
 
-import com.ipillgood.server.domain.auth.code.AuthErrorCode;
 import com.ipillgood.server.domain.auth.code.AuthSuccessCode;
 import com.ipillgood.server.domain.auth.controller.docs.AuthApi;
 import com.ipillgood.server.domain.auth.dto.AuthRequest;
 import com.ipillgood.server.domain.auth.dto.AuthResponse;
-import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.auth.service.AuthService;
 import com.ipillgood.server.domain.auth.service.SocialAuthService;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
@@ -19,15 +17,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Locale;
 
 @Validated
 @RestController
@@ -96,52 +91,47 @@ public class AuthController implements AuthApi {
         return ApiResponse.onSuccess(AuthSuccessCode.EMAIL_AVAILABLE, null);
     }
 
-    // 소셜 로그인
+    // 카카오 회원가입 (콜백 때 발급한 socialSignupToken + 약관 동의 -> 가입과 동시에 로그인)
     @Override
-    @PostMapping("/social/{provider}/login")
-    public ApiResponse<AuthResponse.SocialLogin> socialLogin(
-            @PathVariable String provider,
-            @Valid @RequestBody AuthRequest.SocialLogin request,
+    @PostMapping("/kakao/signup")
+    public ApiResponse<AuthResponse.SocialSignUp> kakaoSignUp(
+            @Valid @RequestBody AuthRequest.SocialSignUp request,
             HttpServletResponse response) {
 
-        AuthResponse.SocialLogin result = socialAuthService.login(toSocialProvider(provider), request, response);
-        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, result);
+        AuthResponse.SocialSignUp result = socialAuthService.signUp(SocialProvider.KAKAO, request, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_SIGNUP_SUCCESS, result);
     }
 
-    // 소셜 회원가입
+    // 네이버 회원가입
     @Override
-    @PostMapping("/social/{provider}/signup")
-    public ApiResponse<AuthResponse.SocialSignUp> socialSignUp(
-            @PathVariable String provider,
-            @Valid @RequestBody AuthRequest.SocialSignUp request) {
+    @PostMapping("/naver/signup")
+    public ApiResponse<AuthResponse.SocialSignUp> naverSignUp(
+            @Valid @RequestBody AuthRequest.SocialSignUp request,
+            HttpServletResponse response) {
 
-        AuthResponse.SocialSignUp response = socialAuthService.signUp(toSocialProvider(provider), request);
-        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_SIGNUP_SUCCESS, response);
+        AuthResponse.SocialSignUp result = socialAuthService.signUp(SocialProvider.NAVER, request, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_SIGNUP_SUCCESS, result);
     }
 
-    // 소셜 계정 연동
+    // 카카오 계정 연동 (콜백 때 발급한 accountLinkToken -> 연동과 동시에 로그인)
     @Override
-    @PostMapping("/social/{provider}/link")
-    public ApiResponse<AuthResponse.SocialLink> socialLink(
-            @PathVariable String provider,
+    @PostMapping("/kakao/link")
+    public ApiResponse<AuthResponse.SocialLink> kakaoLink(
             @Valid @RequestBody AuthRequest.SocialLink request,
             HttpServletResponse response) {
 
-        AuthResponse.SocialLink result = socialAuthService.link(toSocialProvider(provider), request, response);
+        AuthResponse.SocialLink result = socialAuthService.link(SocialProvider.KAKAO, request, response);
         return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LINK_SUCCESS, result);
     }
 
-    /**
-     * URL의 {provider} 문자열을 SocialProvider enum으로 변환해주는 메서드
-     * "kakao", "KAKAO" 등 대소문자 모두 허용.
-     */
-    private SocialProvider toSocialProvider(String provider) {
-        try {
-            return SocialProvider.valueOf(provider.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
+    // 네이버 계정 연동
+    @Override
+    @PostMapping("/naver/link")
+    public ApiResponse<AuthResponse.SocialLink> naverLink(
+            @Valid @RequestBody AuthRequest.SocialLink request,
+            HttpServletResponse response) {
 
-            // 없는 값이면 500 대신 400(AUTH400_11)으로 응답
-            throw new AuthException(AuthErrorCode.UNSUPPORTED_SOCIAL_PROVIDER);
-        }
+        AuthResponse.SocialLink result = socialAuthService.link(SocialProvider.NAVER, request, response);
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LINK_SUCCESS, result);
     }
 }

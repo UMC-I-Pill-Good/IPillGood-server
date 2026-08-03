@@ -9,6 +9,8 @@ import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.auth.store.AccountLinkTokenStore;
 import com.ipillgood.server.domain.auth.store.PendingSocialLink;
+import com.ipillgood.server.domain.auth.store.PendingSocialSignup;
+import com.ipillgood.server.domain.auth.store.SocialSignupTokenStore;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
@@ -38,12 +40,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 소셜 로그인의 네 갈래 판정과 소셜 회원가입의 분기가 올바르게 동작하는지 검증
+ * 소셜 로그인 콜백의 네 갈래 판정, 소셜 회원가입, 계정 연동이 올바르게 동작하는지 검증
  * 카카오를 실제로 호출하지 않고 가짜 클라이언트로 대체
  */
 @SpringBootTest
@@ -54,7 +55,8 @@ class SocialAuthServiceTest {
     private static final String PROVIDER_USER_ID = "kakao-12345678";
     private static final String EMAIL = "social@test.com";
     private static final String NICKNAME = "소셜닉네임";
-    private static final AuthRequest.SocialLogin REQUEST = new AuthRequest.SocialLogin("access-token");
+    private static final String AUTH_CODE = "auth-code";
+    private static final String STATE = "state-value";
 
     // 빈으로 등록하면 실제 리졸버가 KAKAO 구현체를 둘 받아 중복 키로 실패하므로, 스프링 밖에서 직접 들고 있는다
     private static final FakeSocialProfileClient FAKE_CLIENT = new FakeSocialProfileClient();
@@ -70,6 +72,9 @@ class SocialAuthServiceTest {
 
     @Autowired
     private AccountLinkTokenStore accountLinkTokenStore;
+
+    @Autowired
+    private SocialSignupTokenStore socialSignupTokenStore;
 
     @Autowired
     private InMemoryRefreshTokenStore refreshTokenStore;
@@ -112,11 +117,16 @@ class SocialAuthServiceTest {
     }
 
     // 시더가 넣어둔 활성 약관 전체에 동의하는 회원가입 요청 (필수 약관이 모두 포함되어 검증을 통과)
-    private AuthRequest.SocialSignUp signUpRequest() {
+    private AuthRequest.SocialSignUp signUpRequest(String socialSignupToken) {
         List<PolicyRequest.Agreement> agreements = policyDocumentRepository.findByActiveTrue().stream()
                 .map(document -> new PolicyRequest.Agreement(document.getId(), true))
                 .toList();
-        return new AuthRequest.SocialSignUp("access-token", agreements);
+        return new AuthRequest.SocialSignUp(socialSignupToken, agreements);
+    }
+
+    // 콜백이 완전 신규로 판정하며 회원가입 대기 정보를 저장한 상태를 재현 (handleCallback을 거치지 않고 직접 시딩)
+    private String issueSignupToken(SocialProvider provider) {
+        return socialSignupTokenStore.issue(new PendingSocialSignup(provider, PROVIDER_USER_ID, EMAIL, NICKNAME));
     }
 
     // 연동 대기 정보를 저장하고 임시 토큰을 발급 (연동 요청 직전 상태 재현)
@@ -126,22 +136,19 @@ class SocialAuthServiceTest {
     }
 
     @Test
-    @DisplayName("이미 연동된 소셜 계정이면 로그인 토큰을 발급한다")
-    void login_returnsTokensWhenSocialAccountLinked() {
+    @DisplayName("이미 연동된 소셜 계정이면 로그인 성공으로 판정하고 refreshToken 쿠키를 발급한다")
+    void handleCallback_returnsLoginSuccessWhenSocialAccountLinked() {
         Member member = saveLocalMember();
         memberSocialAccountRepository.save(
                 MemberSocialAccount.of(member, SocialProvider.KAKAO, PROVIDER_USER_ID, EMAIL));
 
         MockHttpServletResponse httpResponse = new MockHttpServletResponse();
-        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST, httpResponse);
+        SocialCallbackResult result = socialAuthService.handleCallback(
+                SocialProvider.KAKAO, AUTH_CODE, STATE, httpResponse);
 
-        assertFalse(response.signupRequired());
-        assertFalse(response.accountLinkRequired());
-        assertNotNull(response.accessToken());
-        assertEquals(member.getId(), response.memberId());
-        assertEquals("Bearer", response.tokenType());
+        assertEquals(SocialCallbackResult.Status.LOGIN_SUCCESS, result.status());
 
-        // 재발급 검증에 쓰이도록 리프레시 토큰이 쿠키로 발급되고 저장소에도 보관되어야 한다
+        // 콜백은 accessToken을 응답에 담지 않고 refreshToken 쿠키만 발급한다
         String refreshToken = httpResponse.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME).getValue();
         assertEquals(refreshToken,
                 refreshTokenStore.find(member.getId(), sessionIdOf(refreshToken)).orElse(null));
@@ -149,58 +156,72 @@ class SocialAuthServiceTest {
 
     @Test
     @DisplayName("이메일을 확인할 수 없으면 기존 회원 판단이 불가능하므로 실패한다")
-    void login_throwsWhenEmailMissing() {
+    void handleCallback_throwsWhenEmailMissing() {
         // 이메일 제공에 동의하지 않으면 가입도 연동도 할 수 없다
         FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null, NICKNAME));
 
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.login(SocialProvider.KAKAO, REQUEST, new MockHttpServletResponse()));
+                () -> socialAuthService.handleCallback(
+                        SocialProvider.KAKAO, AUTH_CODE, STATE, new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.SOCIAL_EMAIL_NOT_FOUND.getCode(), exception.getCode().getCode());
     }
 
     @Test
     @DisplayName("같은 이메일의 기존 회원이 있으면 연동 대기 정보를 담은 임시 토큰을 발급한다")
-    void login_returnsAccountLinkTokenWhenEmailMatches() {
+    void handleCallback_returnsLinkRequiredWhenEmailMatches() {
         Member member = saveLocalMember();
 
-        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
-        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST, httpResponse);
+        SocialCallbackResult result = socialAuthService.handleCallback(
+                SocialProvider.KAKAO, AUTH_CODE, STATE, new MockHttpServletResponse());
 
-        assertFalse(response.signupRequired());
-        assertTrue(response.accountLinkRequired());
-        assertNotNull(response.accountLinkToken());
+        assertEquals(SocialCallbackResult.Status.LINK_REQUIRED, result.status());
+        assertNotNull(result.accountLinkToken());
 
-        // 아직 사용자가 동의하기 전이므로 로그인 토큰은 발급되지 않아야 한다
-        assertNull(response.accessToken());
-        assertNull(httpResponse.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME));
-
-        // 회원 ID는 응답에 싣지 않고 서버가 저장소에 보관한다
-        assertNull(response.memberId());
-        PendingSocialLink pending = accountLinkTokenStore.consume(response.accountLinkToken()).orElseThrow();
+        PendingSocialLink pending = accountLinkTokenStore.consume(result.accountLinkToken()).orElseThrow();
         assertEquals(member.getId(), pending.memberId());
         assertEquals(SocialProvider.KAKAO, pending.provider());
         assertEquals(PROVIDER_USER_ID, pending.providerUserId());
     }
 
     @Test
-    @DisplayName("소셜 계정도 같은 이메일 회원도 없으면 회원가입이 필요하다고 응답한다")
-    void login_returnsSignUpRequiredForNewUser() {
-        AuthResponse.SocialLogin response = socialAuthService.login(SocialProvider.KAKAO, REQUEST,
-                new MockHttpServletResponse());
+    @DisplayName("소셜 계정도 같은 이메일 회원도 없으면 회원가입 대기 정보를 담은 임시 토큰을 발급한다")
+    void handleCallback_returnsSignupRequiredForNewUser() {
+        SocialCallbackResult result = socialAuthService.handleCallback(
+                SocialProvider.KAKAO, AUTH_CODE, STATE, new MockHttpServletResponse());
 
-        assertTrue(response.signupRequired());
-        assertFalse(response.accountLinkRequired());
-        assertNull(response.accountLinkToken());
-        assertNull(response.accessToken());
+        assertEquals(SocialCallbackResult.Status.SIGNUP_REQUIRED, result.status());
+        assertNotNull(result.socialSignupToken());
+
+        PendingSocialSignup pending = socialSignupTokenStore.consume(result.socialSignupToken()).orElseThrow();
+        assertEquals(SocialProvider.KAKAO, pending.provider());
+        assertEquals(PROVIDER_USER_ID, pending.providerUserId());
+        assertEquals(EMAIL, pending.email());
+        assertEquals(NICKNAME, pending.nickname());
     }
 
     @Test
-    @DisplayName("신규 소셜 사용자는 회원·소셜계정·약관 동의가 저장되고 토큰 없이 응답한다")
-    void signUp_createsMemberWithoutToken() {
-        AuthResponse.SocialSignUp response = socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest());
+    @DisplayName("완전 신규 사용자인데 닉네임을 확인할 수 없으면 실패한다")
+    void handleCallback_throwsWhenNicknameMissingForNewUser() {
+        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, EMAIL, null));
 
-        // 소셜에서 가져온 닉네임/이메일 그대로 응답에 포함
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.handleCallback(
+                        SocialProvider.KAKAO, AUTH_CODE, STATE, new MockHttpServletResponse()));
+
+        assertEquals(AuthErrorCode.SOCIAL_NICKNAME_NOT_FOUND.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("신규 소셜 사용자는 회원·소셜계정·약관 동의가 저장되고 가입과 동시에 로그인 토큰을 발급한다")
+    void signUp_createsMemberAndIssuesLoginTokens() {
+        String socialSignupToken = issueSignupToken(SocialProvider.KAKAO);
+
+        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
+        AuthResponse.SocialSignUp response = socialAuthService.signUp(
+                SocialProvider.KAKAO, signUpRequest(socialSignupToken), httpResponse);
+
+        // 콜백이 미리 조회해둔 닉네임/이메일 그대로 응답에 포함
         assertNotNull(response.memberId());
         assertEquals(NICKNAME, response.nickname());
         assertEquals(EMAIL, response.email());
@@ -212,61 +233,53 @@ class SocialAuthServiceTest {
                 .existsByProviderAndProviderUserId(SocialProvider.KAKAO, PROVIDER_USER_ID));
         assertFalse(memberPolicyAgreementRepository.findAll().isEmpty());
 
-        // 해당 회원이 가지고 있는 모든 세션의 리프레시 토큰 존재 여부 확인
-        // 회원가입 후 자동 로그인되지 않기 때문
-        assertTrue(refreshTokenStore.hasNoSession(response.memberId()));
+        // 로컬 회원가입과 달리 소셜 회원가입은 가입과 동시에 로그인 처리된다
+        assertNotNull(response.accessToken());
+        assertEquals("Bearer", response.tokenType());
+        String refreshToken = httpResponse.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME).getValue();
+        assertEquals(refreshToken,
+                refreshTokenStore.find(response.memberId(), sessionIdOf(refreshToken)).orElse(null));
     }
 
     @Test
-    @DisplayName("이메일을 확인할 수 없으면 회원가입에 실패한다")
-    void signUp_throwsWhenEmailMissing() {
-        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null, NICKNAME));
+    @DisplayName("유효하지 않은 회원가입 토큰이면 회원가입에 실패한다")
+    void signUp_throwsWhenTokenInvalid() {
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest("unknown-token"),
+                        new MockHttpServletResponse()));
+
+        assertEquals(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("URL 제공자와 토큰의 제공자가 다르면 회원가입에 실패한다")
+    void signUp_throwsWhenProviderMismatch() {
+        // 토큰은 KAKAO로 발급됐는데 URL은 NAVER로 요청 -> 불일치
+        String socialSignupToken = issueSignupToken(SocialProvider.KAKAO);
 
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
+                () -> socialAuthService.signUp(SocialProvider.NAVER, signUpRequest(socialSignupToken),
+                        new MockHttpServletResponse()));
 
-        assertEquals(AuthErrorCode.SOCIAL_EMAIL_NOT_FOUND.getCode(), exception.getCode().getCode());
+        assertEquals(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID.getCode(), exception.getCode().getCode());
     }
 
     @Test
-    @DisplayName("닉네임을 확인할 수 없으면 회원가입에 실패한다")
-    void signUp_throwsWhenNicknameMissing() {
-        FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, EMAIL, null));
-
-        AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
-
-        assertEquals(AuthErrorCode.SOCIAL_NICKNAME_NOT_FOUND.getCode(), exception.getCode().getCode());
-    }
-
-    @Test
-    @DisplayName("이미 연동된 소셜 계정이면 회원가입에 실패한다")
+    @DisplayName("토큰 발급~소비 사이 동일 소셜 계정이 이미 가입됐으면 회원가입에 실패한다")
     void signUp_throwsWhenSocialAccountAlreadyExists() {
+        String socialSignupToken = issueSignupToken(SocialProvider.KAKAO);
 
-        // 같은 provider/providerUserId로 이미 가입된 회원을 만듦
+        // 같은 provider/providerUserId로 이미 가입된 회원을 만듦 (동시 요청 방어 시나리오)
         Member existing = memberRepository.save(Member.builder()
                 .nickname("기존회원").email("other@test.com").build());
         memberSocialAccountRepository.save(
                 MemberSocialAccount.of(existing, SocialProvider.KAKAO, PROVIDER_USER_ID, "other@test.com"));
 
         AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest(socialSignupToken),
+                        new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS.getCode(), exception.getCode().getCode());
-    }
-
-    @Test
-    @DisplayName("이미 사용 중인 이메일이면 회원가입에 실패한다")
-    void signUp_throwsWhenEmailAlreadyUsed() {
-
-        // 같은 이메일의 회원이 이미 있으나 소셜 계정은 연동되지 않은 상태
-        // 비정상적인 직접 호출 방어 경로. login을 건너뛰고 signup을 바로 호출하는 경우. (정상 로직: 연동)
-        saveLocalMember();
-
-        AuthException exception = assertThrows(AuthException.class,
-                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest()));
-
-        assertEquals(AuthErrorCode.ACCOUNT_LINK_REQUIRED.getCode(), exception.getCode().getCode());
     }
 
     @Test
@@ -349,7 +362,7 @@ class SocialAuthServiceTest {
 
     /**
      * 테스트가 지정한 SocialProfile을 그대로 반환하는 가짜 클라이언트
-     * 이메일 미동의처럼 실제 소셜에서 재현하기 어려운 상황을 만들기 위해 사용
+     * 이메일/닉네임 미동의처럼 실제 소셜에서 재현하기 어려운 상황을 만들기 위해 사용
      */
     static class FakeSocialProfileClient implements SocialProfileClient {
 

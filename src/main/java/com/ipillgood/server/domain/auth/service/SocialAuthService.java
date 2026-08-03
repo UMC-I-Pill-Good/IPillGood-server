@@ -9,6 +9,8 @@ import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.domain.auth.exception.AuthException;
 import com.ipillgood.server.domain.auth.store.AccountLinkTokenStore;
 import com.ipillgood.server.domain.auth.store.PendingSocialLink;
+import com.ipillgood.server.domain.auth.store.PendingSocialSignup;
+import com.ipillgood.server.domain.auth.store.SocialSignupTokenStore;
 import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.member.entity.MemberSocialAccount;
 import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
@@ -36,6 +38,7 @@ public class SocialAuthService {
 
     private final SocialProfileClientResolver socialProfileClientResolver;
     private final AccountLinkTokenStore accountLinkTokenStore;
+    private final SocialSignupTokenStore socialSignupTokenStore;
     private final MemberService memberService;
     private final PolicyService policyService;
     private final JwtProvider jwtProvider;
@@ -44,23 +47,23 @@ public class SocialAuthService {
     private final CookieUtil cookieUtil;
 
     /**
-     * 소셜 로그인 요청 시 실행 - 4가지 케이스
+     * 소셜 로그인 콜백에서 실행 - 4가지 케이스
      * - 1. 이미 연동된 소셜 계정이면 로그인 토큰 발급
      * - 2. 이메일을 확인할 수 없으면 중단
      * - 3. 같은 이메일의 기존 회원 존재 -> 연동 동의를 위한 임시 토큰 발급
-     * - 4. 완전 신규 사용자 -> 회원가입 필요
+     * - 4. 완전 신규 사용자 -> 회원가입 필요 - 회원가입 대기 임시 토큰 발급
      */
-    public AuthResponse.SocialLogin login(SocialProvider provider, AuthRequest.SocialLogin request,
-                                          HttpServletResponse response) {
+    public SocialCallbackResult handleCallback(SocialProvider provider, String code, String state,
+                                               HttpServletResponse response) {
 
-        // 소셜 제공자에게 사용자 정보 조회 (액세스 토큰 유효한지 검증)
-        SocialProfile profile = socialProfileClientResolver.resolve(provider)
-                .fetch(request.providerAccessToken());
+        // 인가 코드로 액세스 토큰 교환 후 소셜 제공자에게 사용자 정보 조회
+        SocialProfile profile = socialProfileClientResolver.resolve(provider).fetchByCode(code, state);
 
         // 1. 이미 연동된 소셜 계정 -> 로그인 토큰 발급
         Optional<Member> linkedMember = memberService.findBySocialAccount(provider, profile.providerUserId());
         if (linkedMember.isPresent()) {
-            return issueLoginTokens(linkedMember.get(), response);
+            issueLoginTokens(linkedMember.get(), response);
+            return SocialCallbackResult.loginSuccess();
         }
 
         // 2. 이메일이 없으면 기존 회원 존재 여부를 판단할 수 없으므로 중단
@@ -74,58 +77,60 @@ public class SocialAuthService {
         if (existingMember.isPresent()) {
             String accountLinkToken = accountLinkTokenStore.issue(new PendingSocialLink(
                     existingMember.get().getId(), provider, profile.providerUserId(), profile.email()));
-            return AuthConverter.toAccountLinkRequiredResponse(accountLinkToken);
+            return SocialCallbackResult.linkRequired(accountLinkToken);
         }
 
         // 4. 소셜 계정도 기존 회원도 없으면 신규 사용자
-        return AuthConverter.toSignUpRequiredResponse();
-    }
-
-    /**
-     * 소셜 회원가입 요청 시 실행
-     * 소셜 프로필을 조회해 신규 회원과 약관 동의 저장을 한 트랜잭션으로 처리
-     * 외부 API 호출이 트랜잭션에 포함 -> DB 커넥션 오래 사용 (단점)
-     */
-    @Transactional
-    public AuthResponse.SocialSignUp signUp(SocialProvider provider, AuthRequest.SocialSignUp request) {
-
-        // 소셜 제공자에게 사용자 정보 조회 (액세스 토큰 유효한지 검증)
-        SocialProfile profile = socialProfileClientResolver.resolve(provider)
-                .fetch(request.providerAccessToken());
-
-        // 1. 이메일이 없으면 회원을 생성할 수 없으므로 중단
-        if (!StringUtils.hasText(profile.email())) {
-            throw new AuthException(AuthErrorCode.SOCIAL_EMAIL_NOT_FOUND);
-        }
-
-        // 2. 닉네임이 없으면 회원 닉네임을 정할 수 없으므로 중단
+        // 정제 후 닉네임이 남는 글자가 하나도 없는 경우 (전부 이모지 or 특수문자였던 경우)
         if (!StringUtils.hasText(profile.nickname())) {
             throw new AuthException(AuthErrorCode.SOCIAL_NICKNAME_NOT_FOUND);
         }
 
-        // 3. 이미 연동된 소셜 계정이면 중복 가입 차단
-        if (memberService.isSocialAccountLinked(provider, profile.providerUserId())) {
+        // 회원가입에 필요한 데이터에 접근하는 토큰 문자열 키
+        String socialSignupToken = socialSignupTokenStore.issue(new PendingSocialSignup(
+                provider, profile.providerUserId(), profile.email(), profile.nickname()));
+        return SocialCallbackResult.signupRequired(socialSignupToken);
+    }
+
+    /**
+     * 소셜 회원가입 요청 시 실행 ([가입 완료] 버튼 누를 시)
+     * 이미 콜백될 때 이메일/닉네임 확인이 완료된 상태
+     * socialSignupToken에 연결된 회원가입 데이터로 신규 회원과 약관 동의 저장을 한 트랜잭션으로 처리
+     * 회원가입과 동시에 로그인 처리 (자동 로그인)
+     */
+    @Transactional
+    public AuthResponse.SocialSignUp signUp(SocialProvider provider, AuthRequest.SocialSignUp request,
+                                            HttpServletResponse response) {
+
+        // 1. 콜백이 발급해둔 회원가입 필요 데이터를 꺼내며 즉시 폐기 (1회용)
+        PendingSocialSignup pending = socialSignupTokenStore.consume(request.socialSignupToken())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID));
+
+        // 2. URL provider와 토큰에 담긴 provider가 다르면 조작으로 간주해 차단
+        if (pending.provider() != provider) {
+            throw new AuthException(AuthErrorCode.ACCOUNT_LINK_TOKEN_INVALID);
+        }
+
+        // 3. 토큰 발급~가입 완료 사이 동일한 소셜 계정으로 이미 가입됐으면 중복 가입 차단 (동시 요청 방어)
+        if (memberService.isSocialAccountLinked(provider, pending.providerUserId())) {
             throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
         }
 
-        // 4. 이미 사용 중인 이메일이면 차단 - 비정상적인 signUp 호출 (정상 흐름은 로그인 단계에서 연동으로 안내됨)
-        memberService.findByEmail(profile.email()).ifPresent(member -> {
-
-            // 소셜 전용 계정이면 해당 소셜로 로그인하도록 안내
-            if (member.isSocialOnly()) {
-                throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
-            }
-
-            // 로컬 계정이면 해당 이메일로 로그인하도록 안내
-            throw new AuthException(AuthErrorCode.ACCOUNT_LINK_REQUIRED);
-        });
-
-        // 5. 회원 + 소셜 계정 저장 후 약관 동의 이력 저장
+        // 4. 회원 + 소셜 계정 저장 후 약관 동의 이력 저장
         Member member = memberService.createSocialMember(
-                profile.email(), profile.nickname(), provider, profile.providerUserId());
+                pending.email(), pending.nickname(), provider, pending.providerUserId());
         policyService.agreeToPolicies(member, request.policyAgreements());
 
-        return AuthConverter.toSocialSignUpResponse(member, provider, s3Service::getPublicUrl);
+        // 5. 가입과 동시에 로그인 처리 - 신규 세션(기기) 발급 후 토큰 발급
+        String role = member.getRole().name();
+        String sessionId = jwtProvider.generateSessionId();
+        String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
+        String refreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
+        refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
+        cookieUtil.setRefreshTokenCookie(response, refreshToken, jwtProvider.getRefreshTokenValidity());
+
+        return AuthConverter.toSocialSignUpResponse(member, provider, s3Service::getPublicUrl,
+                accessToken, jwtProvider.getAccessTokenExpiresIn());
     }
 
     /**
@@ -172,17 +177,15 @@ public class SocialAuthService {
     }
 
     /**
-     * 로그인 토큰 발급 (로컬 로그인과 동일한 절차)
+     * 로그인 토큰 발급 (콜백에서 기존 회원 존재 확인 시 실행)
+     * 콜백은 302 리다이렉트 전용 - 액세스 토큰은 포함 X
+     * 프론트는 콜백 리다이렉트 후 따로 POST /auth/reissue API를 통해 accessToken 발급 받
      */
-    private AuthResponse.SocialLogin issueLoginTokens(Member member, HttpServletResponse response) {
+    private void issueLoginTokens(Member member, HttpServletResponse response) {
         String role = member.getRole().name();
         String sessionId = jwtProvider.generateSessionId();
-        String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
         String refreshToken = jwtProvider.createRefreshToken(member.getId(), role, sessionId);
         refreshTokenStore.save(member.getId(), sessionId, refreshToken, jwtProvider.getRefreshTokenValidity());
         cookieUtil.setRefreshTokenCookie(response, refreshToken, jwtProvider.getRefreshTokenValidity());
-
-        return AuthConverter.toSocialLoginResponse(member, accessToken,
-                jwtProvider.getAccessTokenExpiresIn());
     }
 }

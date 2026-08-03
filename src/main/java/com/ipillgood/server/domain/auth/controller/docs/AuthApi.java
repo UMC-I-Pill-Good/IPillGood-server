@@ -5,7 +5,6 @@ import com.ipillgood.server.domain.auth.dto.AuthResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -15,7 +14,8 @@ import jakarta.validation.constraints.Pattern;
 
 /**
  * 인증 관련 API 문서
- * 회원가입, 로그인, 아이디/이메일 중복검사
+ * 회원가입, 로그인, 아이디/이메일 중복검사, 소셜 회원가입/계정연동(JSON 응답)
+ * 소셜 로그인/콜백(302 리다이렉트 전용)은 SocialOAuthRedirectApi 참고
  */
 @Tag(name = "Auth API", description = "인증(회원가입/로그인) 관련 API")
 public interface AuthApi {
@@ -53,59 +53,32 @@ public interface AuthApi {
             @Email(message = "올바른 이메일 형식이 아닙니다.")
             String email);
 
-    @Operation(summary = "소셜 로그인",
+    @Operation(summary = "카카오 회원가입",
             description = """
-                    소셜 액세스 토큰을 검증하고 사용자 상태에 따라 세 경우로 응답합니다.
-                    - 이미 연동된 소셜 계정이면 바로 로그인합니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
-                    - 같은 이메일의 기존 회원이 존재하면 연동 동의 필요합니다. (accountLinkRequired=true + accountLinkToken 발급)
-                    - 신규 사용자라면 회원가입 필요합니다. (signupRequired=true)
-                    이메일 제공에 동의하지 않은 경우 로그인에 실패합니다. (AUTH400_10)
+                    카카오 로그인 콜백이 신규 유저로 판정하며 발급한 socialSignupToken과 약관 동의를 받아 회원가입을 완료합니다.
+                    이메일/닉네임은 요청으로 받지 않습니다 - 콜백이 조회해 socialSignupToken에 연결해둔 값을 그대로 씁니다.
+                    회원가입과 동시에 로그인 처리됩니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
+                    socialSignupToken이 만료·위조·이미 사용됐거나 provider가 KAKAO가 아니면 실패합니다. (AUTH401_3)
                     """)
-    ApiResponse<AuthResponse.SocialLogin> socialLogin(
-            @Parameter(
-                    description = "소셜 제공자입니다.",
-                    schema = @Schema(
-                            allowableValues = {"KAKAO", "NAVER"},
-                            defaultValue = "KAKAO"
-                    )
-            )
-            String provider,
-            @Valid AuthRequest.SocialLogin request,
-            HttpServletResponse response);
+    ApiResponse<AuthResponse.SocialSignUp> kakaoSignUp(@Valid AuthRequest.SocialSignUp request,
+                                                       HttpServletResponse response);
 
-    @Operation(summary = "소셜 회원가입",
-            description = """
-                    소셜 신규 사용자의 약관 동의를 받아 회원가입을 완료합니다.
-                    닉네임은 요청으로 받지 않고 서버가 소셜 제공자에게 직접 조회합니다.
-                    자동 로그인하지 않으므로 토큰을 발급하지 않습니다. (가입 완료 후 로그인 화면으로 이동)
-                    이메일/닉네임 제공에 동의하지 않은 경우 실패합니다. (AUTH400_10, AUTH400_12)
-                    """)
-    ApiResponse<AuthResponse.SocialSignUp> socialSignUp(
-            @Parameter(
-                    description = "소셜 제공자입니다.",
-                    schema = @Schema(
-                            allowableValues = {"KAKAO", "NAVER"},
-                            defaultValue = "KAKAO"
-                    )
-            )
-            String provider,
-            @Valid AuthRequest.SocialSignUp request);
+    @Operation(summary = "네이버 회원가입",
+            description = "네이버 로그인 콜백 기준이라는 점만 다르고 카카오 회원가입과 동일합니다.")
+    ApiResponse<AuthResponse.SocialSignUp> naverSignUp(@Valid AuthRequest.SocialSignUp request,
+                                                       HttpServletResponse response);
 
-    @Operation(summary = "소셜 계정 연동",
+    @Operation(summary = "카카오 계정 연동",
             description = """
-                    소셜 로그인 중 발급받은 임시 토큰으로 기존 회원에 소셜 계정을 연동합니다.
+                    카카오 로그인 콜백이 계정 연동 필요로 판정하며 발급한 accountLinkToken으로 기존 회원에 카카오 계정을 연동합니다.
                     연동 즉시 로그인 처리되어 토큰을 함께 발급합니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
-                    임시 토큰이 만료·위조되었거나 URL의 제공자와 다르면 실패합니다. (AUTH401_3)
+                    이 엔드포인트는 카카오 전용입니다 - 토큰 속 provider가 KAKAO가 아니면 조작으로 보고 차단합니다. (AUTH401_3)
                     """)
-    ApiResponse<AuthResponse.SocialLink> socialLink(
-            @Parameter(
-                    description = "소셜 제공자입니다.",
-                    schema = @Schema(
-                            allowableValues = {"KAKAO", "NAVER"},
-                            defaultValue = "KAKAO"
-                    )
-            )
-            String provider,
-            @Valid AuthRequest.SocialLink request,
-            HttpServletResponse response);
+    ApiResponse<AuthResponse.SocialLink> kakaoLink(@Valid AuthRequest.SocialLink request,
+                                                   HttpServletResponse response);
+
+    @Operation(summary = "네이버 계정 연동",
+            description = "네이버 전용이라는 점만 다르고 카카오 계정 연동과 동일합니다.")
+    ApiResponse<AuthResponse.SocialLink> naverLink(@Valid AuthRequest.SocialLink request,
+                                                   HttpServletResponse response);
 }
