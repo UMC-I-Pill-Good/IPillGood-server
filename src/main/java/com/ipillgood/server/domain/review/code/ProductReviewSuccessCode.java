@@ -20,6 +20,7 @@ public enum ProductReviewSuccessCode implements BaseSuccessCode {
     // 201
     REVIEW_CREATE_SUCCESS(HttpStatus.CREATED, "REVIEW201_1", "해당 영양제에 대한 리뷰가 등록되었습니다."),
     REVIEW_HELPFUL_SUCCESS(HttpStatus.CREATED, "REVIEW201_2", "해당 리뷰에 도움됨을 등록했습니다."),
+    REVIEW_REPORT_SUCCESS(HttpStatus.CREATED, "REVIEW201_3", "해당 리뷰를 신고했습니다."),
     ;
 
     private final HttpStatus status;

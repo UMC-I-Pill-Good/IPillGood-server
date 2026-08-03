@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.review.dto;
 
+import com.ipillgood.server.domain.review.entity.enums.ProductReviewReportReason;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
@@ -56,5 +57,19 @@ public class ProductReviewRequest {
             @Size(max = 3, message = "이미지는 최대 3개까지 첨부할 수 있습니다.")
             @NotNull(message = "유지할 이미지 목록을 전달해주세요. 이미지가 없으면 빈 배열을 보내주세요.")
             List<String> imageKeys
+    ) {}
+
+    @Schema(description = "후기 신고 요청")
+    public record ReviewReport(
+            @Schema(description = "신고 사유. AD_PROMOTION(광고·홍보), ABUSE(욕설·비방), "
+                    + "FALSE_INFO(허위 정보), PERSONAL_INFO(개인정보), ETC(기타)",
+                    example = "ABUSE")
+            @NotNull(message = "후기 신고 이유를 선택해 주세요.")
+            ProductReviewReportReason reason,
+
+            @Schema(description = "신고 상세 내용 (최대 200자). 선택 항목이며 생략할 수 있습니다.",
+                    nullable = true, example = "욕설이 포함된 후기입니다.")
+            @Size(max = 200, message = "상세 내용은 200자를 넘을 수 없습니다.")
+            String detail
     ) {}
 }

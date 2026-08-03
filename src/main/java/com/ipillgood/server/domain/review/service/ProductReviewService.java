@@ -14,12 +14,10 @@ import com.ipillgood.server.domain.review.dto.ProductReviewRequest;
 import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
 import com.ipillgood.server.domain.review.entity.ProductReview;
 import com.ipillgood.server.domain.review.entity.ProductReviewHelpful;
+import com.ipillgood.server.domain.review.entity.ProductReviewReport;
 import com.ipillgood.server.domain.review.entity.enums.ProductReviewSort;
 import com.ipillgood.server.domain.review.exception.ProductReviewException;
-import com.ipillgood.server.domain.review.repository.ProductReviewCondition;
-import com.ipillgood.server.domain.review.repository.ProductReviewHelpfulRepository;
-import com.ipillgood.server.domain.review.repository.ProductReviewProjection;
-import com.ipillgood.server.domain.review.repository.ProductReviewRepository;
+import com.ipillgood.server.domain.review.repository.*;
 import com.ipillgood.server.domain.survey.repository.SurveyProjection;
 import com.ipillgood.server.domain.survey.service.SurveyService;
 import com.ipillgood.server.global.pagination.CursorPage;
@@ -45,6 +43,7 @@ public class ProductReviewService {
     private final ProductRepository productRepository;
     private final MemberRepository memberRepository;
     private final ProductReviewHelpfulRepository productReviewHelpfulRepository;
+    private final ProductReviewReportRepository productReviewReportRepository;
     private final SurveyService surveyService;
     private final S3Service s3Service;
 
@@ -220,6 +219,29 @@ public class ProductReviewService {
         review.decreaseHelpfulCount();
 
         return ProductReviewConverter.toReviewHelpful(false, review);
+    }
+
+    @Transactional
+    public ProductReviewResponse.ReviewReport createReviewReport(
+            Long memberId,
+            Long reviewId,
+            ProductReviewRequest.ReviewReport reqDto
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        ProductReview review = productReviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+                .orElseThrow(() -> new ProductReviewException(ProductReviewErrorCode.REVIEW_NOT_FOUND));
+
+        if (review.getMember().getId().equals(memberId)) {
+            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_REPORT_FORBIDDEN);
+        }
+        if (productReviewReportRepository.existsByReporterMemberAndReview(member, review)){
+            throw new ProductReviewException(ProductReviewErrorCode.REVIEW_REPORT_EXISTS);
+        }
+
+        ProductReviewReport report = ProductReviewConverter.toProductReviewReport(member, review, reqDto);
+        productReviewReportRepository.save(report);
+        return ProductReviewConverter.toReviewReport(report);
     }
 
     private ProductReviewCondition toReviewCondition(

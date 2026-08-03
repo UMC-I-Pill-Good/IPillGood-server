@@ -106,4 +106,15 @@ public class ProductReviewController implements ProductReviewApi {
         ProductReviewResponse.ReviewHelpful resDto = reviewService.deleteHelpful(memberId, reviewId);
         return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_HELPFUL_DELETE_SUCCESS, resDto);
     }
+
+    @Override
+    @PostMapping("/{reviewId}/reports")
+    public ApiResponse<ProductReviewResponse.ReviewReport> createReviewReport(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long reviewId,
+            @RequestBody @Valid ProductReviewRequest.ReviewReport reqDto
+    ) {
+        ProductReviewResponse.ReviewReport resDto = reviewService.createReviewReport(memberId, reviewId, reqDto);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_REPORT_SUCCESS, resDto);
+    }
 }
