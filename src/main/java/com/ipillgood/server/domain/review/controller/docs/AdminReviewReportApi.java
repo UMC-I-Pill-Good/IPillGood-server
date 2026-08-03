@@ -270,7 +270,7 @@ public interface AdminReviewReportApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "status가 PENDING/DELETED/MAINTAINED/HIDDEN 외의 값이거나 누락된 경우",
+                    description = "status가 DELETED/MAINTAINED/HIDDEN 외의 값(PENDING 포함)이거나 누락된 경우",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(

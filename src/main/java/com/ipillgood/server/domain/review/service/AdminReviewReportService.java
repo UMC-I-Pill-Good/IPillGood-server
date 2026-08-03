@@ -68,7 +68,7 @@ public class AdminReviewReportService {
             Long reportId, AdminReviewReportRequest.Process request
     ) {
         ProductReviewReport report = getReportOrThrow(reportId);
-        ReviewReportStatus status = parseStatus(request.status());
+        ReviewReportStatus status = parseProcessStatus(request.status());
 
         applyReviewSideEffect(report.getReview(), status);
         report.process(status, request.processReason(), LocalDateTime.now());
@@ -80,7 +80,8 @@ public class AdminReviewReportService {
         switch (status) {
             case DELETED -> review.markDeleted(LocalDateTime.now());
             case HIDDEN -> review.hide();
-            case MAINTAINED, PENDING -> review.unhide();
+            case MAINTAINED -> review.unhide();
+            case PENDING -> throw new IllegalStateException("PENDING is not a valid process status");
         }
     }
 
@@ -102,15 +103,17 @@ public class AdminReviewReportService {
         throw new GeneralException(GeneralErrorCode.VALID_FAIL);
     }
 
-    private ReviewReportStatus parseStatus(String value) {
-        if (value == null || value.isBlank()) {
-            throw new GeneralException(GeneralErrorCode.VALID_FAIL);
-        }
+    private ReviewReportStatus parseProcessStatus(String value) {
+        ReviewReportStatus status;
         try {
-            return ReviewReportStatus.valueOf(value.trim());
+            status = ReviewReportStatus.valueOf(value.trim());
         } catch (IllegalArgumentException e) {
             throw new GeneralException(GeneralErrorCode.VALID_FAIL);
         }
+        if (status == ReviewReportStatus.PENDING) {
+            throw new GeneralException(GeneralErrorCode.VALID_FAIL);
+        }
+        return status;
     }
 
     private String normalizeKeyword(String keyword) {
