@@ -2,15 +2,15 @@ package com.ipillgood.server.domain.search.service;
 
 import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
 import com.ipillgood.server.domain.ingredient.entity.enums.TargetGender;
+import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.search.code.SearchErrorCode;
 import com.ipillgood.server.domain.search.converter.ProductSearchConverter;
-import com.ipillgood.server.domain.member.repository.MemberRepository;
+import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
 import com.ipillgood.server.domain.search.entity.MemberSearchKeyword;
+import com.ipillgood.server.domain.search.entity.enums.ProductSearchSort;
 import com.ipillgood.server.domain.search.exception.SearchException;
 import com.ipillgood.server.domain.search.repository.MemberSearchKeywordRepository;
 import com.ipillgood.server.domain.search.repository.ProductSearchCondition;
-import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
-import com.ipillgood.server.domain.search.entity.enums.ProductSearchSort;
 import com.ipillgood.server.domain.search.repository.ProductSearchProjection;
 import com.ipillgood.server.domain.search.repository.ProductSearchRepository;
 import com.ipillgood.server.global.enums.AgeGroup;
@@ -73,7 +73,7 @@ public class ProductSearchService {
                 page.nextCursor(),
                 page.content(),
                 ingredientRows,
-                s3Service
+                s3Service::getPublicUrl
         );
     }
 

@@ -3,19 +3,15 @@ package com.ipillgood.server.domain.search.converter;
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
 import com.ipillgood.server.domain.search.entity.MemberSearchKeyword;
 import com.ipillgood.server.domain.search.repository.ProductSearchProjection;
-import com.ipillgood.server.global.s3.S3Service;
+import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
 
-import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 public class ProductSearchConverter {
-
-    private static final List<String> MULTI_INGREDIENT_THUMBNAIL_KEYS = List.of(
-            "ingredients/other1.png",
-            "ingredients/other2.png",
-            "ingredients/other3.png",
-            "ingredients/other4.png"
-    );
 
     public static ProductSearchResponse.ProductSearch toProductSearch(
             String keyword,
@@ -25,7 +21,7 @@ public class ProductSearchConverter {
             String nextCursor,
             List<ProductSearchProjection.Product> rows,
             List<ProductSearchProjection.Ingredient> ingredientRows,
-            S3Service s3Service
+            Function<String, String> toImageUrl
     ) {
         Map<Long, List<ProductSearchProjection.Ingredient>> ingredientsByProductId = groupByProductId(ingredientRows);
 
@@ -33,7 +29,7 @@ public class ProductSearchConverter {
                 .map(row -> toProductSearchItem(
                         row,
                         ingredientsByProductId.getOrDefault(row.productId(), List.of()),
-                        s3Service))
+                        toImageUrl))
                 .toList();
 
         return ProductSearchResponse.ProductSearch.builder()
@@ -60,17 +56,20 @@ public class ProductSearchConverter {
     private static ProductSearchResponse.ProductSearchItem toProductSearchItem(
             ProductSearchProjection.Product row,
             List<ProductSearchProjection.Ingredient> ingredients,
-            S3Service s3Service
+            Function<String, String> toImageUrl
     ) {
         List<String> ingredientNames = ingredients.stream()
                 .map(ProductSearchProjection.Ingredient::ingredientName)
                 .toList();
+        String imageKey = ingredients.size() == 1
+                ? ingredients.get(0).imageKey()
+                : EtcProductImageKeyResolver.resolve(row.productId());
 
         return ProductSearchResponse.ProductSearchItem.builder()
                 .productId(row.productId())
                 .productName(row.productName())
                 .brand(row.brand())
-                .imageUrl(toImageUrl(ingredients, s3Service))
+                .imageUrl(toImageUrl.apply(imageKey))
                 .mfdsCertified(row.mfdsCertified())
                 .ingredientNames(ingredientNames)
                 .averageRating(toRoundedAverageRating(row.averageRating()))
@@ -103,18 +102,6 @@ public class ProductSearchConverter {
         return ProductSearchResponse.DeletedKeywords.builder()
                 .deletedCount(deletedCount)
                 .build();
-    }
-
-    private static String toImageUrl(List<ProductSearchProjection.Ingredient> ingredients, S3Service s3Service) {
-        String imageKey = ingredients.size() == 1
-                ? ingredients.get(0).imageKey()
-                : randomMultiIngredientImageKey();
-        return s3Service.getPublicUrl(imageKey);
-    }
-
-    private static String randomMultiIngredientImageKey() {
-        int index = ThreadLocalRandom.current().nextInt(MULTI_INGREDIENT_THUMBNAIL_KEYS.size());
-        return MULTI_INGREDIENT_THUMBNAIL_KEYS.get(index);
     }
 
     private static Map<Long, List<ProductSearchProjection.Ingredient>> groupByProductId(List<ProductSearchProjection.Ingredient> ingredientRows) {

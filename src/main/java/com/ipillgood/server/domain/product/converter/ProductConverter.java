@@ -19,9 +19,9 @@ public class ProductConverter {
             ProductReviewResponse.ReviewSummary reviewSummary,
             Function<String, String> toImageUrl
     ) {
-        String imageKey = includedIngredients.size() >= 2
-                ? EtcProductImageKeyResolver.resolve(product.getId())
-                : includedIngredients.get(0).getImageKey();
+        String imageKey = includedIngredients.size() == 1
+                ? includedIngredients.get(0).getImageKey()
+                : EtcProductImageKeyResolver.resolve(product.getId());
 
         List<String> adClaimRiskIngredients = extractAdClaimRiskIngredients(includedIngredients);
 
