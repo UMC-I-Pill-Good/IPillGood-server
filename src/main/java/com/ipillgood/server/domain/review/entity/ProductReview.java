@@ -44,6 +44,11 @@ public class ProductReview extends BaseSoftDeleteEntity {
     @Builder.Default
     private int helpfulCount = 0;
 
+    // 관리자 신고 처리(숨김 처리)로 노출이 차단된 후기인지 여부. 삭제(deletedAt)와 달리 복구 가능한 임시 상태.
+    @Column(name = "hidden", nullable = false)
+    @Builder.Default
+    private boolean hidden = false;
+
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     @Builder.Default
@@ -73,5 +78,13 @@ public class ProductReview extends BaseSoftDeleteEntity {
 
     public void decreaseHelpfulCount() {
         this.helpfulCount = Math.max(0, this.helpfulCount - 1);
+    }
+
+    public void hide() {
+        this.hidden = true;
+    }
+
+    public void unhide() {
+        this.hidden = false;
     }
 }

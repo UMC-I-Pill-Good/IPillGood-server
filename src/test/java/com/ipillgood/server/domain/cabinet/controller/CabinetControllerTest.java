@@ -1295,11 +1295,12 @@ class CabinetControllerTest {
                             rating,
                             content,
                             helpful_count,
+                            hidden,
                             deleted_at,
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, ?, '좋아요', 0, ?,
+                        VALUES (?, ?, ?, ?, '좋아요', 0, FALSE, ?,
                                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,

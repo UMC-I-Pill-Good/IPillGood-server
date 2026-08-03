@@ -36,7 +36,9 @@ public class ProductReviewQueryDslImpl implements ProductReviewQueryDsl {
                         review.createdAt))
                 .from(review)
                 .join(review.member, member)
-                .where(review.product.eq(condition.product()), review.deletedAt.isNull());
+                .where(review.product.eq(condition.product()),
+                        review.deletedAt.isNull(),
+                        review.hidden.isFalse());
 
         ProductReviewCondition.Cursor cursor = condition.cursor();
         switch (condition.sort()) {

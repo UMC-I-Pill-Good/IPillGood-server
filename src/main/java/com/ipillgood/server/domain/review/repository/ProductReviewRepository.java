@@ -20,6 +20,7 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, Lo
             from ProductReview r
             where r.product = :product
               and r.deletedAt is null
+              and r.hidden = false
     """)
     ProductReviewProjection.ReviewSummary findActiveSummaryByProduct(@Param("product") Product product);
 
