@@ -315,6 +315,35 @@ class CabinetControllerTest {
     }
 
     @Test
+    @DisplayName("검색어 없이 별점순으로 캐비닛 추가 후보를 조회한다")
+    void getProductCandidates_withoutKeywordAndRatingSort_returnsOrderedCandidates() throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("sort", "RATING_DESC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.keyword").doesNotExist())
+                .andExpect(jsonPath("$.result.sort").value("RATING_DESC"))
+                .andExpect(jsonPath("$.result.totalCount").value(4))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(101, 104, 100, 102)))
+                .andExpect(jsonPath("$.result.products[0].averageRating").value(5.0))
+                .andExpect(jsonPath("$.result.products[1].averageRating").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    @DisplayName("빈 검색어와 공백 검색어는 검색어 없이 캐비닛 추가 후보를 조회한다")
+    void getProductCandidates_withBlankKeyword_returnsCandidatesWithoutKeyword(String keyword) throws Exception {
+        mockMvc.perform(get(CABINET_PRODUCT_CANDIDATES_URL)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
+                        .param("keyword", keyword))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.keyword").doesNotExist())
+                .andExpect(jsonPath("$.result.sort").value("REVIEW_COUNT_DESC"))
+                .andExpect(jsonPath("$.result.totalCount").value(4))
+                .andExpect(jsonPath("$.result.products[*].productId", contains(101, 104, 100, 102)));
+    }
+
+    @Test
     @DisplayName("캐비닛 추가 후보를 브랜드명, 상품명, 성분명으로 부분 일치 검색한다")
     void getProductCandidates_withKeyword_searchesBrandProductNameAndIngredientName() throws Exception {
         insertProduct(105L, "Daily TEST Capsule", "CaseBrand", null);
