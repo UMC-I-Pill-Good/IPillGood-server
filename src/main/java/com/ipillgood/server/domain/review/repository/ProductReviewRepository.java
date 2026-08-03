@@ -26,8 +26,8 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, Lo
 
     boolean existsByMemberAndProductAndDeletedAtIsNull(Member member, Product product);
 
-    Optional<ProductReview> findByIdAndDeletedAtIsNull(Long reviewId);
+    Optional<ProductReview> findByIdAndDeletedAtIsNullAndHiddenFalse(Long reviewId);
 
     @EntityGraph(attributePaths = "reviewImages")
-    Optional<ProductReview> findWithImagesByIdAndDeletedAtIsNull(Long reviewId);
+    Optional<ProductReview> findWithImagesByIdAndDeletedAtIsNullAndHiddenFalse(Long reviewId);
 }
