@@ -66,4 +66,12 @@ public class ProductReview extends BaseSoftDeleteEntity {
     public void clearPhotos() {
         reviewImages.clear();
     }
+
+    public void increaseHelpfulCount() {
+        this.helpfulCount++;
+    }
+
+    public void decreaseHelpfulCount() {
+        this.helpfulCount = Math.max(0, this.helpfulCount - 1);
+    }
 }

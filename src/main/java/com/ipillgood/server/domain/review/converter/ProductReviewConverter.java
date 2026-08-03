@@ -6,6 +6,7 @@ import com.ipillgood.server.domain.review.dto.ProductReviewRequest;
 import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
 import com.ipillgood.server.domain.review.entity.ProductReview;
 import com.ipillgood.server.domain.review.entity.ProductReviewImage;
+import com.ipillgood.server.domain.review.entity.ProductReviewReport;
 import com.ipillgood.server.domain.review.entity.enums.ProductReviewSort;
 import com.ipillgood.server.domain.review.repository.ProductReviewProjection;
 import com.ipillgood.server.domain.survey.repository.SurveyProjection;
@@ -119,6 +120,41 @@ public class ProductReviewConverter {
                 .imageUrls(imageKeys.stream().map(toImageUrl).toList())
                 .createdAt(productReview.getCreatedAt())
                 .updatedAt(productReview.getUpdatedAt())
+                .build();
+    }
+
+    public static ProductReviewResponse.ReviewHelpful toReviewHelpful(
+            boolean helpful,
+            ProductReview review
+    ) {
+        return ProductReviewResponse.ReviewHelpful.builder()
+                .helpful(helpful)
+                .reviewId(review.getId())
+                .helpfulCount(review.getHelpfulCount())
+                .build();
+    }
+
+    public static ProductReviewReport toProductReviewReport(
+            Member member,
+            ProductReview review,
+            ProductReviewRequest.ReviewReport reqDto
+    ) {
+        return ProductReviewReport.builder()
+                .review(review)
+                .reporterMember(member)
+                .reason(reqDto.reason())
+                .detail(reqDto.detail())
+                .build();
+    }
+
+    public static ProductReviewResponse.ReviewReport toReviewReport(
+            ProductReviewReport report
+    ){
+        return ProductReviewResponse.ReviewReport.builder()
+                .reportId(report.getId())
+                .reviewId(report.getReview().getId())
+                .reason(report.getReason())
+                .createdAt(report.getCreatedAt())
                 .build();
     }
 

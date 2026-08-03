@@ -86,4 +86,35 @@ public class ProductReviewController implements ProductReviewApi {
         ProductReviewResponse.ReviewDelete resDto = reviewService.deleteReview(memberId, reviewId);
         return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_DELETE_SUCCESS, resDto);
     }
+
+    @Override
+    @PostMapping("/{reviewId}/helpful")
+    public ApiResponse<ProductReviewResponse.ReviewHelpful> createHelpful(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long reviewId
+    ) {
+        ProductReviewResponse.ReviewHelpful resDto = reviewService.createHelpful(memberId, reviewId);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_HELPFUL_SUCCESS, resDto);
+    }
+
+    @Override
+    @DeleteMapping("/{reviewId}/helpful")
+    public ApiResponse<ProductReviewResponse.ReviewHelpful> deleteHelpful(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long reviewId
+    ) {
+        ProductReviewResponse.ReviewHelpful resDto = reviewService.deleteHelpful(memberId, reviewId);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_HELPFUL_DELETE_SUCCESS, resDto);
+    }
+
+    @Override
+    @PostMapping("/{reviewId}/reports")
+    public ApiResponse<ProductReviewResponse.ReviewReport> createReviewReport(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long reviewId,
+            @RequestBody @Valid ProductReviewRequest.ReviewReport reqDto
+    ) {
+        ProductReviewResponse.ReviewReport resDto = reviewService.createReviewReport(memberId, reviewId, reqDto);
+        return ApiResponse.onSuccess(ProductReviewSuccessCode.REVIEW_REPORT_SUCCESS, resDto);
+    }
 }

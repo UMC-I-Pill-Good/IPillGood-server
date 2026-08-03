@@ -1,5 +1,6 @@
 package com.ipillgood.server.domain.review.dto;
 
+import com.ipillgood.server.domain.review.entity.enums.ProductReviewReportReason;
 import com.ipillgood.server.domain.review.entity.enums.ProductReviewSort;
 import com.ipillgood.server.global.enums.AgeGroup;
 import com.ipillgood.server.global.enums.Gender;
@@ -174,5 +175,34 @@ public class ProductReviewResponse {
 
             @Schema(description = "삭제된 후기 ID", example = "1")
             Long reviewId
+    ) {}
+
+    @Schema(description = "후기 도움됨 응답")
+    @Builder
+    public record ReviewHelpful(
+            @Schema(description = "도움됨 여부", example = "true")
+            boolean helpful,
+
+            @Schema(description = "도움됨을 표시한 후기 ID", example = "1")
+            Long reviewId,
+
+            @Schema(description = "반영 후 해당 후기의 도움됨 수", example = "13")
+            Integer helpfulCount
+    ) {}
+
+    @Schema(description = "후기 신고 응답")
+    @Builder
+    public record ReviewReport(
+            @Schema(description = "등록된 신고 ID", example = "1")
+            Long reportId,
+
+            @Schema(description = "신고한 후기 ID", example = "42")
+            Long reviewId,
+
+            @Schema(description = "신고 사유", example = "ABUSE")
+            ProductReviewReportReason reason,
+
+            @Schema(description = "신고 일시", example = "2026-07-20T15:00:00")
+            LocalDateTime createdAt
     ) {}
 }

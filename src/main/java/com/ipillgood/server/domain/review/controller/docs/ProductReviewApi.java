@@ -600,4 +600,321 @@ public interface ProductReviewApi {
             )
             Long reviewId
     );
+
+    @Operation(
+            summary = "후기 도움됨 등록",
+            description = "다른 회원이 작성한 후기에 도움됨을 표시합니다. "
+                    + "한 회원은 같은 후기에 도움됨을 한 번만 표시할 수 있으며, 이미 표시한 상태에서 다시 요청하면 409를 반환합니다. "
+                    + "본인이 작성한 후기에는 표시할 수 없습니다. "
+                    + "응답의 helpfulCount는 이번 요청이 반영된 뒤의 값이므로, 목록 화면의 도움됨 수를 이 값으로 갱신하면 됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "도움됨 등록 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW201_2",
+                                              "message": "해당 리뷰에 도움됨을 등록했습니다.",
+                                              "result": {
+                                                "helpful": true,
+                                                "reviewId": 1,
+                                                "helpfulCount": 13
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인이 작성한 후기에 도움됨을 표시하려는 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW403_4",
+                                              "message": "본인이 작성한 후기에 도움됨을 누를 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 후기(REVIEW404_1) 또는 존재하지 않는 회원(MEMBER404_1)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "존재하지 않는 후기",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_1",
+                                                      "message": "해당 후기가 존재하지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "존재하지 않는 회원",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "MEMBER404_1",
+                                                      "message": "회원을 찾을 수 없습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 해당 후기에 도움됨을 표시한 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW409_2",
+                                              "message": "이미 도움됨 이력을 표시한 리뷰입니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewHelpful> createHelpful(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "도움됨을 표시할 후기 ID입니다.",
+                    example = "1"
+            )
+            Long reviewId
+    );
+
+    @Operation(
+            summary = "후기 도움됨 취소",
+            description = "후기에 표시한 도움됨을 취소합니다. "
+                    + "도움됨 이력이 없는 상태에서 취소를 요청하면 404(REVIEW404_2)를 반환합니다. "
+                    + "취소 후에는 같은 후기에 도움됨을 다시 표시할 수 있습니다. "
+                    + "응답의 helpfulCount는 이번 요청이 반영된 뒤의 값이므로, 목록 화면의 도움됨 수를 이 값으로 갱신하면 됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "도움됨 취소 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW200_6",
+                                              "message": "해당 리뷰에 도움됨을 취소했습니다.",
+                                              "result": {
+                                                "helpful": false,
+                                                "reviewId": 1,
+                                                "helpfulCount": 12
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 후기(REVIEW404_1), 도움됨 이력이 없는 경우(REVIEW404_2), "
+                            + "또는 존재하지 않는 회원(MEMBER404_1)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "존재하지 않는 후기",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_1",
+                                                      "message": "해당 후기가 존재하지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "도움됨 이력 없음",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_2",
+                                                      "message": "해당 후기에 도움됨 이력을 남긴 적이 없습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "존재하지 않는 회원",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "MEMBER404_1",
+                                                      "message": "회원을 찾을 수 없습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewHelpful> deleteHelpful(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "도움됨을 취소할 후기 ID입니다.",
+                    example = "1"
+            )
+            Long reviewId
+    );
+
+    @Operation(
+            summary = "후기 신고",
+            description = "다른 회원이 작성한 후기를 신고합니다. "
+                    + "한 회원은 같은 후기를 한 번만 신고할 수 있으며, 이미 신고한 후기를 다시 신고하면 409를 반환합니다. "
+                    + "본인이 작성한 후기는 신고할 수 없습니다. "
+                    + "detail은 선택 항목으로, 생략하거나 null로 보내면 사유만 저장됩니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "후기 신고 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "REVIEW201_3",
+                                              "message": "해당 리뷰를 신고했습니다.",
+                                              "result": {
+                                                "reportId": 1,
+                                                "reviewId": 42,
+                                                "reason": "ABUSE",
+                                                "createdAt": "2026-07-20T15:00:00"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "요청 값 검증 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON400_1",
+                                              "message": "잘못된 요청입니다.",
+                                              "result": {
+                                                "reason": "후기 신고 이유를 선택해 주세요."
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인이 작성한 후기를 신고하려는 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW403_5",
+                                              "message": "본인이 작성한 후기를 신고할 수 없습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않거나 삭제된 후기(REVIEW404_1) 또는 존재하지 않는 회원(MEMBER404_1)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "존재하지 않는 후기",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "REVIEW404_1",
+                                                      "message": "해당 후기가 존재하지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "존재하지 않는 회원",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "MEMBER404_1",
+                                                      "message": "회원을 찾을 수 없습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "이미 해당 후기를 신고한 경우",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "REVIEW409_3",
+                                              "message": "이미 해당 후기를 신고했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<ProductReviewResponse.ReviewReport> createReviewReport(
+            @Parameter(hidden = true)
+            Long memberId,
+            @Parameter(
+                    description = "신고할 후기 ID입니다.",
+                    example = "42"
+            )
+            Long reviewId,
+            @Valid ProductReviewRequest.ReviewReport reqDto
+    );
 }
