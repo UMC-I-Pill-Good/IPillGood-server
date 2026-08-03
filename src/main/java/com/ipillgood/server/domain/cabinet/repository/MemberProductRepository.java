@@ -142,6 +142,7 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
                 mp.id,
                 p.id,
                 p.name,
+                p.mfdsCertified,
                 mp.addedAt,
                 ap.id,
                 count(pi.id),
@@ -155,7 +156,7 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
             where mp.member.id = :memberId
               and mp.deletedAt is null
               and p.deletedAt is null
-            group by mp.id, p.id, p.name, mp.addedAt, ap.id
+            group by mp.id, p.id, p.name, p.mfdsCertified, mp.addedAt, ap.id
             order by mp.addedAt desc
             """)
     List<CabinetProductRow> findActiveCabinetProducts(@Param("memberId") Long memberId);

@@ -161,6 +161,9 @@ public class CabinetResponse {
             @Schema(description = "카드에 표시할 썸네일 이미지 URL")
             String thumbnailImageUrl,
 
+            @Schema(description = "식약처 인증 여부", example = "true")
+            Boolean mfdsCertified,
+
             @Schema(description = "현재 섭취 중인 영양제로 등록되어 있는지 여부", example = "true")
             Boolean isActiveIntake,
 

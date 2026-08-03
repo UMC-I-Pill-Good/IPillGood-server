@@ -153,6 +153,7 @@ public interface CabinetApi {
                                                     "productId": 112,
                                                     "productName": "뉴트리코어 유기농 비타민D 1000IU",
                                                     "thumbnailImageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png",
+                                                    "mfdsCertified": true,
                                                     "isActiveIntake": true,
                                                     "activeProductId": 7,
                                                     "addedAt": "2026-07-01T10:20:00"

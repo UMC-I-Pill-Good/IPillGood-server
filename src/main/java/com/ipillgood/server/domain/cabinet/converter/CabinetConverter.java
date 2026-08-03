@@ -196,6 +196,7 @@ public class CabinetConverter {
                 .productId(row.productId())
                 .productName(row.productName())
                 .thumbnailImageUrl(toThumbnailImageUrl(row, imageUrlResolver))
+                .mfdsCertified(row.mfdsCertified())
                 .isActiveIntake(activeProductId != null)
                 .activeProductId(activeProductId)
                 .addedAt(row.addedAt())

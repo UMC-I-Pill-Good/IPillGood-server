@@ -82,7 +82,7 @@ class CabinetControllerTest {
         insertEffectKeyword(4L, 3L, "항산화");
 
         insertProduct(100L, "비타민 D 제품", "테스트브랜드", null);
-        insertProduct(101L, "멀티비타민 제품", "테스트브랜드", null);
+        insertProduct(101L, "멀티비타민 제품", "테스트브랜드", false, null);
         insertProduct(102L, "삭제된 보유 제품", "테스트브랜드", null);
         insertProduct(103L, "삭제된 상품", "테스트브랜드", "2026-07-01 00:00:00");
         insertProduct(104L, "다른 회원 제품", "테스트브랜드", null);
@@ -449,12 +449,14 @@ class CabinetControllerTest {
                 .andExpect(jsonPath("$.result.products[0].productName").value("멀티비타민 제품"))
                 .andExpect(jsonPath("$.result.products[0].thumbnailImageUrl")
                         .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/other2.png"))
+                .andExpect(jsonPath("$.result.products[0].mfdsCertified").value(false))
                 .andExpect(jsonPath("$.result.products[0].isActiveIntake").value(false))
                 .andExpect(jsonPath("$.result.products[0].activeProductId").doesNotExist())
                 .andExpect(jsonPath("$.result.products[0].addedAt").value("2026-07-21T10:00:00"))
                 .andExpect(jsonPath("$.result.products[1].productName").value("비타민 D 제품"))
                 .andExpect(jsonPath("$.result.products[1].thumbnailImageUrl")
                         .value("https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/2.png"))
+                .andExpect(jsonPath("$.result.products[1].mfdsCertified").value(true))
                 .andExpect(jsonPath("$.result.products[1].isActiveIntake").value(true))
                 .andExpect(jsonPath("$.result.products[1].activeProductId").value(10))
                 .andExpect(jsonPath("$.result.products[1].addedAt").value("2026-07-20T10:00:00"));
@@ -1074,6 +1076,10 @@ class CabinetControllerTest {
     }
 
     private void insertProduct(Long id, String name, String brand, String deletedAt) {
+        insertProduct(id, name, brand, true, deletedAt);
+    }
+
+    private void insertProduct(Long id, String name, String brand, boolean mfdsCertified, String deletedAt) {
         jdbcTemplate.update("""
                         INSERT INTO product (
                             id,
@@ -1086,11 +1092,12 @@ class CabinetControllerTest {
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, '상품 설명', 'https://example.com', true, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, ?, '상품 설명', 'https://example.com', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 name,
                 brand,
+                mfdsCertified,
                 deletedAt
         );
     }
