@@ -2118,16 +2118,21 @@ class IntakeControllerTest {
         assertEquals(1, countActiveScheduleHistories(10L));
     }
 
+    private ResultActions performCheckCompatibility(String token, String memberProductId) throws Exception {
+        var request = get(COMPATIBILITY_CHECKS_URL);
+        if (token != null) {
+            request.header(HttpHeaders.AUTHORIZATION, bearerToken(token));
+        }
+        if (memberProductId != null) {
+            request.param("memberProductId", memberProductId);
+        }
+        return mockMvc.perform(request);
+    }
+
     @Test
     @DisplayName("인증 없이 병용 금기 확인을 요청하면 401을 반환한다")
     void checkCompatibility_withoutToken_returnsUnauthorized() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 8
-                                }
-                                """))
+        performCheckCompatibility(null, "8")
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.isSuccess").value(false));
     }
@@ -2135,14 +2140,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("온보딩을 완료하지 않은 회원은 병용 금기 확인을 요청할 수 없다")
     void checkCompatibility_withoutCompletedOnboarding_returnsForbidden() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(onboardingIncompleteAccessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 8
-                                }
-                                """))
+        performCheckCompatibility(onboardingIncompleteAccessToken, "8")
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE403_1"))
@@ -2150,10 +2148,20 @@ class IntakeControllerTest {
     }
 
     @Test
-    @DisplayName("병용 금기 확인 요청 본문이 없으면 400을 반환한다")
-    void checkCompatibility_withoutBody_returnsBadRequest() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken)))
+    @DisplayName("병용 금기 확인 쿼리 파라미터가 없으면 400을 반환한다")
+    void checkCompatibility_withoutQueryParameter_returnsBadRequest() throws Exception {
+        performCheckCompatibility(accessToken, null)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("INTAKE400_2"))
+                .andExpect(jsonPath("$.result").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "abc", " "})
+    @DisplayName("memberProductId 쿼리 파라미터가 올바르지 않으면 400을 반환한다")
+    void checkCompatibility_withInvalidMemberProductId_returnsBadRequest(String memberProductId) throws Exception {
+        performCheckCompatibility(accessToken, memberProductId)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE400_2"))
@@ -2161,46 +2169,26 @@ class IntakeControllerTest {
     }
 
     @Test
-    @DisplayName("memberProductId가 없으면 400을 반환한다")
-    void checkCompatibility_withoutMemberProductId_returnsBadRequest() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.isSuccess").value(false))
-                .andExpect(jsonPath("$.code").value("INTAKE400_2"))
-                .andExpect(jsonPath("$.result").doesNotExist());
-    }
-
-    @Test
-    @DisplayName("memberProductId가 1 미만이면 400을 반환한다")
-    void checkCompatibility_withInvalidMemberProductId_returnsBadRequest() throws Exception {
+    @DisplayName("POST로 병용 금기 확인을 요청하면 405를 반환한다")
+    void checkCompatibility_withPostMethod_returnsMethodNotAllowed() throws Exception {
         mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
                         .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
                         .contentType("application/json")
                         .content("""
                                 {
-                                  "memberProductId": 0
+                                  "memberProductId": 8
                                 }
                                 """))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.isSuccess").value(false))
-                .andExpect(jsonPath("$.code").value("INTAKE400_2"))
+                .andExpect(jsonPath("$.code").value("COMMON405_1"))
                 .andExpect(jsonPath("$.result").doesNotExist());
     }
 
     @Test
     @DisplayName("등록 대상 캐비닛 상품이 현재 회원의 활성 보유 상품이 아니면 404를 반환한다")
     void checkCompatibility_withUnavailableTarget_returnsNotFound() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 6
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "6")
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE404_1"))
@@ -2210,14 +2198,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("등록 대상 캐비닛 상품이 삭제되었으면 404를 반환한다")
     void checkCompatibility_withDeletedCabinetProduct_returnsNotFound() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 4
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "4")
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE404_1"))
@@ -2227,14 +2208,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("등록 대상 상품이 삭제되었으면 404를 반환한다")
     void checkCompatibility_withDeletedProduct_returnsNotFound() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 5
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "5")
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE404_1"))
@@ -2244,14 +2218,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("등록 대상 캐비닛 상품이 없으면 404를 반환한다")
     void checkCompatibility_withUnknownTarget_returnsNotFound() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 999
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "999")
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE404_1"))
@@ -2265,14 +2232,7 @@ class IntakeControllerTest {
         insertMemberProduct(50L, MEMBER_ID, 100L, "2026-07-01 10:00:00", currentDate + " 12:00:00");
         insertMemberActiveProduct(40L, 50L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
 
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 1
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "1")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE409_1"))
@@ -2286,14 +2246,7 @@ class IntakeControllerTest {
         LocalDate currentDate = currentDate();
         insertMemberActiveProduct(40L, 9L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
 
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 9
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "9")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE409_3"))
@@ -2308,14 +2261,7 @@ class IntakeControllerTest {
         LocalDate currentDate = currentDate();
         insertMemberActiveProduct(40L, 8L, MEMBER_ID, currentDate.toString(), "2026-07-01 09:00:00");
 
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 8
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "8")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("INTAKE409_3"))
@@ -2326,14 +2272,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("활성 섭취 중 상품과 등록 대상 상품의 주의/금기 성분 조합을 조회한다")
     void checkCompatibility_withConflicts_returnsWarningsOnly() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 8
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "8")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
@@ -2360,14 +2299,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("병용 금기 조합이 없으면 빈 목록을 반환한다")
     void checkCompatibility_withNoMatchingConflicts_returnsEmptyConflicts() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(accessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 9
-                                }
-                                """))
+        performCheckCompatibility(accessToken, "9")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.hasConflicts").value(false))
@@ -2377,14 +2309,7 @@ class IntakeControllerTest {
     @Test
     @DisplayName("현재 활성 섭취 중 상품이 없으면 빈 목록을 반환한다")
     void checkCompatibility_withNoActiveProducts_returnsEmptyConflicts() throws Exception {
-        mockMvc.perform(post(COMPATIBILITY_CHECKS_URL)
-                        .header(HttpHeaders.AUTHORIZATION, bearerToken(emptyMemberAccessToken))
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                  "memberProductId": 16
-                                }
-                                """))
+        performCheckCompatibility(emptyMemberAccessToken, "16")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.hasConflicts").value(false))

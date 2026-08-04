@@ -128,12 +128,12 @@ public class IntakeController implements IntakeApi {
     }
 
     @Override
-    @PostMapping("/compatibility-checks")
+    @GetMapping("/compatibility-checks")
     public ApiResponse<IntakeResponse.CompatibilityCheck> checkCompatibility(
             @AuthenticationPrincipal Long memberId,
-            @RequestBody(required = false) IntakeRequest.CompatibilityCheck request
+            @RequestParam(required = false) String memberProductId
     ) {
-        IntakeResponse.CompatibilityCheck response = intakeService.checkCompatibility(memberId, request);
+        IntakeResponse.CompatibilityCheck response = intakeService.checkCompatibility(memberId, memberProductId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 }
