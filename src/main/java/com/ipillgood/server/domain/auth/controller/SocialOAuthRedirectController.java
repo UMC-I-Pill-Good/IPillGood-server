@@ -143,6 +143,7 @@ public class SocialOAuthRedirectController implements SocialOAuthRedirectApi {
             // 3. 신규 가입자 -> 회원가입 필요
             case SIGNUP_REQUIRED -> UriComponentsBuilder.fromUriString(frontendCallbackUrl)
                     .queryParam("socialSignupToken", result.socialSignupToken())
+                    .queryParam("provider", provider.name().toLowerCase())
                     .build()
                     .toUriString();
         };

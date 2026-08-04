@@ -153,7 +153,7 @@ class SocialOAuthRedirectControllerTest {
     }
 
     @Test
-    @DisplayName("소셜 계정도 같은 이메일 회원도 없으면 socialSignupToken 쿼리로 리다이렉트한다")
+    @DisplayName("소셜 계정도 같은 이메일 회원도 없으면 socialSignupToken과 provider 쿼리로 리다이렉트한다")
     void kakaoCallback_redirectsWithSignupTokenForNewUser() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/v1/auth/kakao/callback")
                         .param("code", "any-code")
@@ -165,6 +165,7 @@ class SocialOAuthRedirectControllerTest {
         String location = result.getResponse().getRedirectedUrl();
         assertTrue(location.startsWith(frontendCallbackUrl));
         assertTrue(location.contains("socialSignupToken="));
+        assertTrue(location.contains("provider=kakao"));
     }
 
     @Test

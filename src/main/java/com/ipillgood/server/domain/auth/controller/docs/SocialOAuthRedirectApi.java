@@ -31,7 +31,7 @@ public interface SocialOAuthRedirectApi {
                     - 로그인 성공(기존 연동 회원): refreshToken을 httpOnly 쿠키로 심고 프론트 콜백 URL로 리다이렉트(쿼리 없음).
                       accessToken은 이 응답에 없습니다 - 프론트가 도착 즉시 POST /auth/reissue를 호출해 받습니다.
                     - 계정 연동 필요(같은 이메일의 기존 회원 존재): 콜백 URL + accountLinkToken + provider 쿼리로 리다이렉트.
-                    - 회원가입 필요(완전 신규): 콜백 URL + socialSignupToken 쿼리로 리다이렉트. 이 시점엔 계정을 생성하지 않습니다.
+                    - 회원가입 필요(완전 신규): 콜백 URL + socialSignupToken + provider 쿼리로 리다이렉트. 이 시점엔 계정을 생성하지 않습니다.
                     - 실패: 콜백 URL + error(에러 코드) 쿼리로 리다이렉트. (AUTH400_13 state 불일치, AUTH400_14 사용자 취소,
                       AUTH400_7 카카오 인증 실패, AUTH400_10 이메일 확인 불가, AUTH400_12 닉네임 확인 불가)
                     """)
