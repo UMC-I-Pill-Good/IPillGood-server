@@ -59,6 +59,7 @@ public interface AuthApi {
                     이메일/닉네임은 요청으로 받지 않습니다 - 콜백이 조회해 socialSignupToken에 연결해둔 값을 그대로 씁니다.
                     회원가입과 동시에 로그인 처리됩니다. (accessToken은 Body로, refreshToken은 httpOnly 쿠키로 발급)
                     socialSignupToken이 만료·위조·이미 사용됐거나 provider가 KAKAO가 아니면 실패합니다. (AUTH401_3)
+                    콜백 후 약관 동의 화면에 있는 동안 같은 이메일로 가입이 된 경우 가입에 실패합니다.
                     """)
     ApiResponse<AuthResponse.SocialSignUp> kakaoSignUp(@Valid AuthRequest.SocialSignUp request,
                                                        HttpServletResponse response);

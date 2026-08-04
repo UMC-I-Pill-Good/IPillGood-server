@@ -283,6 +283,21 @@ class SocialAuthServiceTest {
     }
 
     @Test
+    @DisplayName("토큰 발급~소비 사이 같은 이메일로 다른 가입이 끝났으면 회원가입에 실패한다")
+    void signUp_throwsWhenEmailAlreadyExists() {
+        String socialSignupToken = issueSignupToken(SocialProvider.KAKAO);
+
+        // 콜백 시점엔 없었지만, 그 사이 같은 이메일로 다른 가입(로컬)이 끝난 상황을 재현
+        saveLocalMember();
+
+        AuthException exception = assertThrows(AuthException.class,
+                () -> socialAuthService.signUp(SocialProvider.KAKAO, signUpRequest(socialSignupToken),
+                        new MockHttpServletResponse()));
+
+        assertEquals(AuthErrorCode.DUPLICATE_EMAIL.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
     @DisplayName("임시 토큰으로 기존 회원에 소셜 계정을 연동하고 로그인 토큰을 발급한다")
     void link_linksAccountAndIssuesTokens() {
         Member member = saveLocalMember();

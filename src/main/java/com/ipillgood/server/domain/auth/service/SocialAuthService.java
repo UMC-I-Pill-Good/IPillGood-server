@@ -116,12 +116,18 @@ public class SocialAuthService {
             throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_ALREADY_EXISTS);
         }
 
-        // 4. 회원 + 소셜 계정 저장 후 약관 동의 이력 저장
+        // 4. 콜백 시점엔 신규 사용자로 판단됐지만, 약관 동의 화면에서 같은 이메일로 먼저 가입이 완료됐는지 확인
+        // 중복 이메일로 가입 시 DB 유니크 제약 위반 (COMMON500_1)
+        if (memberService.findByEmail(pending.email()).isPresent()) {
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
+
+        // 5. 회원 생성 + 소셜 계정 저장 후 약관 동의 이력 저장 (이메일 중복 검사 + 소셜 계정 중복 검사 완료한 상태)
         Member member = memberService.createSocialMember(
                 pending.email(), pending.nickname(), provider, pending.providerUserId());
         policyService.agreeToPolicies(member, request.policyAgreements());
 
-        // 5. 가입과 동시에 로그인 처리 - 신규 세션(기기) 발급 후 토큰 발급
+        // 6. 가입과 동시에 로그인 처리 - 신규 세션(기기) 발급 후 토큰 발급
         String role = member.getRole().name();
         String sessionId = jwtProvider.generateSessionId();
         String accessToken = jwtProvider.createAccessToken(member.getId(), role, sessionId);
