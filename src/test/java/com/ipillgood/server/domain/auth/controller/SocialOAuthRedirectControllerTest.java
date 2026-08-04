@@ -212,6 +212,20 @@ class SocialOAuthRedirectControllerTest {
     }
 
     @Test
+    @DisplayName("error도 code도 없으면 error=AUTH400_7로 리다이렉트하고 토큰 교환을 시도하지 않는다")
+    void kakaoCallback_redirectsWithAuthFailedError_whenCodeMissing() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/auth/kakao/callback")
+                        .param("state", STATE)
+                        // code 파라미터를 아예 안 보냄
+                        .cookie(new Cookie(CookieUtil.OAUTH_STATE_COOKIE_NAME, STATE)))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        String location = result.getResponse().getRedirectedUrl();
+        assertTrue(location.contains("error=AUTH400_7"));
+    }
+
+    @Test
     @DisplayName("이메일을 확인할 수 없으면 error=AUTH400_10으로 리다이렉트한다")
     void kakaoCallback_redirectsWithEmailNotFoundError() throws Exception {
         FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, null, NICKNAME));

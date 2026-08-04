@@ -120,7 +120,14 @@ public class SocialOAuthRedirectController implements SocialOAuthRedirectApi {
             throw new AuthException(AuthErrorCode.SOCIAL_LOGIN_CANCELLED);
         }
 
-        // 4. 2·3번 조건을 통과한 경우 4갈래 판정(로그인 성공/연동/가입 필요/실패) 진행
+        // 3-1. error도 없는데 code까지 없는 이상한 콜백 요청 - 바로 실패 처리(불필요한 토큰 교환 요청 X)
+        if (!StringUtils.hasText(code)) {
+            throw new AuthException(provider == SocialProvider.KAKAO
+                    ? AuthErrorCode.KAKAO_AUTH_FAILED
+                    : AuthErrorCode.NAVER_AUTH_FAILED);
+        }
+
+        // 4. 2·3·3-1번 조건을 통과한 경우 4갈래 판정(로그인 성공/연동/가입 필요/실패) 진행
         SocialCallbackResult result = socialAuthService.handleCallback(provider, code, state, response);
 
         // 5. 전부 통과한 단계. result(로그인 성공/연동/가입 필요)를 실제 리다이렉트 URL로 바꿔 응답 보냄
