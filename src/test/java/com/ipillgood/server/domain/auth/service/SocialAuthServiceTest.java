@@ -17,6 +17,7 @@ import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
 import com.ipillgood.server.domain.policy.dto.PolicyRequest;
+import com.ipillgood.server.domain.policy.exception.PolicyException;
 import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
 import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
 import com.ipillgood.server.global.security.jwt.CookieUtil;
@@ -295,6 +296,23 @@ class SocialAuthServiceTest {
                         new MockHttpServletResponse()));
 
         assertEquals(AuthErrorCode.DUPLICATE_EMAIL.getCode(), exception.getCode().getCode());
+    }
+
+    @Test
+    @DisplayName("필수 약관에 동의하지 않으면 토큰이 소비되지 않아 같은 토큰으로 재시도할 수 있다")
+    void signUp_keepsTokenWhenRequiredAgreementMissing() {
+        String socialSignupToken = issueSignupToken(SocialProvider.KAKAO);
+
+        // 필수 약관 미동의 요청 (agreements 비어있음 -> REQUIRED_TERMS_NOT_AGREED)
+        AuthRequest.SocialSignUp invalidRequest = new AuthRequest.SocialSignUp(socialSignupToken, List.of());
+
+        assertThrows(PolicyException.class, () -> socialAuthService.signUp(
+                SocialProvider.KAKAO, invalidRequest, new MockHttpServletResponse()));
+
+        // 토큰이 그대로 살아있으므로, 약관을 고쳐 같은 토큰으로 다시 제출하면 정상적으로 가입된다
+        AuthResponse.SocialSignUp response = socialAuthService.signUp(
+                SocialProvider.KAKAO, signUpRequest(socialSignupToken), new MockHttpServletResponse());
+        assertNotNull(response.memberId());
     }
 
     @Test
