@@ -807,20 +807,6 @@ public interface IntakeApi {
             description = "새로 등록하려는 영양제와 현재 섭취 중 영양제 간 주의 또는 금기 성분 조합을 확인합니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
-    @RequestBody(
-            required = true,
-            description = "섭취 중으로 등록하려는 회원 캐비닛 상품 ID를 전달합니다.",
-            content = @Content(
-                    schema = @Schema(implementation = IntakeRequest.CompatibilityCheck.class),
-                    examples = @ExampleObject(
-                            value = """
-                                    {
-                                      "memberProductId": 16
-                                    }
-                                    """
-                    )
-            )
-    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
@@ -920,6 +906,11 @@ public interface IntakeApi {
     ApiResponse<IntakeResponse.CompatibilityCheck> checkCompatibility(
             @Parameter(hidden = true)
             Long memberId,
-            IntakeRequest.CompatibilityCheck request
+            @Parameter(
+                    required = true,
+                    description = "섭취 중으로 등록하려는 회원 캐비닛 상품 ID",
+                    schema = @Schema(type = "integer", format = "int64", example = "16")
+            )
+            String memberProductId
     );
 }

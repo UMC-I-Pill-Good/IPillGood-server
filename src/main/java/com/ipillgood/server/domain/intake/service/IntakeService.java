@@ -450,14 +450,14 @@ public class IntakeService {
 
     public IntakeResponse.CompatibilityCheck checkCompatibility(
             Long memberId,
-            IntakeRequest.CompatibilityCheck request
+            String memberProductId
     ) {
         Member member = getMember(memberId);
         validateOnboardingCompleted(member);
 
-        Long memberProductId = validateCompatibilityCheckRequest(request);
+        Long parsedMemberProductId = validateCompatibilityCheckMemberProductId(memberProductId);
         MemberProduct targetMemberProduct = memberProductRepository
-                .findActiveIntakeRegistrationTarget(memberId, memberProductId)
+                .findActiveIntakeRegistrationTarget(memberId, parsedMemberProductId)
                 .orElseThrow(() -> new IntakeException(IntakeErrorCode.REGISTRATION_TARGET_NOT_FOUND));
         validateNotAlreadyActive(memberId, targetMemberProduct.getId());
         validateNotStoppedToday(memberId, targetMemberProduct, currentDate());
@@ -808,11 +808,19 @@ public class IntakeService {
         }
     }
 
-    private Long validateCompatibilityCheckRequest(IntakeRequest.CompatibilityCheck request) {
-        if (request == null || request.memberProductId() == null || request.memberProductId() < 1) {
+    private Long validateCompatibilityCheckMemberProductId(String memberProductId) {
+        if (memberProductId == null || memberProductId.isBlank()) {
             throw new IntakeException(IntakeErrorCode.REGISTRATION_REQUEST_INVALID);
         }
-        return request.memberProductId();
+        try {
+            long parsedMemberProductId = Long.parseLong(memberProductId.trim());
+            if (parsedMemberProductId < 1) {
+                throw new IntakeException(IntakeErrorCode.REGISTRATION_REQUEST_INVALID);
+            }
+            return parsedMemberProductId;
+        } catch (NumberFormatException e) {
+            throw new IntakeException(IntakeErrorCode.REGISTRATION_REQUEST_INVALID);
+        }
     }
 
     private Long validateActiveProductId(String activeProductId) {
