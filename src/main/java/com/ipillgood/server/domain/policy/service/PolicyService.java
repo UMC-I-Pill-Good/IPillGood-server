@@ -63,6 +63,27 @@ public class PolicyService {
     }
 
     /**
+     * 소셜 회원가입 시 토큰 제거에 앞서, 회원이 제출한 약관 동의 목록 확인을 먼저 진행
+     * 약관 동의 검증에 문제가 없는 경우(필수 약관/빈 값 등) 토큰 제거로 이어짐
+     */
+    @Transactional(readOnly = true)
+    public void validateAgreements(List<PolicyRequest.Agreement> agreements) {
+
+        // 약관 목록이 아예 비어있는 경우 차단
+        if (agreements == null || agreements.isEmpty()) {
+            throw new PolicyException(PolicyErrorCode.REQUIRED_TERMS_NOT_AGREED);
+        }
+
+        Map<Long, Boolean> agreedByDocument = toAgreementMap(agreements);
+
+        // 약관들이 전부 활성 문서인지 확인
+        findActiveDocuments(agreedByDocument.keySet());
+
+        // 필수 약관 동의 확인
+        validateRequiredAgreements(agreedByDocument);
+    }
+
+    /**
      * 로컬/소셜 회원가입 시 실행하는 메서드
      * 제출한 약관 동의 목록 검증 + 동의 이력 저장 (약관 처리의 단일 진입점)
      * agreeToPolicies는 member의 signUp 트랜잭션에 묶여 있음

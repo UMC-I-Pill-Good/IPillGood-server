@@ -19,7 +19,7 @@ class CookieUtilTest {
     @BeforeEach
     void setUp() {
         cookieUtil = new CookieUtil();
-        ReflectionTestUtils.setField(cookieUtil, "sameSite", "None");
+        ReflectionTestUtils.setField(cookieUtil, "refreshTokenSameSite", "None");
     }
 
     @Test
@@ -45,6 +45,32 @@ class CookieUtilTest {
         cookieUtil.clearRefreshTokenCookie(response);
 
         Cookie cookie = response.getCookie(CookieUtil.REFRESH_TOKEN_COOKIE_NAME);
+        assertEquals(0, cookie.getMaxAge());
+    }
+
+    @Test
+    @DisplayName("oauth_state 쿠키를 httpOnly/secure/SameSite=Lax로 설정하고 5분 TTL을 담는다")
+    void setOauthStateCookie_setsExpectedAttributes() {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        cookieUtil.setOauthStateCookie(response, "sample-state");
+
+        Cookie cookie = response.getCookie(CookieUtil.OAUTH_STATE_COOKIE_NAME);
+        assertEquals("sample-state", cookie.getValue());
+        assertTrue(cookie.isHttpOnly());
+        assertTrue(cookie.getSecure());
+        assertEquals("/", cookie.getPath());
+        assertEquals((int) Duration.ofMinutes(5).toSeconds(), cookie.getMaxAge());
+    }
+
+    @Test
+    @DisplayName("oauth_state 쿠키 삭제 시 Max-Age를 0으로 설정해 즉시 만료시킨다")
+    void clearOauthStateCookie_expiresImmediately() {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        cookieUtil.clearOauthStateCookie(response);
+
+        Cookie cookie = response.getCookie(CookieUtil.OAUTH_STATE_COOKIE_NAME);
         assertEquals(0, cookie.getMaxAge());
     }
 }

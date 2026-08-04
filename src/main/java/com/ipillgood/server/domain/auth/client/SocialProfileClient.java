@@ -15,10 +15,16 @@ public interface SocialProfileClient {
 
     /**
      * 액세스 토큰으로 소셜 제공자로부터 사용자 정보 조회
-     * 소셜 로그인/소셜 회원가입/소셜 계정 연동 3가지 상황에서 실행
      * 토큰이 만료·위조됐거나 우리 앱에서 발급된 것이 아니면 AuthException을 던짐
      */
     SocialProfile fetch(String providerAccessToken);
+
+    /**
+     * 인가 코드로 소셜 제공자로부터 사용자 정보 조회
+     * 콜백에서 받은 code를 access_token으로 교환한 뒤 fetch(String)에 위임
+     * state는 네이버 토큰 교환에만 필요(카카오 사용하지 않음)
+     */
+    SocialProfile fetchByCode(String code, String state);
 
     // 회원 닉네임 컬럼 길이
     int NICKNAME_MAX_LENGTH = 10;

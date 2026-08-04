@@ -57,22 +57,13 @@ public class AuthRequest {
     }
 
     /**
-     * 소셜 로그인 요청
-     * 이메일은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회함
-     */
-    public record SocialLogin(
-            @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
-            String providerAccessToken
-    ) {
-    }
-
-    /**
      * 소셜 회원가입 요청
-     * 닉네임은 클라이언트에게 받지 않고 서버가 소셜 제공자에게 직접 조회
+     * 이메일/닉네임은 클라이언트에게 받지 않음
+     * Redis에 저장한 데이터에 접근할 수 있는 임시 토큰 문자열 키 (socialSignupToken)
      */
     public record SocialSignUp(
-            @NotBlank(message = "소셜 액세스 토큰이 필요합니다.")
-            String providerAccessToken,
+            @NotBlank(message = "소셜 회원가입 토큰이 필요합니다.")
+            String socialSignupToken,
 
             // 약관 동의 목록
             @NotNull(message = "약관 동의 정보가 필요합니다.")

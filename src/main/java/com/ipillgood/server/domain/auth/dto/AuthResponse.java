@@ -36,26 +36,8 @@ public class AuthResponse {
     }
 
     /**
-     * 소셜 로그인 응답
-     * - 로그인 성공: 토큰 필드
-     * - 가입 필요: signupRequired
-     * - 연동 필요: accountLinkRequired + accountLinkToken
-     */
-    @Builder
-    public record SocialLogin(
-            Boolean signupRequired,
-            Boolean accountLinkRequired,
-            String accountLinkToken,
-            String accessToken,
-            String tokenType,
-            Long expiresIn,
-            Long memberId,
-            Boolean onboardingCompleted
-    ) {
-    }
-
-    /**
      * 소셜 회원가입 응답
+     * 회원가입과 동시에 로그인 처리되므로 로그인 토큰을 함께 담음
      */
     @Builder
     public record SocialSignUp(
@@ -65,7 +47,10 @@ public class AuthResponse {
             String email,
             String profileImageUrl,
             Boolean onboardingCompleted,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            String accessToken,
+            String tokenType,
+            Long expiresIn
     ) {
     }
 

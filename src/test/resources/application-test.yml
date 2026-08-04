@@ -19,3 +19,11 @@ spring:
 # 테스트용 시크릿 키 (Base64, 32바이트 이상)
 jwt:
   secret-key: YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=
+
+social:
+  kakao:
+    client-id: test-kakao-client-id
+    client-secret: test-kakao-client-secret
+  naver:
+    client-id: test-naver-client-id
+    client-secret: test-naver-client-secret
