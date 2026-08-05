@@ -2,6 +2,7 @@ package com.ipillgood.server.domain.recommendation.service;
 
 import com.ipillgood.server.domain.ingredient.entity.EffectKeyword;
 import com.ipillgood.server.domain.ingredient.repository.EffectKeywordRepository;
+import com.ipillgood.server.domain.member.entity.Member;
 import com.ipillgood.server.domain.recommendation.code.RecommendationErrorCode;
 import com.ipillgood.server.domain.recommendation.converter.RecommendationConverter;
 import com.ipillgood.server.domain.recommendation.dto.RecommendationResponse;
@@ -12,6 +13,7 @@ import com.ipillgood.server.domain.recommendation.event.RecommendationGeneration
 import com.ipillgood.server.domain.recommendation.exception.RecommendationException;
 import com.ipillgood.server.domain.recommendation.repository.RecommendationItemRepository;
 import com.ipillgood.server.domain.recommendation.repository.RecommendationRepository;
+import com.ipillgood.server.domain.survey.entity.enums.SurveySubmissionType;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
 import com.ipillgood.server.global.s3.S3Service;
@@ -63,6 +65,22 @@ public class RecommendationService {
         eventPublisher.publishEvent(new RecommendationGenerationRequestedEvent(recommendation.getId()));
 
         return RecommendationConverter.toRetry(recommendation);
+    }
+
+    @Transactional
+    public RecommendationResponse.Confirm confirm(Long memberId, Long recommendationId) {
+        Recommendation recommendation = getOwnedRecommendation(memberId, recommendationId);
+        if (recommendation.getStatus() != RecommendationStatus.SUCCESS) {
+            throw new RecommendationException(RecommendationErrorCode.NOT_CONFIRMABLE_STATUS);
+        }
+
+        Member member = recommendation.getMember();
+        if (recommendation.getSurveyResponse().getSubmissionType() == SurveySubmissionType.INITIAL
+                && member.getOnboardingCompletedAt() == null) {
+            member.completeOnboarding(LocalDateTime.now());
+        }
+
+        return RecommendationConverter.toConfirm(recommendation);
     }
 
     private Recommendation getOwnedRecommendation(Long memberId, Long recommendationId) {

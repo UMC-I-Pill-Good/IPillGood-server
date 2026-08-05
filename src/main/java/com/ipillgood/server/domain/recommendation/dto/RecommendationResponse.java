@@ -79,4 +79,15 @@ public class RecommendationResponse {
             LocalDateTime startedAt
     ) {
     }
+
+    @Schema(description = "추천 결과 확인 처리 응답")
+    @Builder
+    public record Confirm(
+            @Schema(description = "확인 처리된 추천 ID", example = "1")
+            Long recommendationId,
+
+            @Schema(description = "온보딩 완료 여부", example = "true")
+            boolean onboardingCompleted
+    ) {
+    }
 }

@@ -360,4 +360,128 @@ public interface RecommendationControllerDocs {
             Long memberId,
             @Parameter(description = "추천 ID", required = true) Long recommendationId
     );
+
+    @Operation(
+            summary = "추천 결과 확인 처리",
+            description = "사용자가 추천 결과 화면을 확인했을 때 호출합니다. "
+                    + "SUCCESS 상태의 최초(INITIAL) 설문 기반 추천인 경우 온보딩을 완료 처리하며, 재호출해도 idempotent하게 동작합니다."
+    )
+    @SecurityRequirement(name = "JWT TOKEN")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "확인 처리 성공",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "성공 응답",
+                                    value = """
+                                            {
+                                              "isSuccess": true,
+                                              "code": "SUCCESS200_1",
+                                              "message": "추천 결과 확인 처리에 성공했습니다.",
+                                              "result": {
+                                                "recommendationId": 1,
+                                                "onboardingCompleted": true
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증이 필요합니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "인증 필요",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON401_1",
+                                              "message": "인증이 필요합니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "본인의 추천 결과만 확인 처리할 수 있습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "타인의 추천 결과 요청",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "RECOMMENDATION403_1",
+                                              "message": "본인의 추천 결과만 접근할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "요청한 리소스를 찾을 수 없습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "존재하지 않는 추천",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON404_1",
+                                              "message": "요청한 리소스를 찾을 수 없습니다",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "확인 처리할 수 없는 추천 상태입니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "확인 불가 상태",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "RECOMMENDATION409_4",
+                                              "message": "확인 처리할 수 없는 추천 상태입니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "서버 내부 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "서버 오류",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "COMMON500_1",
+                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ApiResponse<RecommendationResponse.Confirm> confirmRecommendation(
+            Long memberId,
+            @Parameter(description = "추천 ID", required = true) Long recommendationId
+    );
 }

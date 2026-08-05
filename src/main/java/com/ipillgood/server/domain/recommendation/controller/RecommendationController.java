@@ -42,4 +42,12 @@ public class RecommendationController implements RecommendationControllerDocs {
         RecommendationResponse.Retry response = recommendationService.retry(memberId, recommendationId);
         return ApiResponse.onSuccess(RecommendationSuccessCode.RECOMMENDATION_RETRY_SUCCESS, response);
     }
+
+    @Override
+    @PostMapping("/{recommendationId}/confirm")
+    public ApiResponse<RecommendationResponse.Confirm> confirmRecommendation(@AuthenticationPrincipal Long memberId,
+                                                                               @PathVariable Long recommendationId) {
+        RecommendationResponse.Confirm response = recommendationService.confirm(memberId, recommendationId);
+        return ApiResponse.onSuccess(RecommendationSuccessCode.RECOMMENDATION_CONFIRM_SUCCESS, response);
+    }
 }

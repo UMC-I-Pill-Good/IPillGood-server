@@ -17,7 +17,6 @@ import com.ipillgood.server.domain.survey.entity.SurveyResponse;
 import com.ipillgood.server.domain.survey.entity.enums.DrinkingStatus;
 import com.ipillgood.server.domain.survey.entity.enums.OnboardingConcernCode;
 import com.ipillgood.server.domain.survey.entity.enums.SmokingStatus;
-import com.ipillgood.server.domain.survey.entity.enums.SurveySubmissionType;
 import com.ipillgood.server.domain.survey.repository.SurveyContraindicationSelectionRepository;
 import com.ipillgood.server.domain.survey.repository.SurveyCurrentIngredientSelectionRepository;
 import com.ipillgood.server.domain.survey.repository.SurveyOnboardingConcernSelectionRepository;
@@ -160,10 +159,6 @@ public class RecommendationGenerationTransactionService {
 
         LocalDateTime completedAt = LocalDateTime.now();
         recommendation.markSuccess(result.healthSummary(), completedAt);
-
-        if (recommendation.getSurveyResponse().getSubmissionType() == SurveySubmissionType.INITIAL) {
-            recommendation.getMember().completeOnboarding(completedAt);
-        }
 
         recommendationFeedbackCycleRepository.save(RecommendationFeedbackCycle.builder()
                 .member(recommendation.getMember())
