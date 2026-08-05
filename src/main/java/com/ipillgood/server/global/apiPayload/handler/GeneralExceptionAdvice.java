@@ -1,48 +1,54 @@
 package com.ipillgood.server.global.apiPayload.handler;
 
-import jakarta.validation.ConstraintViolationException;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
 import com.ipillgood.server.global.apiPayload.code.BaseErrorCode;
 import com.ipillgood.server.global.apiPayload.code.GeneralErrorCode;
 import com.ipillgood.server.global.apiPayload.exception.GeneralException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
 
     // 프로젝트에서 발생한 예외 처리
     @ExceptionHandler(GeneralException.class)
-    public ResponseEntity<ApiResponse<Void>> handleGeneralException(GeneralException e
+    public ResponseEntity<ApiResponse<Void>> handleGeneralException(GeneralException e,
+                                                                    HttpServletRequest request
     ) {
         BaseErrorCode errorCode = e.getCode();
+        logException(request, errorCode.getStatus(), errorCode, e);
         return ResponseEntity.status(errorCode.getStatus())
                 .body(ApiResponse.onFailure(errorCode, null));
     }
 
     // 그 외의 정의되지 않은 모든 예외 처리
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<String>> handleException(
-            Exception ex
+    public ResponseEntity<ApiResponse<Void>> handleException(
+            Exception ex, HttpServletRequest request
     ) {
         BaseErrorCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
+        logException(request, code.getStatus(), code, ex);
         return ResponseEntity.status(code.getStatus())
-                .body(ApiResponse.onFailure(
-                                code,
-                                ex.getMessage()
-                        )
-                );
+                .body(ApiResponse.onFailure(code, null));
     }
 
     // @Valid 어노테이션 검증 실패 예외
@@ -58,6 +64,7 @@ public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
             errors.put(field, error.getDefaultMessage());
         });
         BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        logException(toServletRequest(request), code.getStatus(), code, e);
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, errors));
     }
@@ -81,6 +88,7 @@ public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
         );
 
         BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        logException(toServletRequest(request), code.getStatus(), code, e);
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, errors));
     }
@@ -88,7 +96,7 @@ public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
     // @Validated + @RequestParam, @PathVariable 등 검증 실패 예외
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleConstraintViolationException(
-            ConstraintViolationException e
+            ConstraintViolationException e, HttpServletRequest request
     ) {
         Map<String, String> errors = new HashMap<>();
         e.getConstraintViolations().forEach(violation ->
@@ -96,6 +104,7 @@ public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
         );
 
         BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        logException(request, code.getStatus(), code, e);
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, errors));
     }
@@ -107,12 +116,14 @@ public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
             HttpStatusCode statusCode, WebRequest request
     ) {
         HttpStatus status = HttpStatus.valueOf(statusCode.value());
-        return new ResponseEntity<>(toApiResponse(status), headers, statusCode);
+        BaseErrorCode code = toErrorCode(status);
+        logException(toServletRequest(request), status, code, ex);
+        return new ResponseEntity<>(ApiResponse.onFailure(code, null), headers, statusCode);
     }
 
     // status에 해당하는 에러 코드로 변환 (매핑이 없으면 서버 에러로 처리)
-    private ApiResponse<Void> toApiResponse(HttpStatus status) {
-        BaseErrorCode code = switch (status) {
+    private BaseErrorCode toErrorCode(HttpStatus status) {
+        return switch (status) {
             case BAD_REQUEST -> GeneralErrorCode.BAD_REQUEST;
             case UNAUTHORIZED -> GeneralErrorCode.UNAUTHORIZED;
             case FORBIDDEN -> GeneralErrorCode.FORBIDDEN;
@@ -122,6 +133,51 @@ public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
             case UNSUPPORTED_MEDIA_TYPE -> GeneralErrorCode.UNSUPPORTED_MEDIA_TYPE;
             default -> GeneralErrorCode.INTERNAL_SERVER_ERROR;
         };
-        return ApiResponse.onFailure(code, null);
+    }
+
+    private void logException(HttpServletRequest request, HttpStatusCode status,
+                              BaseErrorCode code, Exception e
+    ) {
+        if (isIgnorable(status, e)) {
+            return;
+        }
+
+        String summary = "[%d] %s | code=%s | memberId=%s".formatted(
+                status.value(), describeRequest(request), code.getCode(), currentMemberId());
+
+        if (status.is5xxServerError()) {
+            log.error("{} | cause={}", summary, e.toString(), e);
+        } else {
+            log.warn("{} | cause={}", summary, e.toString());
+        }
+    }
+
+    private boolean isIgnorable(HttpStatusCode status, Exception e) {
+        return status.is4xxClientError() && e instanceof NoResourceFoundException;
+    }
+
+    private String describeRequest(HttpServletRequest request) {
+        if (request == null) {
+            return "- -";
+        }
+        String query = request.getQueryString();
+        return "%s %s%s".formatted(
+                request.getMethod(),
+                request.getRequestURI(),
+                query == null ? "" : "?" + query);
+    }
+
+    private String currentMemberId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "anonymous";
+        }
+        return String.valueOf(authentication.getPrincipal());
+    }
+
+    private HttpServletRequest toServletRequest(WebRequest request) {
+        return (request instanceof ServletWebRequest servletWebRequest)
+                ? servletWebRequest.getRequest()
+                : null;
     }
 }

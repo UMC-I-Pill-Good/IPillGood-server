@@ -10,16 +10,20 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ipillgood}
     username: ${DB_USER}
     password: ${DB_PW}
+    hikari:
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
+      data-source-properties:
+        options: "-c statement_timeout=${DB_STATEMENT_TIMEOUT_MS:10000}"
 
   jpa:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${SQL_LOG_FORMAT:false}
+        log_slow_query: ${SLOW_QUERY_THRESHOLD_MS:300}
 
   data:
     redis:
@@ -83,3 +87,8 @@ notification:
 springdoc:
   # 중첩 record가 짧은 이름(예: Request/Response의 Login)으로 충돌해 스키마가 덮어써지는 문제 방지
   use-fqn: true
+
+logging:
+  level:
+    "[org.hibernate.SQL]": ${SQL_LOG_LEVEL:INFO}
+    "[org.hibernate.orm.jdbc.bind]": ${SQL_BIND_LOG_LEVEL:INFO}
