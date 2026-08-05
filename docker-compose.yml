@@ -9,6 +9,14 @@ services:
     expose:
       - "8080"
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-2}
+        awslogs-group: /ipillgood/spring
+        awslogs-create-group: "true"
+        awslogs-stream: spring
+        awslogs-datetime-format: "%Y-%m-%dT%H:%M:%S"
 
   redis:
     image: redis:7-alpine
@@ -30,6 +38,13 @@ services:
     depends_on:
       - spring
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-2}
+        awslogs-group: /ipillgood/nginx
+        awslogs-create-group: "true"
+        awslogs-stream: nginx
 
 volumes:
   redis-data:
