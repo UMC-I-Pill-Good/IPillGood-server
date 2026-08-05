@@ -15,6 +15,7 @@ public enum RecommendationErrorCode implements BaseErrorCode {
     FEEDBACK_CYCLE_FORBIDDEN(HttpStatus.FORBIDDEN, "RECOMMENDATION403_2", "본인의 추천 피드백 사이클만 응답할 수 있습니다."),
     FEEDBACK_CYCLE_ALREADY_RESPONDED(HttpStatus.CONFLICT, "RECOMMENDATION409_2", "이미 응답한 피드백 사이클입니다."),
     FEEDBACK_CYCLE_NOT_DUE(HttpStatus.CONFLICT, "RECOMMENDATION409_3", "아직 응답할 수 없는 피드백 사이클입니다."),
+    NOT_CONFIRMABLE_STATUS(HttpStatus.CONFLICT, "RECOMMENDATION409_4", "확인 처리할 수 없는 추천 상태입니다."),
     ;
 
     private final HttpStatus status;

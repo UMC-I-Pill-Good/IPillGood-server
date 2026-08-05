@@ -66,4 +66,11 @@ public class RecommendationConverter {
                 .startedAt(recommendation.getStartedAt())
                 .build();
     }
+
+    public static RecommendationResponse.Confirm toConfirm(Recommendation recommendation) {
+        return RecommendationResponse.Confirm.builder()
+                .recommendationId(recommendation.getId())
+                .onboardingCompleted(recommendation.getMember().getOnboardingCompletedAt() != null)
+                .build();
+    }
 }
