@@ -14,6 +14,8 @@ RUN ./gradlew clean bootJar --no-daemon -x test
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
+ENV TZ=Asia/Seoul
+
 RUN useradd -r -u 1001 appuser
 COPY --from=builder /workspace/build/libs/*.jar app.jar
 USER appuser
