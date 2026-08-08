@@ -30,6 +30,7 @@ class NotificationDeliveryServiceTest {
 
     private static final LocalDateTime INTAKE_SCHEDULED_AT = LocalDateTime.of(2026, 7, 24, 8, 30);
     private static final LocalDateTime CONDITION_SUNDAY_NOON = LocalDateTime.of(2026, 7, 26, 12, 0);
+    private static final String PUSH_NOTIFICATION_TITLE = "아필굿";
 
     @Autowired
     private NotificationDeliveryService notificationDeliveryService;
@@ -67,10 +68,12 @@ class NotificationDeliveryServiceTest {
         assertEquals(List.of("token-a", "token-b"), pushNotificationClient.sentTokens());
         assertEquals(expectedBody, pushNotificationClient.sentPushes().getFirst().payload().body());
         assertEquals("INTAKE", pushNotificationClient.sentPushes().getFirst().payload().notificationType().name());
+        assertEquals(PUSH_NOTIFICATION_TITLE, pushNotificationClient.sentPushes().getFirst().payload().title());
         assertEquals("/home", pushNotificationClient.sentPushes().getFirst().payload().targetRoute());
         assertEquals(2, countDeliveryLogs());
         assertEquals("SENT", findDeliveryLogStatus(10L));
         assertEquals("SENT", findDeliveryLogStatus(11L));
+        assertEquals(PUSH_NOTIFICATION_TITLE, findDeliveryLogTitle(10L));
         assertEquals(expectedBody, findDeliveryLogBody(10L));
     }
 
@@ -205,10 +208,11 @@ class NotificationDeliveryServiceTest {
         assertEquals(List.of("condition-token"), pushNotificationClient.sentTokens());
         PushNotificationPayload payload = pushNotificationClient.sentPushes().getFirst().payload();
         assertEquals("CONDITION_CHECK", payload.notificationType().name());
-        assertEquals("이번 주 컨디션 체크", payload.title());
+        assertEquals(PUSH_NOTIFICATION_TITLE, payload.title());
         assertEquals("이번 주 컨디션을 기록할 시간이에요.", payload.body());
         assertEquals("/condition", payload.targetRoute());
         assertEquals("SENT", findDeliveryLogStatus(10L));
+        assertEquals(PUSH_NOTIFICATION_TITLE, findDeliveryLogTitle(10L));
     }
 
     @Test
@@ -543,6 +547,14 @@ class NotificationDeliveryServiceTest {
     private String findDeliveryLogBody(Long pushTokenId) {
         return jdbcTemplate.queryForObject(
                 "SELECT body FROM notification_delivery_log WHERE member_push_token_id = ?",
+                String.class,
+                pushTokenId
+        );
+    }
+
+    private String findDeliveryLogTitle(Long pushTokenId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT title FROM notification_delivery_log WHERE member_push_token_id = ?",
                 String.class,
                 pushTokenId
         );
