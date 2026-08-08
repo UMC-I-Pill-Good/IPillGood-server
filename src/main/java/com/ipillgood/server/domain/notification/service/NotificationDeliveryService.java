@@ -30,7 +30,7 @@ public class NotificationDeliveryService {
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final String INTAKE_TARGET_ROUTE = "/home";
     private static final String CONDITION_CHECK_TARGET_ROUTE = "/condition";
-    private static final String CONDITION_CHECK_TITLE = "이번 주 컨디션 체크";
+    private static final String PUSH_NOTIFICATION_TITLE = "아필굿";
     private static final String CONDITION_CHECK_BODY = "이번 주 컨디션을 기록할 시간이에요.";
     private static final int MAX_BODY_LENGTH = 500;
 
@@ -74,7 +74,7 @@ public class NotificationDeliveryService {
             String body = buildIntakeBody(currentTime, entry.getValue());
             PushNotificationPayload payload = new PushNotificationPayload(
                     NotificationType.INTAKE,
-                    null,
+                    PUSH_NOTIFICATION_TITLE,
                     body,
                     INTAKE_TARGET_ROUTE
             );
@@ -93,7 +93,7 @@ public class NotificationDeliveryService {
         List<MemberPushToken> pushTokens = memberPushTokenRepository.findConditionCheckDeliveryTokens(weekStartOn);
         PushNotificationPayload payload = new PushNotificationPayload(
                 NotificationType.CONDITION_CHECK,
-                CONDITION_CHECK_TITLE,
+                PUSH_NOTIFICATION_TITLE,
                 CONDITION_CHECK_BODY,
                 CONDITION_CHECK_TARGET_ROUTE
         );
