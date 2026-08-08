@@ -33,7 +33,7 @@ public interface NotificationApi {
                                               "code": "SUCCESS200_1",
                                               "message": "요청이 성공적으로 처리되었습니다.",
                                               "result": {
-                                                "pushEnabled": true
+                                                "pushEnabled": false
                                               }
                                             }
                                             """
@@ -81,7 +81,7 @@ public interface NotificationApi {
                                               "code": "SUCCESS200_1",
                                               "message": "요청이 성공적으로 처리되었습니다.",
                                               "result": {
-                                                "pushEnabled": true,
+                                                "pushEnabled": false,
                                                 "intakePushEnabled": true,
                                                 "activeProductCount": 2,
                                                 "activeProducts": [
@@ -243,7 +243,7 @@ public interface NotificationApi {
                                               "code": "SUCCESS200_1",
                                               "message": "요청이 성공적으로 처리되었습니다.",
                                               "result": {
-                                                "pushEnabled": true,
+                                                "pushEnabled": false,
                                                 "intakePushEnabled": false
                                               }
                                             }

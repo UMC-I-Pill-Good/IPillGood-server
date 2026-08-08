@@ -30,7 +30,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class NotificationService {
 
-    private static final boolean DEFAULT_PUSH_ENABLED = true;
+    private static final boolean DEFAULT_PUSH_ENABLED = false;
     private static final boolean DEFAULT_INTAKE_PUSH_ENABLED = true;
     private static final int MAX_PUSH_TOKEN_LENGTH = 512;
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");

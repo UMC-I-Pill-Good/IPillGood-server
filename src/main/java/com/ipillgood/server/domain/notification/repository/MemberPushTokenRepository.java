@@ -29,10 +29,10 @@ public interface MemberPushTokenRepository extends JpaRepository<MemberPushToken
             select token
             from MemberPushToken token
             join fetch token.member member
-            left join MemberNotificationSetting setting on setting.member = member
+            join MemberNotificationSetting setting on setting.member = member
             where token.active = true
               and member.onboardingCompletedAt is not null
-              and (setting.memberId is null or setting.pushEnabled = true)
+              and setting.pushEnabled = true
               and not exists (
                   select record.id
                   from ConditionWeeklyRecord record

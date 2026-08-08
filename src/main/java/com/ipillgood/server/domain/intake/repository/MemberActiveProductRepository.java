@@ -71,14 +71,15 @@ public interface MemberActiveProductRepository extends JpaRepository<MemberActiv
             from MemberActiveProduct ap
             join ap.memberProduct mp
             join mp.product p
-            left join MemberNotificationSetting setting on setting.member = ap.member
+            join MemberNotificationSetting setting on setting.member = ap.member
             where ap.startedOn <= :currentDate
               and (ap.stoppedOn is null or :currentDate < ap.stoppedOn)
               and mp.deletedAt is null
               and p.deletedAt is null
               and ap.notificationEnabled = true
               and ap.intakeTime = :currentTime
-              and (setting.memberId is null or (setting.pushEnabled = true and setting.intakePushEnabled = true))
+              and setting.pushEnabled = true
+              and setting.intakePushEnabled = true
               and exists (
                   select token.id
                   from MemberPushToken token
