@@ -18,6 +18,7 @@ import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
 import com.ipillgood.server.domain.policy.dto.PolicyRequest;
 import com.ipillgood.server.domain.policy.exception.PolicyException;
+import com.ipillgood.server.domain.policy.fixture.PolicyFixture;
 import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
 import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
 import com.ipillgood.server.global.security.jwt.CookieUtil;
@@ -104,6 +105,9 @@ class SocialAuthServiceTest {
         memberRepository.deleteAll();
         refreshTokenStore.clear();
 
+        policyDocumentRepository.deleteAll();
+        policyDocumentRepository.saveAll(PolicyFixture.defaultDocuments());
+
         FAKE_CLIENT.setProfile(new SocialProfile(PROVIDER_USER_ID, EMAIL, NICKNAME));
     }
 
@@ -117,7 +121,7 @@ class SocialAuthServiceTest {
                 .build());
     }
 
-    // 시더가 넣어둔 활성 약관 전체에 동의하는 회원가입 요청 (필수 약관이 모두 포함되어 검증을 통과)
+    // 활성 약관 전체에 동의하는 회원가입 요청 (필수 약관이 모두 포함되어 검증을 통과)
     private AuthRequest.SocialSignUp signUpRequest(String socialSignupToken) {
         List<PolicyRequest.Agreement> agreements = policyDocumentRepository.findByActiveTrue().stream()
                 .map(document -> new PolicyRequest.Agreement(document.getId(), true))
