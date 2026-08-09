@@ -66,8 +66,7 @@ public class FirebasePushNotificationClient implements PushNotificationClient {
     }
 
     private static boolean isInvalidRegistrationTokenError(MessagingErrorCode errorCode) {
-        return errorCode == MessagingErrorCode.UNREGISTERED
-                || errorCode == MessagingErrorCode.INVALID_ARGUMENT;
+        return errorCode == MessagingErrorCode.UNREGISTERED;
     }
 
     private static String toFailureReason(MessagingErrorCode errorCode, String message) {
