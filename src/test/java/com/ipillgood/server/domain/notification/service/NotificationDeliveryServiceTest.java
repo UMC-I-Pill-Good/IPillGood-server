@@ -90,22 +90,22 @@ class NotificationDeliveryServiceTest {
                 "2026-07-23");
         insertIntakeCandidateMember(5L, "time-mismatch-token", true, true, true, "09:00", "EVERY_DAY", 1,
                 "2026-07-01");
-        insertMember(6L, "기본설정회원", "2026-07-01 00:00:00");
-        insertMemberPushToken(60L, 6L, "default-setting-token", true);
-        insertActiveProductWithProduct(600L, 700L, 800L, 6L, "기본설정상품", true, "08:30", "EVERY_DAY", 1,
+        insertMember(6L, "설정없는회원", "2026-07-01 00:00:00");
+        insertMemberPushToken(60L, 6L, "no-setting-token", true);
+        insertActiveProductWithProduct(600L, 700L, 800L, 6L, "설정없는상품", true, "08:30", "EVERY_DAY", 1,
                 "2026-07-01", "2026-07-01 08:00:00");
 
         notificationDeliveryService.deliverIntakeNotifications(INTAKE_SCHEDULED_AT);
 
-        assertEquals(List.of("default-setting-token"), pushNotificationClient.sentTokens());
-        assertEquals(1, countDeliveryLogs());
-        assertEquals("SENT", findDeliveryLogStatus(60L));
+        assertEquals(List.of(), pushNotificationClient.sentTokens());
+        assertEquals(0, countDeliveryLogs());
     }
 
     @Test
     @DisplayName("복용 알림 본문이 500자를 넘으면 500자 이하로 줄여 발송하고 저장한다")
     void deliverIntakeNotifications_whenBodyExceeds500_truncatesBody() {
         insertMember(1L, "긴본문회원", "2026-07-01 00:00:00");
+        insertMemberNotificationSetting(1L, true, true);
         insertMemberPushToken(10L, 1L, "long-body-token", true);
         String longProductName = "상품".repeat(80);
         insertActiveProductWithProduct(100L, 200L, 300L, 1L, longProductName + "A", true, "08:30", "EVERY_DAY", 1,
@@ -126,6 +126,7 @@ class NotificationDeliveryServiceTest {
     @DisplayName("동일 토큰/유형/예정시각 로그가 있으면 중복 발송하지 않는다")
     void deliverIntakeNotifications_withExistingDeliveryLog_skipsDuplicateSend() {
         insertMember(1L, "중복회원", "2026-07-01 00:00:00");
+        insertMemberNotificationSetting(1L, true, true);
         insertMemberPushToken(10L, 1L, "duplicate-token", true);
         insertActiveProductWithProduct(100L, 200L, 300L, 1L, "중복상품", true, "08:30", "EVERY_DAY", 1,
                 "2026-07-01", "2026-07-01 08:00:00");
@@ -202,6 +203,8 @@ class NotificationDeliveryServiceTest {
         insertMember(4L, "체크완료회원", "2026-07-01 00:00:00");
         insertMemberPushToken(40L, 4L, "condition-completed-token", true);
         insertConditionWeeklyRecord(400L, 4L, "2026-07-20", "2026-07-26");
+        insertMember(5L, "설정없는회원", "2026-07-01 00:00:00");
+        insertMemberPushToken(50L, 5L, "condition-no-setting-token", true);
 
         notificationDeliveryService.deliverConditionCheckNotifications(CONDITION_SUNDAY_NOON);
 
@@ -230,6 +233,7 @@ class NotificationDeliveryServiceTest {
 
     private void insertSingleIntakeTarget(String token) {
         insertMember(1L, "단일회원", "2026-07-01 00:00:00");
+        insertMemberNotificationSetting(1L, true, true);
         insertMemberPushToken(10L, 1L, token, true);
         insertActiveProductWithProduct(100L, 200L, 300L, 1L, "단일상품", true, "08:30", "EVERY_DAY", 1,
                 "2026-07-01", "2026-07-01 08:00:00");

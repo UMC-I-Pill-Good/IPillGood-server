@@ -83,8 +83,8 @@ class NotificationControllerTest {
     }
 
     @Test
-    @DisplayName("설정 행이 없으면 기본값 true를 반환하고 설정 행을 생성하지 않는다")
-    void getAppPushSetting_withoutSetting_returnsDefaultTrueWithoutCreatingSetting() throws Exception {
+    @DisplayName("설정 행이 없으면 기본값 false를 반환하고 설정 행을 생성하지 않는다")
+    void getAppPushSetting_withoutSetting_returnsDefaultFalseWithoutCreatingSetting() throws Exception {
         int beforeSettingCount = countMemberNotificationSettings();
 
         mockMvc.perform(get(APP_PUSH_SETTING_URL)
@@ -92,7 +92,7 @@ class NotificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
-                .andExpect(jsonPath("$.result.pushEnabled").value(true));
+                .andExpect(jsonPath("$.result.pushEnabled").value(false));
 
         assertEquals(beforeSettingCount, countMemberNotificationSettings());
     }
@@ -153,7 +153,7 @@ class NotificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
-                .andExpect(jsonPath("$.result.pushEnabled").value(true))
+                .andExpect(jsonPath("$.result.pushEnabled").value(false))
                 .andExpect(jsonPath("$.result.intakePushEnabled").value(true))
                 .andExpect(jsonPath("$.result.activeProductCount").value(0))
                 .andExpect(jsonPath("$.result.activeProducts").isArray())
@@ -422,11 +422,11 @@ class NotificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS200_1"))
-                .andExpect(jsonPath("$.result.pushEnabled").value(true))
+                .andExpect(jsonPath("$.result.pushEnabled").value(false))
                 .andExpect(jsonPath("$.result.intakePushEnabled").value(false));
 
         assertEquals(beforeSettingCount + 1, countMemberNotificationSettings());
-        assertEquals(Boolean.TRUE, findPushEnabled(MEMBER_ID));
+        assertEquals(Boolean.FALSE, findPushEnabled(MEMBER_ID));
         assertEquals(Boolean.FALSE, findIntakePushEnabled(MEMBER_ID));
     }
 
