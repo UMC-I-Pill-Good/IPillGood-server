@@ -149,9 +149,59 @@ class IngredientControllerTest {
                 .andExpect(jsonPath("$.result.recommendedIntake").value("3 ~ 10μg"))
                 .andExpect(jsonPath("$.result.recommendedIntakeTime").value("식후 섭취 권장"))
                 .andExpect(jsonPath("$.result.hasCabinetProduct").value(true))
+                .andExpect(jsonPath("$.result.hasIntakeProduct").value(false))
                 .andExpect(jsonPath("$.result.alternativeFoods[0].name").value("연어"))
                 .andExpect(jsonPath("$.result.alternativeFoods[0].contentPer100g").value("100g당 비타민 D 10μg"))
                 .andExpect(jsonPath("$.result.alternativeFoods[1].name").value("달걀"));
+    }
+
+    @Test
+    @DisplayName("현재 섭취 중인 상품이 현재 성분을 포함하면 hasIntakeProduct=true를 반환한다")
+    void getIngredient_withActiveIntakeProduct_returnsTrueIntakeFlag() throws Exception {
+        insertMemberActiveProduct(1L, 1L, MEMBER_ID, null);
+
+        mockMvc.perform(get(INGREDIENTS_URL + "/2")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.hasCabinetProduct").value(true))
+                .andExpect(jsonPath("$.result.hasIntakeProduct").value(true));
+    }
+
+    @Test
+    @DisplayName("중단된 섭취 상품만 현재 성분을 포함하면 hasIntakeProduct=false를 반환한다")
+    void getIngredient_withStoppedIntakeProduct_returnsFalseIntakeFlag() throws Exception {
+        insertMemberActiveProduct(1L, 1L, MEMBER_ID, "2026-07-02");
+
+        mockMvc.perform(get(INGREDIENTS_URL + "/2")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.hasIntakeProduct").value(false));
+    }
+
+    @Test
+    @DisplayName("삭제된 캐비닛 상품에 연결된 섭취 상품만 현재 성분을 포함하면 hasIntakeProduct=false를 반환한다")
+    void getIngredient_withDeletedCabinetIntakeProduct_returnsFalseIntakeFlag() throws Exception {
+        insertMemberActiveProduct(1L, 2L, MEMBER_ID, null);
+
+        mockMvc.perform(get(INGREDIENTS_URL + "/3")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.hasCabinetProduct").value(false))
+                .andExpect(jsonPath("$.result.hasIntakeProduct").value(false));
+    }
+
+    @Test
+    @DisplayName("삭제된 상품에 연결된 섭취 상품만 현재 성분을 포함하면 hasIntakeProduct=false를 반환한다")
+    void getIngredient_withDeletedProductIntakeProduct_returnsFalseIntakeFlag() throws Exception {
+        insertProduct(102L, "삭제된 비타민 D 제품", "테스트브랜드", "2026-01-01 00:00:00");
+        insertProductIngredient(3L, 102L, 2L);
+        insertMemberProduct(3L, MEMBER_ID, 102L, null);
+        insertMemberActiveProduct(1L, 3L, MEMBER_ID, null);
+
+        mockMvc.perform(get(INGREDIENTS_URL + "/2")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.hasIntakeProduct").value(false));
     }
 
     @Test
@@ -160,7 +210,8 @@ class IngredientControllerTest {
         mockMvc.perform(get(INGREDIENTS_URL + "/3")
                         .header(HttpHeaders.AUTHORIZATION, bearerToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.hasCabinetProduct").value(false));
+                .andExpect(jsonPath("$.result.hasCabinetProduct").value(false))
+                .andExpect(jsonPath("$.result.hasIntakeProduct").value(false));
     }
 
     @ParameterizedTest
@@ -455,6 +506,33 @@ class IngredientControllerTest {
                 memberId,
                 productId,
                 deletedAt
+        );
+    }
+
+    private void insertMemberActiveProduct(Long id, Long memberProductId, Long memberId, String stoppedOn) {
+        jdbcTemplate.update("""
+                        INSERT INTO member_active_product (
+                            id,
+                            member_product_id,
+                            member_id,
+                            started_on,
+                            stopped_on,
+                            intake_time,
+                            frequency,
+                            frequency_interval_days,
+                            schedule_anchor_on,
+                            notification_enabled,
+                            review_prompt_dismissed_at,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, '2026-07-01', ?, '09:00:00', 'EVERY_DAY', 1,
+                                '2026-07-01', true, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """,
+                id,
+                memberProductId,
+                memberId,
+                stoppedOn
         );
     }
 

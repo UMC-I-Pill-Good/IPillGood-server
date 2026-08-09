@@ -50,7 +50,7 @@ public interface IngredientApi {
 
     @Operation(
             summary = "영양성분 상세 조회",
-            description = "성분 상세 화면에 필요한 설명, 효능, 주의사항, 병용 금기 조합, 대체 음식, 캐비닛 보유 여부를 조회합니다."
+            description = "성분 상세 화면에 필요한 설명, 효능, 주의사항, 병용 금기 조합, 대체 음식, 캐비닛 보유 여부와 섭취 중 여부를 조회합니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -83,6 +83,7 @@ public interface IngredientApi {
                                                 "recommendedIntake": "3 ~ 10μg",
                                                 "recommendedIntakeTime": "식후 섭취 권장",
                                                 "hasCabinetProduct": false,
+                                                "hasIntakeProduct": false,
                                                 "alternativeFoods": [
                                                   {
                                                     "name": "연어",

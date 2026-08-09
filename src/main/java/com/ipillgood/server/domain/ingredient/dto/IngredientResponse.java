@@ -67,6 +67,9 @@ public class IngredientResponse {
             @Schema(description = "사용자의 캐비닛에 현재 성분을 포함한 영양제가 있는지 여부")
             Boolean hasCabinetProduct,
 
+            @Schema(description = "사용자의 섭취 중인 영양제에 현재 성분을 포함한 영양제가 있는지 여부")
+            Boolean hasIntakeProduct,
+
             @Schema(description = "대체 음식 목록")
             List<AlternativeFoodItem> alternativeFoods
     ) {
