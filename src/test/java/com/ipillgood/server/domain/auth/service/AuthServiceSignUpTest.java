@@ -9,6 +9,7 @@ import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
 import com.ipillgood.server.domain.policy.dto.PolicyRequest;
+import com.ipillgood.server.domain.policy.fixture.PolicyFixture;
 import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
 import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,9 +54,12 @@ class AuthServiceSignUpTest {
         memberPolicyAgreementRepository.deleteAll();
         memberSocialAccountRepository.deleteAll();
         memberRepository.deleteAll();
+
+        policyDocumentRepository.deleteAll();
+        policyDocumentRepository.saveAll(PolicyFixture.defaultDocuments());
     }
 
-    // 시더가 넣어둔 활성 약관 전체에 동의하는 회원가입 요청
+    // 활성 약관 전체에 동의하는 회원가입 요청
     private AuthRequest.SignUp signUpRequest() {
         List<PolicyRequest.Agreement> agreements = policyDocumentRepository.findByActiveTrue().stream()
                 .map(document -> new PolicyRequest.Agreement(document.getId(), true))

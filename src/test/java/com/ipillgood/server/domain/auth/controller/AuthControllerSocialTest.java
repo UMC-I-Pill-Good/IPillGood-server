@@ -10,6 +10,8 @@ import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
 import com.ipillgood.server.domain.member.repository.MemberRepository;
 import com.ipillgood.server.domain.member.repository.MemberSocialAccountRepository;
 import com.ipillgood.server.domain.policy.dto.PolicyRequest;
+import com.ipillgood.server.domain.policy.fixture.PolicyFixture;
+import com.ipillgood.server.domain.policy.repository.MemberPolicyAgreementRepository;
 import com.ipillgood.server.domain.policy.repository.PolicyDocumentRepository;
 import com.ipillgood.server.global.security.jwt.CookieUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +60,9 @@ class AuthControllerSocialTest {
     private PolicyDocumentRepository policyDocumentRepository;
 
     @Autowired
+    private MemberPolicyAgreementRepository memberPolicyAgreementRepository;
+
+    @Autowired
     private SocialSignupTokenStore socialSignupTokenStore;
 
     @Autowired
@@ -65,8 +70,12 @@ class AuthControllerSocialTest {
 
     @BeforeEach
     void setUp() {
+        memberPolicyAgreementRepository.deleteAll();
         memberSocialAccountRepository.deleteAll();
         memberRepository.deleteAll();
+
+        policyDocumentRepository.deleteAll();
+        policyDocumentRepository.saveAll(PolicyFixture.defaultDocuments());
     }
 
     private Member saveLocalMember() {
@@ -78,7 +87,7 @@ class AuthControllerSocialTest {
                 .build());
     }
 
-    // 시더가 넣어둔 활성 약관 전체에 동의하는 요청 본문 (필수 약관이 모두 포함되어 검증을 통과)
+    // 활성 약관 전체에 동의하는 요청 본문 (필수 약관이 모두 포함되어 검증을 통과)
     private String signUpRequestBody(String socialSignupToken) throws Exception {
         List<PolicyRequest.Agreement> agreements = policyDocumentRepository.findByActiveTrue().stream()
                 .map(document -> new PolicyRequest.Agreement(document.getId(), true))
