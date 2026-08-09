@@ -8,19 +8,7 @@ import java.util.List;
 
 public class PolicyResponse {
 
-    // 목록 항목
-    @Builder
-    public record DocumentSummary(
-            Long policyDocumentId,
-            PolicyDocumentType documentType,
-            String title,
-            Boolean required,
-            String version,
-            LocalDateTime effectiveAt
-    ) {
-    }
-
-    // 약관 상세+최신 항목 (자세히 보기 및 설정 페이지 속 지침)
+    // 마이페이지 약관 조회 항목
     @Builder
     public record DocumentDetail(
             Long policyDocumentId,
@@ -33,14 +21,7 @@ public class PolicyResponse {
     ) {
     }
 
-    // 목록 조회 응답
-    @Builder
-    public record DocumentList(
-            List<DocumentSummary> documents
-    ) {
-    }
-
-    // 최신 조회 응답
+    // 마이페이지 약관 조회 응답
     @Builder
     public record LatestDocuments(
             List<DocumentDetail> documents
