@@ -56,6 +56,7 @@ public class IngredientConverter {
             List<IngredientCaution> cautions,
             List<IngredientCombination> combinations,
             boolean hasCabinetProduct,
+            boolean hasIntakeProduct,
             List<AlternativeFood> alternativeFoods,
             Function<String, String> imageUrlResolver
     ) {
@@ -76,6 +77,7 @@ public class IngredientConverter {
                 .recommendedIntake(ingredient.getRecommendedIntake())
                 .recommendedIntakeTime(ingredient.getRecommendedIntakeTime())
                 .hasCabinetProduct(hasCabinetProduct)
+                .hasIntakeProduct(hasIntakeProduct)
                 .alternativeFoods(alternativeFoods.stream()
                         .map(IngredientConverter::toAlternativeFoodItem)
                         .toList())

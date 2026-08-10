@@ -26,6 +26,22 @@ public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     );
 
     @Query("""
+            select count(ap)
+            from MemberActiveProduct ap
+            join ap.memberProduct mp
+            join ProductIngredient pi on pi.product = mp.product
+            where ap.member.id = :memberId
+              and pi.ingredient.id = :ingredientId
+              and ap.stoppedOn is null
+              and mp.deletedAt is null
+              and mp.product.deletedAt is null
+            """)
+    long countActiveIntakeProductsContainingIngredient(
+            @Param("memberId") Long memberId,
+            @Param("ingredientId") Long ingredientId
+    );
+
+    @Query("""
             select distinct pi.ingredient.id
             from MemberProduct mp
             join ProductIngredient pi on pi.product = mp.product

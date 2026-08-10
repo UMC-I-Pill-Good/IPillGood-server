@@ -66,6 +66,8 @@ public class IngredientService {
                 alternativeFoodRepository.findByIngredientIdOrderByIdAsc(ingredientId);
         boolean hasCabinetProduct =
                 ingredientRepository.countActiveCabinetProductsContainingIngredient(memberId, ingredientId) > 0;
+        boolean hasIntakeProduct =
+                ingredientRepository.countActiveIntakeProductsContainingIngredient(memberId, ingredientId) > 0;
 
         return IngredientConverter.toIngredientDetail(
                 ingredient,
@@ -73,6 +75,7 @@ public class IngredientService {
                 cautions,
                 combinations,
                 hasCabinetProduct,
+                hasIntakeProduct,
                 alternativeFoods,
                 s3Service::getPublicUrl
         );
