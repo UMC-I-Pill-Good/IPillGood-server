@@ -190,7 +190,7 @@ public class ConditionService {
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
 
         if (!record.getMember().getId().equals(memberId)) {
-            throw new ConditionException(ConditionErrorCode.FORBIDDEN);
+            throw new GeneralException(GeneralErrorCode.NOT_FOUND);
         }
 
         return ConditionConverter.toDetail(record);

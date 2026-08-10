@@ -88,7 +88,7 @@ public class RecommendationService {
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
 
         if (!recommendation.getMember().getId().equals(memberId)) {
-            throw new RecommendationException(RecommendationErrorCode.FORBIDDEN);
+            throw new GeneralException(GeneralErrorCode.NOT_FOUND);
         }
 
         return recommendation;

@@ -1,11 +1,5 @@
 package com.ipillgood.server.domain.recommendation.controller;
 
-import com.ipillgood.server.domain.recommendation.code.RecommendationSuccessCode;
-import com.ipillgood.server.domain.recommendation.controller.docs.RecommendationControllerDocs;
-import com.ipillgood.server.domain.recommendation.dto.RecommendationResponse;
-import com.ipillgood.server.domain.recommendation.service.RecommendationService;
-import com.ipillgood.server.global.apiPayload.ApiResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,10 +7,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ipillgood.server.domain.recommendation.code.RecommendationSuccessCode;
+import com.ipillgood.server.domain.recommendation.controller.docs.RecommendationControllerApi;
+import com.ipillgood.server.domain.recommendation.dto.RecommendationResponse;
+import com.ipillgood.server.domain.recommendation.service.RecommendationService;
+import com.ipillgood.server.global.apiPayload.ApiResponse;
+
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/recommendations")
-public class RecommendationController implements RecommendationControllerDocs {
+public class RecommendationController implements RecommendationControllerApi {
 
     private final RecommendationService recommendationService;
 

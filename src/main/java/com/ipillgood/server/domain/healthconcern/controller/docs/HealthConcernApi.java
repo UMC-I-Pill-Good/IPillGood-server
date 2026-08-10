@@ -2,6 +2,7 @@ package com.ipillgood.server.domain.healthconcern.controller.docs;
 
 import com.ipillgood.server.domain.healthconcern.dto.HealthConcernResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -53,40 +54,6 @@ public interface HealthConcernApi {
                                                   }
                                                 ]
                                               }
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
-                                              "result": null
                                             }
                                             """
                             )
@@ -144,40 +111,6 @@ public interface HealthConcernApi {
                                               "isSuccess": false,
                                               "code": "COMMON400_2",
                                               "message": "요청값 검증에 실패했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
                                               "result": null
                                             }
                                             """

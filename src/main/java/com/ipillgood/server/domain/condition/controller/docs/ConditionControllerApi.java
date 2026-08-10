@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.condition.controller.docs;
 import com.ipillgood.server.domain.condition.dto.ConditionRequest;
 import com.ipillgood.server.domain.condition.dto.ConditionResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,7 +13,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Condition API", description = "주간 컨디션 체크 조회 및 저장 관련 API")
-public interface ConditionControllerDocs {
+public interface ConditionControllerApi {
 
     @Operation(
             summary = "이번 주 컨디션 체크 상태 조회",
@@ -51,24 +52,6 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "초기 설문을 완료해야 이용할 수 있습니다.",
                     content = @Content(
@@ -80,24 +63,6 @@ public interface ConditionControllerDocs {
                                               "isSuccess": false,
                                               "code": "CONDITION403_2",
                                               "message": "초기 설문을 완료해야 이용할 수 있습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -155,24 +120,6 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "초기 설문을 완료해야 이용할 수 있습니다.",
                     content = @Content(
@@ -202,24 +149,6 @@ public interface ConditionControllerDocs {
                                               "isSuccess": false,
                                               "code": "CONDITION409_1",
                                               "message": "이미 이번 주 컨디션 체크를 완료했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -277,24 +206,6 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "초기 설문을 완료해야 이용할 수 있습니다.",
                     content = @Content(
@@ -324,24 +235,6 @@ public interface ConditionControllerDocs {
                                               "isSuccess": false,
                                               "code": "CONDITION409_1",
                                               "message": "이미 이번 주 컨디션 체크를 완료했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -419,24 +312,6 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "초기 설문을 완료해야 이용할 수 있습니다.",
                     content = @Content(
@@ -466,24 +341,6 @@ public interface ConditionControllerDocs {
                                               "isSuccess": false,
                                               "code": "CONDITION409_1",
                                               "message": "이미 이번 주 컨디션 체크를 완료했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -554,24 +411,6 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "초기 설문을 완료해야 이용할 수 있습니다.",
                     content = @Content(
@@ -588,30 +427,12 @@ public interface ConditionControllerDocs {
                                             """
                             )
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<ConditionResponse.MonthlySummary> getMonthlyRecords(
             Long memberId,
-            @Parameter(description = "조회 연도", required = false) String year,
-            @Parameter(description = "조회 월", required = false) String month
+            @Parameter(description = "조회 연도", required = true) String year,
+            @Parameter(description = "조회 월", required = true) String month
     );
 
     @Operation(
@@ -651,17 +472,17 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
+                    responseCode = "403",
+                    description = "초기 설문을 완료해야 합니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "인증 필요",
+                                    name = "온보딩 미완료",
                                     value = """
                                             {
                                               "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
+                                              "code": "CONDITION403_2",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
                                               "result": null
                                             }
                                             """
@@ -669,39 +490,8 @@ public interface ConditionControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403",
-                    description = "본인의 컨디션 기록만 조회할 수 있거나, 초기 설문을 완료해야 합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = {
-                                    @ExampleObject(
-                                            name = "타인의 기록 요청",
-                                            value = """
-                                                    {
-                                                      "isSuccess": false,
-                                                      "code": "CONDITION403_1",
-                                                      "message": "본인의 컨디션 기록만 조회할 수 있습니다.",
-                                                      "result": null
-                                                    }
-                                                    """
-                                    ),
-                                    @ExampleObject(
-                                            name = "온보딩 미완료",
-                                            value = """
-                                                    {
-                                                      "isSuccess": false,
-                                                      "code": "CONDITION403_2",
-                                                      "message": "초기 설문을 완료해야 이용할 수 있습니다.",
-                                                      "result": null
-                                                    }
-                                                    """
-                                    )
-                            }
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "요청한 리소스를 찾을 수 없습니다.",
+                    description = "요청한 리소스를 찾을 수 없거나, 본인의 기록이 아닙니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
@@ -711,24 +501,6 @@ public interface ConditionControllerDocs {
                                               "isSuccess": false,
                                               "code": "COMMON404_1",
                                               "message": "요청한 리소스를 찾을 수 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
                                               "result": null
                                             }
                                             """

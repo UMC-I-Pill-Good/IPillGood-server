@@ -1,12 +1,5 @@
 package com.ipillgood.server.domain.condition.controller;
 
-import com.ipillgood.server.domain.condition.code.ConditionSuccessCode;
-import com.ipillgood.server.domain.condition.controller.docs.ConditionControllerDocs;
-import com.ipillgood.server.domain.condition.dto.ConditionRequest;
-import com.ipillgood.server.domain.condition.dto.ConditionResponse;
-import com.ipillgood.server.domain.condition.service.ConditionService;
-import com.ipillgood.server.global.apiPayload.ApiResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -17,10 +10,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ipillgood.server.domain.condition.code.ConditionSuccessCode;
+import com.ipillgood.server.domain.condition.controller.docs.ConditionControllerApi;
+import com.ipillgood.server.domain.condition.dto.ConditionRequest;
+import com.ipillgood.server.domain.condition.dto.ConditionResponse;
+import com.ipillgood.server.domain.condition.service.ConditionService;
+import com.ipillgood.server.global.apiPayload.ApiResponse;
+
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/conditions")
-public class ConditionController implements ConditionControllerDocs {
+public class ConditionController implements ConditionControllerApi {
 
     private final ConditionService conditionService;
 
