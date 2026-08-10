@@ -125,26 +125,8 @@ public interface RecommendationControllerApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403",
-                    description = "본인의 추천 결과만 조회할 수 있습니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "타인의 추천 결과 요청",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "RECOMMENDATION403_1",
-                                              "message": "본인의 추천 결과만 접근할 수 있습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "요청한 리소스를 찾을 수 없습니다.",
+                    description = "요청한 리소스를 찾을 수 없거나, 본인의 추천 결과가 아닙니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
@@ -195,26 +177,8 @@ public interface RecommendationControllerApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403",
-                    description = "본인의 추천 결과만 재시도할 수 있습니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "타인의 추천 결과 요청",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "RECOMMENDATION403_1",
-                                              "message": "본인의 추천 결과만 접근할 수 있습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "요청한 리소스를 찾을 수 없습니다.",
+                    description = "요청한 리소스를 찾을 수 없거나, 본인의 추천 결과가 아닙니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
@@ -283,26 +247,8 @@ public interface RecommendationControllerApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403",
-                    description = "본인의 추천 결과만 확인 처리할 수 있습니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "타인의 추천 결과 요청",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "RECOMMENDATION403_1",
-                                              "message": "본인의 추천 결과만 접근할 수 있습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "요청한 리소스를 찾을 수 없습니다.",
+                    description = "요청한 리소스를 찾을 수 없거나, 본인의 추천 결과가 아닙니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(

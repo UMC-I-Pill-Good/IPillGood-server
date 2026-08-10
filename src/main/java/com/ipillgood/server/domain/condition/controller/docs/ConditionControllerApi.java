@@ -473,38 +473,25 @@ public interface ConditionControllerApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "본인의 컨디션 기록만 조회할 수 있거나, 초기 설문을 완료해야 합니다.",
+                    description = "초기 설문을 완료해야 합니다.",
                     content = @Content(
                             mediaType = "application/json",
-                            examples = {
-                                    @ExampleObject(
-                                            name = "타인의 기록 요청",
-                                            value = """
-                                                    {
-                                                      "isSuccess": false,
-                                                      "code": "CONDITION403_1",
-                                                      "message": "본인의 컨디션 기록만 조회할 수 있습니다.",
-                                                      "result": null
-                                                    }
-                                                    """
-                                    ),
-                                    @ExampleObject(
-                                            name = "온보딩 미완료",
-                                            value = """
-                                                    {
-                                                      "isSuccess": false,
-                                                      "code": "CONDITION403_2",
-                                                      "message": "초기 설문을 완료해야 이용할 수 있습니다.",
-                                                      "result": null
-                                                    }
-                                                    """
-                                    )
-                            }
+                            examples = @ExampleObject(
+                                    name = "온보딩 미완료",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "CONDITION403_2",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "요청한 리소스를 찾을 수 없습니다.",
+                    description = "요청한 리소스를 찾을 수 없거나, 본인의 기록이 아닙니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(

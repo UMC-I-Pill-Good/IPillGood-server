@@ -47,7 +47,7 @@ public class RecommendationFeedbackCycleService {
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
 
         if (!cycle.getMember().getId().equals(memberId)) {
-            throw new RecommendationException(RecommendationErrorCode.FEEDBACK_CYCLE_FORBIDDEN);
+            throw new GeneralException(GeneralErrorCode.NOT_FOUND);
         }
 
         if (cycle.getRespondedAt() != null) {
