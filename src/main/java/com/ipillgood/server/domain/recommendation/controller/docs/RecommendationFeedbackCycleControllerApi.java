@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.recommendation.controller.docs;
 import com.ipillgood.server.domain.recommendation.dto.RecommendationFeedbackCycleRequest;
 import com.ipillgood.server.domain.recommendation.dto.RecommendationFeedbackCycleResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,7 +13,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Recommendation Feedback Cycle API", description = "추천 피드백 사이클 조회 및 응답 관련 API")
-public interface RecommendationFeedbackCycleControllerDocs {
+public interface RecommendationFeedbackCycleControllerApi {
 
     @Operation(
             summary = "추천 피드백 대상 조회",
@@ -38,42 +39,6 @@ public interface RecommendationFeedbackCycleControllerDocs {
                                                 "recommendationId": 1,
                                                 "cycleDueOn": "2026-08-19"
                                               }
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
-                                              "result": null
                                             }
                                             """
                             )
@@ -123,24 +88,6 @@ public interface RecommendationFeedbackCycleControllerDocs {
                                               "isSuccess": false,
                                               "code": "COMMON400_2",
                                               "message": "요청값 검증에 실패했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
                                               "result": null
                                             }
                                             """
@@ -212,24 +159,6 @@ public interface RecommendationFeedbackCycleControllerDocs {
                                                     """
                                     )
                             }
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 못한 서버 오류가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
                     )
             )
     })

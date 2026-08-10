@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.review.controller.docs;
 import com.ipillgood.server.domain.review.dto.AdminReviewReportRequest;
 import com.ipillgood.server.domain.review.dto.AdminReviewReportResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -70,23 +71,6 @@ public interface AdminReviewReportApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "ADMIN 권한이 없음",
                     content = @Content(
@@ -97,23 +81,6 @@ public interface AdminReviewReportApi {
                                               "isSuccess": false,
                                               "code": "COMMON403_1",
                                               "message": "요청이 거부되었습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -168,23 +135,6 @@ public interface AdminReviewReportApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "ADMIN 권한이 없음",
                     content = @Content(
@@ -212,23 +162,6 @@ public interface AdminReviewReportApi {
                                               "isSuccess": false,
                                               "code": "REVIEW404_3",
                                               "message": "해당 신고 내역이 존재하지 않습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -286,23 +219,6 @@ public interface AdminReviewReportApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "ADMIN 권한이 없음",
                     content = @Content(
@@ -330,23 +246,6 @@ public interface AdminReviewReportApi {
                                               "isSuccess": false,
                                               "code": "REVIEW404_3",
                                               "message": "해당 신고 내역이 존재하지 않습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """

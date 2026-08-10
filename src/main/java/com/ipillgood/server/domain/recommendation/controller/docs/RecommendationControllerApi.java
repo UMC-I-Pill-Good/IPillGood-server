@@ -2,6 +2,7 @@ package com.ipillgood.server.domain.recommendation.controller.docs;
 
 import com.ipillgood.server.domain.recommendation.dto.RecommendationResponse;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,7 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Recommendation API", description = "추천 결과 조회 및 재시도 관련 API")
-public interface RecommendationControllerDocs {
+public interface RecommendationControllerApi {
 
     @Operation(
             summary = "현재 추천 결과 조회",
@@ -58,24 +59,6 @@ public interface RecommendationControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "현재 활성 추천 결과가 없습니다.",
                     content = @Content(
@@ -87,24 +70,6 @@ public interface RecommendationControllerDocs {
                                               "isSuccess": false,
                                               "code": "RECOMMENDATION404_1",
                                               "message": "현재 활성 추천 결과가 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -160,24 +125,6 @@ public interface RecommendationControllerDocs {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "본인의 추천 결과만 조회할 수 있습니다.",
                     content = @Content(
@@ -207,24 +154,6 @@ public interface RecommendationControllerDocs {
                                               "isSuccess": false,
                                               "code": "COMMON404_1",
                                               "message": "요청한 리소스를 찾을 수 없습니다",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -260,24 +189,6 @@ public interface RecommendationControllerDocs {
                                                 "status": "PENDING",
                                                 "startedAt": "2026-07-20T13:10:00"
                                               }
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
                                             }
                                             """
                             )
@@ -336,24 +247,6 @@ public interface RecommendationControllerDocs {
                                             """
                             )
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<RecommendationResponse.Retry> retryRecommendation(
@@ -384,24 +277,6 @@ public interface RecommendationControllerDocs {
                                                 "recommendationId": 1,
                                                 "onboardingCompleted": true
                                               }
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "인증이 필요합니다.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
                                             }
                                             """
                             )
@@ -455,24 +330,6 @@ public interface RecommendationControllerDocs {
                                               "isSuccess": false,
                                               "code": "RECOMMENDATION409_4",
                                               "message": "확인 처리할 수 없는 추천 상태입니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """

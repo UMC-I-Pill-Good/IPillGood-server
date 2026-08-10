@@ -1,12 +1,5 @@
 package com.ipillgood.server.domain.recommendation.controller;
 
-import com.ipillgood.server.domain.recommendation.code.RecommendationSuccessCode;
-import com.ipillgood.server.domain.recommendation.controller.docs.RecommendationFeedbackCycleControllerDocs;
-import com.ipillgood.server.domain.recommendation.dto.RecommendationFeedbackCycleRequest;
-import com.ipillgood.server.domain.recommendation.dto.RecommendationFeedbackCycleResponse;
-import com.ipillgood.server.domain.recommendation.service.RecommendationFeedbackCycleService;
-import com.ipillgood.server.global.apiPayload.ApiResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,10 +8,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ipillgood.server.domain.recommendation.code.RecommendationSuccessCode;
+import com.ipillgood.server.domain.recommendation.controller.docs.RecommendationFeedbackCycleControllerApi;
+import com.ipillgood.server.domain.recommendation.dto.RecommendationFeedbackCycleRequest;
+import com.ipillgood.server.domain.recommendation.dto.RecommendationFeedbackCycleResponse;
+import com.ipillgood.server.domain.recommendation.service.RecommendationFeedbackCycleService;
+import com.ipillgood.server.global.apiPayload.ApiResponse;
+
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/recommendation-feedback-cycles")
-public class RecommendationFeedbackCycleController implements RecommendationFeedbackCycleControllerDocs {
+public class RecommendationFeedbackCycleController implements RecommendationFeedbackCycleControllerApi {
 
     private final RecommendationFeedbackCycleService recommendationFeedbackCycleService;
 

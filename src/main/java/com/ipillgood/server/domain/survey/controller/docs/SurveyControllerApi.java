@@ -3,6 +3,7 @@ package com.ipillgood.server.domain.survey.controller.docs;
 import com.ipillgood.server.domain.survey.dto.SurveyRequest;
 import com.ipillgood.server.domain.survey.dto.SurveyResult;
 import com.ipillgood.server.global.apiPayload.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -16,7 +17,7 @@ import jakarta.validation.Valid;
  * 초기 설문/재설문 저장 및 추천 생성 시작 (화면1~5)
  */
 @Tag(name = "Survey API", description = "초기 설문 및 재설문 응답 관련 API")
-public interface SurveyControllerDocs {
+public interface SurveyControllerApi {
 
     @Operation(
             summary = "설문 응답 저장 및 추천 생성 시작",
@@ -132,42 +133,6 @@ public interface SurveyControllerDocs {
                                                     """
                                     )
                             }
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "JWT 액세스 토큰 누락, 만료 또는 유효하지 않은 토큰",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "인증 필요",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "JWT401_4",
-                                              "message": "토큰이 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "서버 오류",
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
                     )
             )
     })
