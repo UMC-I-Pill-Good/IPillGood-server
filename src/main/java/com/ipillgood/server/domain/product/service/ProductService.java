@@ -37,14 +37,16 @@ public class ProductService {
     private final CabinetService cabinetService;
     private final S3Service s3Service;
 
-    public ProductResponse.ProductInfo getProductInfo(Long productId) {
+    public ProductResponse.ProductInfo getProductInfo(Long memberId, Long productId) {
         Product product = getProduct(productId);
 
         List<Ingredient> includedIngredients = productIngredientRepository
                 .findIngredientsByProduct(productId);
 
         ProductReviewResponse.ReviewSummary reviewSummary = reviewService.getReviewSummary(product);
-        return ProductConverter.toProductInfo(product, includedIngredients, reviewSummary, s3Service::getPublicUrl);
+        boolean isOwned = cabinetService.isOwnedProduct(memberId, productId);
+        return ProductConverter.toProductInfo(
+                product, includedIngredients, reviewSummary, isOwned, s3Service::getPublicUrl);
     }
 
     public ProductResponse.ProductIngredientsInfo getProductIngredients(Long productId) {

@@ -222,4 +222,15 @@ public interface MemberProductRepository extends JpaRepository<MemberProduct, Lo
                 and p.deletedAt is null
     """)
     List<Ingredient> findOwnedIngredientsByMemberId(@Param("memberId") Long memberId);
+
+    @Query("""
+            select count(mp) > 0
+            from MemberProduct mp
+                join mp.product p
+            where mp.member.id = :memberId
+                and p.id = :productId
+                and mp.deletedAt is null
+                and p.deletedAt is null
+    """)
+    boolean existsOwnedProduct(@Param("memberId") Long memberId, @Param("productId") Long productId);
 }
