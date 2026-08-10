@@ -69,40 +69,6 @@ public interface PolicyApi {
                                     )
                             }
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400",
-                    description = "documentType이 누락되었거나 정의되지 않은 값인 경우",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON400_1",
-                                              "message": "잘못된 요청입니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<PolicyResponse.LatestDocuments> getLatest(

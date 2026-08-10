@@ -146,23 +146,6 @@ public interface AuthApi {
                                     )
                             }
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<AuthResponse.SignUp> signUp(@Valid AuthRequest.SignUp request);
@@ -234,23 +217,6 @@ public interface AuthApi {
                                             """
                             )
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<AuthResponse.Login> login(@Valid AuthRequest.Login request,
@@ -304,23 +270,6 @@ public interface AuthApi {
                                             """
                             )
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<AuthResponse.Login> reissue(
@@ -349,40 +298,6 @@ public interface AuthApi {
                                               "isSuccess": true,
                                               "code": "AUTH200_2",
                                               "message": "로그아웃에 성공했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "액세스 토큰이 없거나 만료·위조된 경우",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -449,23 +364,6 @@ public interface AuthApi {
                                               "isSuccess": false,
                                               "code": "AUTH409_4",
                                               "message": "이미 사용 중인 아이디입니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -550,23 +448,6 @@ public interface AuthApi {
                                                     """
                                     )
                             }
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
                     )
             )
     })
@@ -681,23 +562,6 @@ public interface AuthApi {
                                     )
                             }
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<AuthResponse.SocialSignUp> kakaoSignUp(@Valid AuthRequest.SocialSignUp request,
@@ -808,23 +672,6 @@ public interface AuthApi {
                                     )
                             }
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<AuthResponse.SocialSignUp> naverSignUp(@Valid AuthRequest.SocialSignUp request,
@@ -899,23 +746,6 @@ public interface AuthApi {
                                             """
                             )
                     )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
             )
     })
     ApiResponse<AuthResponse.SocialLink> kakaoLink(@Valid AuthRequest.SocialLink request,
@@ -985,23 +815,6 @@ public interface AuthApi {
                                               "isSuccess": false,
                                               "code": "AUTH409_2",
                                               "message": "이미 해당 이메일로 [카카오/네이버] 계정이 존재해요. 해당 소셜 계정으로 로그인해 주세요.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """

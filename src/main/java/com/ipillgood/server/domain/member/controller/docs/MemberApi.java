@@ -90,23 +90,6 @@ public interface MemberApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "액세스 토큰이 없거나 만료·위조된 경우",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "토큰은 유효하지만 해당 회원이 존재하지 않는 경우 (탈퇴 후 남은 액세스 토큰으로 요청한 경우 등)",
                     content = @Content(
@@ -117,23 +100,6 @@ public interface MemberApi {
                                               "isSuccess": false,
                                               "code": "MEMBER404_1",
                                               "message": "회원을 찾을 수 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -193,23 +159,6 @@ public interface MemberApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "액세스 토큰이 없거나 만료·위조된 경우",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "토큰은 유효하지만 해당 회원이 존재하지 않는 경우",
                     content = @Content(
@@ -220,23 +169,6 @@ public interface MemberApi {
                                               "isSuccess": false,
                                               "code": "MEMBER404_1",
                                               "message": "회원을 찾을 수 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -320,23 +252,6 @@ public interface MemberApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "액세스 토큰이 없거나 만료·위조된 경우",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
                     description = "비밀번호가 없는 소셜 전용 계정이라 변경할 수 없는 경우",
                     content = @Content(
@@ -364,23 +279,6 @@ public interface MemberApi {
                                               "isSuccess": false,
                                               "code": "MEMBER404_1",
                                               "message": "회원을 찾을 수 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
@@ -420,23 +318,6 @@ public interface MemberApi {
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401",
-                    description = "액세스 토큰이 없거나 만료·위조된 경우",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON401_1",
-                                              "message": "인증이 필요합니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "이미 탈퇴했거나 존재하지 않는 회원인 경우",
                     content = @Content(
@@ -447,23 +328,6 @@ public interface MemberApi {
                                               "isSuccess": false,
                                               "code": "MEMBER404_1",
                                               "message": "회원을 찾을 수 없습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "500",
-                    description = "서버 내부 오류",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "COMMON500_1",
-                                              "message": "예기치 않은 서버 에러가 발생했습니다.",
                                               "result": null
                                             }
                                             """
