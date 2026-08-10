@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -28,6 +29,7 @@ public interface SocialOAuthRedirectApi {
                     content = @Content
             )
     })
+    @SecurityRequirements
     void kakaoLogin(@Parameter(hidden = true) HttpServletResponse response) throws IOException;
 
     @Operation(summary = "네이버 로그인",
@@ -42,6 +44,7 @@ public interface SocialOAuthRedirectApi {
                     content = @Content
             )
     })
+    @SecurityRequirements
     void naverLogin(@Parameter(hidden = true) HttpServletResponse response) throws IOException;
 
     @Operation(summary = "카카오 로그인 콜백",
@@ -68,6 +71,7 @@ public interface SocialOAuthRedirectApi {
                     content = @Content
             )
     })
+    @SecurityRequirements
     void kakaoCallback(
             @Parameter(description = "카카오 인가 코드 (동의 완료 시)") String code,
             @Parameter(description = "CSRF 검증용 값. oauth_state 쿠키 값과 일치해야 함") String state,
@@ -99,6 +103,7 @@ public interface SocialOAuthRedirectApi {
                     content = @Content
             )
     })
+    @SecurityRequirements
     void naverCallback(
             @Parameter(description = "네이버 인가 코드 (동의 완료 시)") String code,
             @Parameter(description = "CSRF 검증용 값. oauth_state 쿠키 값과 일치해야 함") String state,
