@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -148,6 +149,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.SignUp> signUp(@Valid AuthRequest.SignUp request);
 
     @Operation(
@@ -219,6 +221,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.Login> login(@Valid AuthRequest.Login request,
                                           @Parameter(hidden = true) HttpServletResponse response);
 
@@ -272,6 +275,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.Login> reissue(
             @Parameter(description = "httpOnly 쿠키로 전달되는 refreshToken (요청 본문 아님)", hidden = true)
             String refreshToken,
@@ -371,6 +375,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<Void> checkUsername(
             @Parameter(description = "중복 확인할 아이디입니다. 영문·숫자 2~10자.", example = "demouser")
             @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "2~10자 이내로 입력해주세요.")
@@ -451,6 +456,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<Void> checkEmail(
             @Parameter(description = "중복 확인할 이메일입니다.", example = "demo@ipillgood.com")
             @NotBlank(message = "올바른 이메일 형식이 아닙니다.")
@@ -564,6 +570,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.SocialSignUp> kakaoSignUp(@Valid AuthRequest.SocialSignUp request,
                                                        @Parameter(hidden = true) HttpServletResponse response);
 
@@ -674,6 +681,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.SocialSignUp> naverSignUp(@Valid AuthRequest.SocialSignUp request,
                                                        @Parameter(hidden = true) HttpServletResponse response);
 
@@ -748,6 +756,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.SocialLink> kakaoLink(@Valid AuthRequest.SocialLink request,
                                                    @Parameter(hidden = true) HttpServletResponse response);
 
@@ -822,6 +831,7 @@ public interface AuthApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<AuthResponse.SocialLink> naverLink(@Valid AuthRequest.SocialLink request,
                                                    @Parameter(hidden = true) HttpServletResponse response);
 }

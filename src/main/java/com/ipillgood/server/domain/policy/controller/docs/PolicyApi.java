@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
@@ -71,6 +72,7 @@ public interface PolicyApi {
                     )
             )
     })
+    @SecurityRequirements
     ApiResponse<PolicyResponse.LatestDocuments> getLatest(
             @Parameter(
                     description = """
