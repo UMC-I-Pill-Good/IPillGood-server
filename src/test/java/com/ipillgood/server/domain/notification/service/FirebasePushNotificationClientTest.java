@@ -22,6 +22,18 @@ class FirebasePushNotificationClientTest {
     }
 
     @Test
+    @DisplayName("INVALID_ARGUMENT는 토큰 비활성화 대상에서 제외한다")
+    void toFailureResult_withInvalidArgument_returnsRetryableFailure() {
+        PushSendResult result = FirebasePushNotificationClient.toFailureResult(
+                MessagingErrorCode.INVALID_ARGUMENT,
+                "registration token is invalid"
+        );
+
+        assertFalse(result.successful());
+        assertFalse(result.invalidToken());
+    }
+
+    @Test
     @DisplayName("SENDER_ID_MISMATCH는 토큰 비활성화 대상에서 제외한다")
     void toFailureResult_withSenderIdMismatch_returnsRetryableFailure() {
         PushSendResult result = FirebasePushNotificationClient.toFailureResult(

@@ -56,18 +56,21 @@
 
 ## 🛠 기술 스택
 
-| 분류             | 기술                                           |
-|----------------|----------------------------------------------|
-| Language       | Java 21                                      |
-| Framework      | Spring Boot 3.5.9                            |
-| Database       | PostgreSQL                                   |
-| Cache / Stream | Redis                                        |
-| ORM            | Spring Data JPA + QueryDSL 5.1.0             |
-| Auth           | Spring Security + OAuth2 + JWT (JJWT 0.12.3) |
-| Storage        | AWS S3                                       | 
-| API Docs       | springdoc-openapi 2.8.5 (Swagger UI)         |
-| CI/CD          | GitHub Actions → AWS ECR → EC2               |
-| Container      | Docker (eclipse-temurin:21-jre)              |
+| 분류         | 기술                                                            |
+|------------|---------------------------------------------------------------|
+| Language   | Java 21                                                       |
+| Build Tool | Gradle 9.5.1                                                  |
+| Framework  | Spring Boot 4.1.0                                             |
+| Database   | PostgreSQL                                                    |
+| Store      | Redis (Refresh Token, 소셜 회원가입/계정 연동 임시 토큰 TTL 저장)        |
+| ORM        | Spring Data JPA + OpenFeign QueryDSL 7.0                      |
+| Auth       | Spring Security + JWT (JJWT 0.12.6) + Kakao/Naver OAuth 연동 |
+| Storage    | AWS S3                                                        |
+| AI         | Gemini API                                                    |
+| Push       | Firebase Admin SDK 9.10.0 (FCM)                              |
+| API Docs   | springdoc-openapi 3.0.3 (Swagger UI)                         |
+| CI/CD      | GitHub Actions → AWS ECR → EC2                               |
+| Container  | Docker (eclipse-temurin:21-jdk 빌드 / 21-jre 실행)              |
 
 | Category       | Stack                                                                                                                             | 도입 이유                               |
 |----------------|-----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------|
@@ -77,8 +80,8 @@
 
 | Category     | Stack                                                                                                             | 도입 이유                                               |
 |--------------|-------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------|
-| RDBMS        | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4479A1?style=for-the-badge&logo=postgreSQL&logoColor=white) | 무결성과 정합성을 갖춘 DB, 플러그인 확장으로 의미 기반 유사도 검색을 구현하기 위해 도입 |
-| Cache/Stream | ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)                | 자주 조회되는 데이터를 캐싱, I/O 비동기 처리를 위한 Stream 자료구조 활용      |
+| RDBMS        | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4479A1?style=for-the-badge&logo=postgreSQL&logoColor=white) | 정합성 있는 도메인 데이터 저장과 QueryDSL 기반 검색/필터링을 위해 도입 |
+| Token Store  | ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)                | 리프레시 토큰과 소셜 회원가입/계정 연동 임시 토큰을 TTL 기반으로 관리하기 위해 사용 |
 
 | Category  | Stack                                                                                                                          | 도입 이유                                    |
 |-----------|--------------------------------------------------------------------------------------------------------------------------------|------------------------------------------|
@@ -95,24 +98,24 @@
 
 - 도메인형 구조를 따른다.
 - `domain`(비즈니스 도메인)과 `global`(도메인 공통 인프라)로 역할을 분리한다.
-- 도메인 패키지는 `controller / dto / service / repository / entity / converter / code / exception` 구조를 동일하게 따른다.
+- 도메인 패키지는 `controller / dto / service / repository / entity / converter / code / exception` 구조를 기본으로 하되, 도메인에 따라 `client / config / store / event` 등의 보조 패키지를 둘 수 있다.
 ```
 com.ipillgood.server
 ├── IPillGoodServerApplication
 ├── domain                      # 비즈니스 도메인
-│   ├── auth                    # 도메인 단위 패키지
+│   ├── member                  # 도메인 단위 패키지 예시
 │   │   ├── controller          # API 엔드포인트
-│   │   │   └── docs            # Swagger 인터페이스 (AuthApi)
-│   │   ├── dto                 # 요청/응답 DTO (AuthRequest, AuthResponse)
+│   │   │   └── docs            # Swagger 인터페이스 (MemberApi)
+│   │   ├── dto                 # 요청/응답 DTO (MemberRequest, MemberResponse)
 │   │   ├── service             # 비즈니스 로직
 │   │   ├── repository          # 영속성 계층
-│   │   ├── entity               # JPA 엔티티
-│   │   ├── converter            # Entity ↔ DTO 변환 (AuthConverter)
-│   │   ├── code                  # 응답 코드 카탈로그 (Success/Error)
-│   │   │   ├── AuthSuccessCode
-│   │   │   └── AuthErrorCode
-│   │   └── exception            # 도메인 예외 클래스 (AuthException)
-│   └── ...                      # member, pill … 도메인 추가 시 동일 구조로
+│   │   ├── entity              # JPA 엔티티
+│   │   ├── converter           # Entity ↔ DTO 변환 (MemberConverter)
+│   │   ├── code                # 응답 코드 카탈로그 (Success/Error)
+│   │   │   ├── MemberSuccessCode
+│   │   │   └── MemberErrorCode
+│   │   └── exception           # 도메인 예외 클래스 (MemberException)
+│   └── ...                     # auth, policy, notification, ingredient, product, healthconcern, survey, recommendation, cabinet, intake, condition, search, review, support
 └── global                        # 도메인 공통 인프라
     ├── apiPayload                # 공통 응답 규격
     │   ├── ApiResponse           # 표준 응답 래퍼
@@ -165,42 +168,48 @@ com.ipillgood.server
 모든 컨트롤러 응답은 공통 래퍼 `ApiResponse<T>`로 감싼다.
 
 ```java
-public record ApiResponse<T>(
-        ...
-) {
-    public static <T> ApiResponse<T> success(...) {
- 
-        ...
- 
+public class ApiResponse<T> {
+    @JsonIgnore
+    private final HttpStatus httpStatus;
+
+    private final Boolean isSuccess;
+    private final String code;
+    private final String message;
+    private final T result;
+
+    public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T result) {
+        return new ApiResponse<>(code.getStatus(), true, code.getCode(), code.getMessage(), result);
     }
-    public static <T> ApiResponse<T> fail(...) {
- 
-        ...
- 
+
+    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T result) {
+        return new ApiResponse<>(code.getStatus(), false, code.getCode(), code.getMessage(), result);
     }
 }
 ```
 
-> 구체적인 필드는 프로젝트 세팅 후 별도 안내 예정입니다.
+- `httpStatus`는 HTTP 상태 코드를 세팅하기 위한 필드이며, 응답 바디에는 포함하지 않는다.
+- 응답 바디 필드는 `isSuccess`, `code`, `message`, `result`로 통일한다.
+- 성공 응답은 `ApiResponse.onSuccess(...)`, 실패 응답은 `ApiResponse.onFailure(...)`를 사용한다.
 
 ### 4. 예외 처리
 
-- **커스텀 예외 + 글로벌 핸들러** 구조를 사용한다.
+- **GeneralException + GeneralExceptionAdvice** 구조를 사용한다.
 - 컨트롤러/서비스에서 `try-catch`로 직접 응답을 만들지 않고, 예외를 던지면 글로벌 핸들러가 응답을 통일한다.
 ```java
 @RestControllerAdvice
-public class GlobalExceptionHandler {
-    @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiResponse<Void>> handle(CustomException e) {
+public class GeneralExceptionAdvice extends ResponseEntityExceptionHandler {
+    @ExceptionHandler(GeneralException.class)
+    public ResponseEntity<ApiResponse<Void>> handleGeneralException(GeneralException e) {
+        BaseErrorCode errorCode = e.getCode();
         return ResponseEntity
-            .status(e.getStatus())
-            .body(ApiResponse.fail(e.getMessage()));
+            .status(errorCode.getStatus())
+            .body(ApiResponse.onFailure(errorCode, null));
     }
 }
 ```
 
 - 에러 응답 포맷도 위 `ApiResponse`로 통일한다.
-- 에러 코드/메시지는 `enum`(예: `ErrorCode`)으로 관리하는 것을 권장한다.
+- 에러 코드/메시지는 `BaseErrorCode`를 구현한 `enum`으로 관리한다.
 
 ### 5. HTTP 메서드 / URL 규칙 (REST)
 
@@ -208,14 +217,15 @@ public class GlobalExceptionHandler {
 - 모든 API는 `/api/v1`로 시작한다.
 - 리소스는 **소문자 + 복수형 명사**로 표현한다.
 - URL에 **동사를 쓰지 않는다.** (단, 상태 변경처럼 HTTP Method로 표현하기 어려운 경우엔 허용한다.)
-  | 동작      | 메서드   | URL                     |
-  | --------- | -------- | ------------------------ |
-  | 목록 조회 | `GET`    | `/api/v1/users`          |
-  | 단건 조회 | `GET`    | `/api/v1/users/{id}`     |
-  | 생성      | `POST`   | `/api/v1/users`          |
-  | 전체 수정 | `PUT`    | `/api/v1/users/{id}`     |
-  | 부분 수정 | `PATCH`  | `/api/v1/users/{id}`     |
-  | 삭제      | `DELETE` | `/api/v1/users/{id}`     |
+
+| 동작      | 메서드   | URL                     |
+| --------- | -------- | ------------------------ |
+| 목록 조회 | `GET`    | `/api/v1/users`          |
+| 단건 조회 | `GET`    | `/api/v1/users/{id}`     |
+| 생성      | `POST`   | `/api/v1/users`          |
+| 전체 수정 | `PUT`    | `/api/v1/users/{id}`     |
+| 부분 수정 | `PATCH`  | `/api/v1/users/{id}`     |
+| 삭제      | `DELETE` | `/api/v1/users/{id}`     |
 
 - ✅ `GET /api/v1/users/{id}`
 - ❌ `GET /api/v1/getUser?id=1`
@@ -259,14 +269,15 @@ refactor/30-user-service
 - 이슈 번호는 `#` 없이 숫자만 쓴다.
 - 작업 내용은 소문자 + 하이픈(`-`)으로 연결한다. (공백/언더스코어 사용 X)
 - 영어로 간결하게 작성한다.
-  | 타입       | 용도                    |
-  | ---------- | ----------------------- |
-  | `feature`  | 새로운 기능 개발         |
-  | `fix`      | 버그 수정                |
-  | `refactor` | 리팩토링 (기능 변화 없음) |
-  | `docs`     | 문서 작업                |
-  | `test`     | 테스트 코드              |
-  | `chore`    | 빌드, 설정 등 기타 작업   |
+
+| 타입       | 용도                    |
+| ---------- | ----------------------- |
+| `feature`  | 새로운 기능 개발         |
+| `fix`      | 버그 수정                |
+| `refactor` | 리팩토링 (기능 변화 없음) |
+| `docs`     | 문서 작업                |
+| `test`     | 테스트 코드              |
+| `chore`    | 빌드, 설정 등 기타 작업   |
 
 ---
 
@@ -309,3 +320,99 @@ fix: 회원가입 시 중복 이메일 검증 추가
 - 제목(첫 줄)은 50자 이내로 간결하게 작성하고, 마침표는 붙이지 않는다.
 - 제목에는 "무엇을 했는지"를 적는다.
 - 본문이 필요하면 제목과 본문 사이를 한 줄 비운다.
+
+---
+
+### 3️⃣ Issue
+
+모든 작업은 이슈를 먼저 생성한 뒤 진행한다.
+
+| 이슈 타입 | 제목 prefix | 라벨 | 용도 |
+| --------- | ----------- | ---- | ---- |
+| Feature   | `[feat]`    | `✨ feature` | 새로운 기능 추가 |
+| Bug       | `[bug]`     | `🐞 bug` | 버그 리포트 |
+| Task      | `[task]`    | `🛠️ task` | 리팩토링, 설정, 문서 등 기타 작업 |
+
+**작성 규칙**
+
+- 이슈 제목은 `[feat]`, `[bug]`, `[task]` 중 하나의 prefix로 시작한다.
+- 이슈 본문에는 설명, 작업할 내용, 참고 자료를 작성한다.
+- 작업할 내용은 체크박스 형태로 작성한다.
+- 참고 자료가 없으면 비워둘 수 있다.
+
+**Feature / Task 기본 형식**
+
+```md
+## 📄 설명
+<!-- 어떤 기능 또는 작업인지 작성한다. -->
+
+## ✅ 작업할 내용
+- [ ] 작업 1
+- [ ] 작업 2
+
+## 🙋🏻 참고 자료
+<!-- 참고 자료가 있으면 작성한다. -->
+```
+
+**Bug 기본 형식**
+
+```md
+## 🐞 버그 설명
+<!-- 어떤 문제가 발생했는지 작성한다. -->
+
+## ✅ 작업할 내용
+- [ ] 작업 1
+- [ ] 작업 2
+
+## 🙋🏻 참고 자료
+<!-- 참고 자료가 있으면 작성한다. -->
+```
+
+---
+
+### 4️⃣ PR
+
+PR은 `develop` 브랜치를 대상으로 생성하고, 모든 코드는 PR과 리뷰를 거쳐 머지한다.
+
+**작성 규칙**
+
+- PR 본문은 템플릿에 맞춰 작성한다.
+- 관련 이슈는 `Closes #이슈번호` 형식으로 연결한다.
+- 작업 성격에 맞는 라벨을 부여한다.
+- 리뷰어가 중점적으로 봐야 할 부분이 있으면 리뷰 포인트에 작성한다.
+- 화면 변경이 있으면 스크린샷을 첨부한다.
+
+**PR 기본 형식**
+
+```md
+## 📋 개요
+<!-- 이 PR에서 무엇을 했는지 간단히 설명해주세요. -->
+
+## ⚡ 관련 이슈
+Closes #
+
+## 📍작업 내용
+<!-- 주요 변경 사항을 적어주세요. -->
+-
+-
+-
+
+## ✅ 체크리스트
+- [ ] 셀프 코드 리뷰를 진행했습니다
+- [ ] 컨벤션에 맞게 작성했습니다
+- [ ] 정상적으로 빌드 / 동작하는 것을 확인했습니다
+
+## 🧑‍🧑‍🧒 리뷰 포인트 (Optional)
+<!-- 리뷰어가 중점적으로 봐줬으면 하는 부분이 있으면 적어주세요. (없으면 비워두세요) -->
+
+## 📸 스크린샷 (Optional)
+```
+
+**머지 / 리뷰 규칙**
+
+- `main`과 `develop`에는 직접 push하지 않는다.
+- PR은 최소 1명 이상의 approve를 받은 뒤 머지한다.
+- CI가 통과해야 머지할 수 있다.
+- PR 머지는 **Squash merge**로 통일한다.
+- Squash merge 커밋 메시지는 커밋 메시지 컨벤션을 따른다.
+- 배포 시점에 `develop`의 검증된 내용을 `main`으로 반영할 때도 PR을 통해 머지한다.

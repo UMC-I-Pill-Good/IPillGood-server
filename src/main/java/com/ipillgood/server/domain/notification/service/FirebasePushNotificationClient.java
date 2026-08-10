@@ -59,10 +59,14 @@ public class FirebasePushNotificationClient implements PushNotificationClient {
 
     static PushSendResult toFailureResult(MessagingErrorCode errorCode, String message) {
         String failureReason = toFailureReason(errorCode, message);
-        if (errorCode == MessagingErrorCode.UNREGISTERED) {
+        if (isInvalidRegistrationTokenError(errorCode)) {
             return PushSendResult.invalidToken(failureReason);
         }
         return PushSendResult.retryableFailure(failureReason);
+    }
+
+    private static boolean isInvalidRegistrationTokenError(MessagingErrorCode errorCode) {
+        return errorCode == MessagingErrorCode.UNREGISTERED;
     }
 
     private static String toFailureReason(MessagingErrorCode errorCode, String message) {
