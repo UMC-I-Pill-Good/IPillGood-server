@@ -48,10 +48,10 @@ public class AuthRequest {
      * 로컬 로그인 요청
      */
     public record Login(
-            @NotBlank(message = "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요.")
+            @NotBlank(message = "아이디를 입력해주세요.")
             String username,
 
-            @NotBlank(message = "8~16자의 영문, 숫자, 특수문자를 조합해 주세요.")
+            @NotBlank(message = "비밀번호를 입력해주세요.")
             String password
     ) {
     }

@@ -196,7 +196,8 @@ public interface AuthApi {
                                               "code": "COMMON400_1",
                                               "message": "잘못된 요청입니다.",
                                               "result": {
-                                                "username": "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요."
+                                                "username": "아이디를 입력해주세요.",
+                                                "password": "비밀번호를 입력해주세요."
                                               }
                                             }
                                             """
