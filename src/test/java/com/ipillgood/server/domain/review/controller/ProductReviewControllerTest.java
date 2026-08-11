@@ -333,10 +333,10 @@ class ProductReviewControllerTest {
     private void insertProduct(Long id, String name, String deletedAt) {
         jdbcTemplate.update("""
                         INSERT INTO product (
-                            id, name, brand, description, purchase_url, mfds_certified,
+                            id, name, brand, description, mfds_certified,
                             deleted_at, created_at, updated_at
                         )
-                        VALUES (?, ?, '브랜드A', '상품 설명', 'https://example.com', TRUE, ?,
+                        VALUES (?, ?, '브랜드A', '상품 설명', TRUE, ?,
                                 CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
