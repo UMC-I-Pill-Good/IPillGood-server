@@ -16,13 +16,13 @@ public class AuthRequest {
      */
     public record SignUp(
             // 공백 입력
-            @NotBlank(message = "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요.")
-            @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요.")
+            @NotBlank(message = "공백을 제외하고 1~10자의 한글, 영문, 숫자를 입력해 주세요.")
+            @Pattern(regexp = "^[가-힣a-zA-Z0-9]{1,10}$", message = "공백을 제외하고 1~10자의 한글, 영문, 숫자를 입력해 주세요.")
             String nickname,
 
             // '아이디' 필드
-            @NotBlank(message = "2~10자 이내로 입력해주세요.")
-            @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "2~10자 이내로 입력해주세요.")
+            @NotBlank(message = "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요.")
+            @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요.")
             String username,
 
             @NotBlank(message = "올바른 이메일 형식이 아닙니다.")
@@ -48,10 +48,10 @@ public class AuthRequest {
      * 로컬 로그인 요청
      */
     public record Login(
-            @NotBlank(message = "2~10자 이내로 입력해주세요.")
+            @NotBlank(message = "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요.")
             String username,
 
-            @NotBlank(message = "8~16자의 영문, 숫자를 조합해 주세요.")
+            @NotBlank(message = "8~16자의 영문, 숫자, 특수문자를 조합해 주세요.")
             String password
     ) {
     }

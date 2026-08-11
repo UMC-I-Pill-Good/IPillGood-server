@@ -151,7 +151,7 @@ public interface MemberApi {
                                               "code": "COMMON400_1",
                                               "message": "잘못된 요청입니다.",
                                               "result": {
-                                                "nickname": "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요."
+                                                "nickname": "공백을 제외하고 1~10자의 한글, 영문, 숫자를 입력해 주세요."
                                               }
                                             }
                                             """
