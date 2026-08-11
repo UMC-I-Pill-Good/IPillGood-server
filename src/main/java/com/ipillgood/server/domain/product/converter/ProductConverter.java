@@ -5,6 +5,7 @@ import com.ipillgood.server.domain.product.dto.ProductResponse;
 import com.ipillgood.server.domain.product.entity.Product;
 import com.ipillgood.server.domain.review.dto.ProductReviewResponse;
 import com.ipillgood.server.global.util.EtcProductImageKeyResolver;
+import com.ipillgood.server.global.util.ProductPurchaseUrlResolver;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ public class ProductConverter {
                 .brand(product.getBrand())
                 .imageUrl(toImageUrl.apply(imageKey))
                 .description(product.getDescription())
-                .purchaseUrl(product.getPurchaseUrl())
+                .purchaseUrl(ProductPurchaseUrlResolver.resolve(product.getBrand(), product.getName()))
                 .mfdsCertified(product.isMfdsCertified())
                 .ratingAverage(reviewSummary.ratingAverage())
                 .reviewCount(reviewSummary.reviewCount())
@@ -93,7 +94,7 @@ public class ProductConverter {
     ) {
         return ProductResponse.ProductPurchaseCautionCheck.builder()
                 .productId(product.getId())
-                .purchaseUrl(product.getPurchaseUrl())
+                .purchaseUrl(ProductPurchaseUrlResolver.resolve(product.getBrand(), product.getName()))
                 .hasConflict(!conflicts.isEmpty())
                 .conflicts(conflicts)
                 .build();
