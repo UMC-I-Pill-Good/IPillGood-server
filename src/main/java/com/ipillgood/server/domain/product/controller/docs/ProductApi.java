@@ -18,7 +18,9 @@ public interface ProductApi {
             summary = "상품 상세 조회",
             description = "상품 상세 화면에 필요한 기본 정보, 대표 이미지, 후기 요약(평점·개수), "
                     + "과대광고 위험 성분 여부 및 목록을 조회합니다. 대표 이미지는 성분이 1개인 경우 "
-                    + "해당 성분 이미지를, 2개 이상인 경우 기타 대표 이미지를 사용합니다."
+                    + "해당 성분 이미지를, 2개 이상인 경우 기타 대표 이미지를 사용합니다. "
+                    + "purchaseUrl은 상품명으로 만든 쿠팡 검색 결과 페이지 주소이며, 특정 판매 상품 "
+                    + "페이지가 아니므로 검색 결과가 해당 상품과 정확히 일치하지 않을 수 있습니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -39,7 +41,7 @@ public interface ProductApi {
                                                 "brand": "아이필굿",
                                                 "imageUrl": "https://ipillgood-bucket.s3.ap-northeast-2.amazonaws.com/ingredients/1.png",
                                                 "description": "고함량 비타민C로 항산화와 면역에 도움을 주는 영양제입니다.",
-                                                "purchaseUrl": "https://smartstore.naver.com/ipillgood/products/123456",
+                                                "purchaseUrl": "https://www.coupang.com/np/search?q=%EC%95%84%EC%9D%B4%ED%95%84%EA%B5%BF+%EB%A9%94%EA%B0%80%EB%8F%84%EC%8A%A4+%EB%B9%84%ED%83%80%EB%AF%BCC+1000",
                                                 "mfdsCertified": true,
                                                 "ratingAverage": 4.5,
                                                 "reviewCount": 128,
@@ -220,7 +222,8 @@ public interface ProductApi {
             description = "상품을 캐비닛에 추가하기 전, 로그인 사용자가 보유한 성분과 해당 상품 성분 사이에 "
                     + "함께 복용 시 주의가 필요한 조합이 있는지 확인합니다. 충돌이 있으면 hasConflict=true와 함께 "
                     + "각 조합의 보유 성분(current)·상품 성분(purchase)·사유(reason)를 반환하며, 프론트는 이를 "
-                    + "주의 조합 알림 모달로 노출합니다. 충돌이 없으면 conflicts는 빈 배열입니다."
+                    + "주의 조합 알림 모달로 노출합니다. 충돌이 없으면 conflicts는 빈 배열입니다. "
+                    + "purchaseUrl은 상품명으로 만든 쿠팡 검색 결과 페이지 주소입니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -237,7 +240,7 @@ public interface ProductApi {
                                               "message": "섭취 중인 성분들과 함께 복용 시 주의가 필요한 조합을 성공적으로 조회했습니다.",
                                               "result": {
                                                 "productId": 1,
-                                                "purchaseUrl": "https://smartstore.naver.com/ipillgood/products/123456",
+                                                "purchaseUrl": "https://www.coupang.com/np/search?q=%EC%95%84%EC%9D%B4%ED%95%84%EA%B5%BF+%EB%A9%94%EA%B0%80%EB%8F%84%EC%8A%A4+%EB%B9%84%ED%83%80%EB%AF%BCC+1000",
                                                 "hasConflict": true,
                                                 "conflicts": [
                                                   {
