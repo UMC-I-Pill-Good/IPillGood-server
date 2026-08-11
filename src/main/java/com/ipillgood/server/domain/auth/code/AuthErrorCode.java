@@ -10,17 +10,11 @@ import org.springframework.http.HttpStatus;
 public enum AuthErrorCode implements BaseErrorCode {
 
     // 400 BAD_REQUEST - 유효성 검사
-    INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_1", "공백을 제외하고 한글/영문/숫자만 1~10자 이내로 입력해주세요."),
-    INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_2", "올바른 이메일 형식이 아닙니다."),
-    USERNAME_CHECK_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH400_3", "아이디 중복 확인을 해주세요."),
-    INVALID_USERNAME_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_4", "2~10자 이내로 입력해주세요."),
-    INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH400_5", "8~16자의 영문, 숫자, 특수문자를 조합해 주세요."),
     PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH400_6", "비밀번호가 일치하지 않습니다."),
     KAKAO_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_7", "카카오 로그인에 실패했습니다. 다시 시도해주세요."),
     NAVER_AUTH_FAILED(HttpStatus.BAD_REQUEST, "AUTH400_8", "네이버 로그인에 실패했습니다. 다시 시도해주세요."),
     // AUTH400_9(필수 약관 미동의)는 PolicyErrorCode에 위치
     SOCIAL_EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "AUTH400_10", "소셜 계정 이메일을 확인할 수 없습니다. 이메일 제공 동의와 인증 상태를 확인해주세요."),
-    UNSUPPORTED_SOCIAL_PROVIDER(HttpStatus.BAD_REQUEST, "AUTH400_11", "지원하지 않는 소셜 로그인입니다."),
     SOCIAL_NICKNAME_NOT_FOUND(HttpStatus.BAD_REQUEST, "AUTH400_12", "소셜 계정 닉네임을 확인할 수 없습니다. 프로필 제공에 동의해주세요."),
     STATE_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH400_13", "요청이 유효하지 않습니다. 다시 시도해주세요."),
     SOCIAL_LOGIN_CANCELLED(HttpStatus.BAD_REQUEST, "AUTH400_14", "로그인이 취소되었습니다."),
