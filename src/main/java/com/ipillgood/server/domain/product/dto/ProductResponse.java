@@ -42,6 +42,9 @@ public class ProductResponse {
             @Schema(description = "후기 수", example = "128")
             Integer reviewCount,
 
+            @Schema(description = "로그인 회원이 이미 캐비닛에 보유 중인 상품인지 여부", example = "true")
+            Boolean isOwned,
+
             @Schema(description = "과대광고 위험 성분 포함 여부", example = "true")
             Boolean adClaimRisk,
 

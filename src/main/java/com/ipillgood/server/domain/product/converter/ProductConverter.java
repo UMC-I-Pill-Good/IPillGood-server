@@ -18,6 +18,7 @@ public class ProductConverter {
             Product product,
             List<Ingredient> includedIngredients,
             ProductReviewResponse.ReviewSummary reviewSummary,
+            boolean isOwned,
             Function<String, String> toImageUrl
     ) {
         String imageKey = includedIngredients.size() == 1
@@ -36,6 +37,7 @@ public class ProductConverter {
                 .mfdsCertified(product.isMfdsCertified())
                 .ratingAverage(reviewSummary.ratingAverage())
                 .reviewCount(reviewSummary.reviewCount())
+                .isOwned(isOwned)
                 .adClaimRisk(!adClaimRiskIngredients.isEmpty())
                 .adClaimRiskIngredients(adClaimRiskIngredients)
                 .build();

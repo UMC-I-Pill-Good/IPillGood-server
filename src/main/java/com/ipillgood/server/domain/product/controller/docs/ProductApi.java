@@ -21,6 +21,8 @@ public interface ProductApi {
                     + "해당 성분 이미지를, 2개 이상인 경우 기타 대표 이미지를 사용합니다. "
                     + "purchaseUrl은 상품명으로 만든 쿠팡 검색 결과 페이지 주소이며, 특정 판매 상품 "
                     + "페이지가 아니므로 검색 결과가 해당 상품과 정확히 일치하지 않을 수 있습니다."
+                    + "isOwned는 로그인 회원의 캐비닛에 해당 상품이 담겨 있는지 여부로, 캐비닛에서 삭제한 "
+                    + "상품은 false로 반환됩니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -45,6 +47,7 @@ public interface ProductApi {
                                                 "mfdsCertified": true,
                                                 "ratingAverage": 4.5,
                                                 "reviewCount": 128,
+                                                "isOwned": true,
                                                 "adClaimRisk": true,
                                                 "adClaimRiskIngredients": ["비타민C"]
                                               }
@@ -72,6 +75,8 @@ public interface ProductApi {
             )
     })
     ApiResponse<ProductResponse.ProductInfo> getProductInfo(
+            @Parameter(hidden = true)
+            Long memberId,
             @Parameter(
                     description = "조회할 상품 ID",
                     schema = @Schema(type = "integer", format = "int64", example = "1")
