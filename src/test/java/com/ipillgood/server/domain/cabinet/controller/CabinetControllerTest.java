@@ -1115,13 +1115,12 @@ class CabinetControllerTest {
                             name,
                             brand,
                             description,
-                            purchase_url,
                             mfds_certified,
                             deleted_at,
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, ?, '상품 설명', 'https://example.com', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, ?, '상품 설명', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 name,

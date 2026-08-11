@@ -27,8 +27,10 @@ public class ProductResponse {
             @Schema(description = "상품 설명", example = "고함량 비타민C로 항산화와 면역에 도움을 주는 영양제입니다.")
             String description,
 
-            @Schema(description = "구매 링크 URL",
-                    example = "https://smartstore.naver.com/ipillgood/products/123456")
+            @Schema(description = "구매처 검색 링크 URL. 상품명으로 쿠팡 검색 결과 페이지를 여는 주소이며, "
+                    + "특정 판매 상품 페이지가 아닙니다.",
+                    example = "https://www.coupang.com/np/search?q=%EC%95%84%EC%9D%B4%ED%95%84%EA%B5%BF"
+                            + "+%EB%A9%94%EA%B0%80%EB%8F%84%EC%8A%A4+%EB%B9%84%ED%83%80%EB%AF%BCC+1000")
             String purchaseUrl,
 
             @Schema(description = "식약처 인증 여부", example = "true")
@@ -117,8 +119,10 @@ public class ProductResponse {
             @Schema(description = "확인 대상 상품 ID", example = "1")
             Long productId,
 
-            @Schema(description = "상품 구매 링크 URL",
-                    example = "https://smartstore.naver.com/ipillgood/products/123456")
+            @Schema(description = "상품 구매처 검색 링크 URL. 상품명으로 쿠팡 검색 결과 페이지를 여는 주소이며, "
+                    + "특정 판매 상품 페이지가 아닙니다.",
+                    example = "https://www.coupang.com/np/search?q=%EC%95%84%EC%9D%B4%ED%95%84%EA%B5%BF"
+                            + "+%EB%A9%94%EA%B0%80%EB%8F%84%EC%8A%A4+%EB%B9%84%ED%83%80%EB%AF%BCC+1000")
             String purchaseUrl,
 
             @Schema(description = "보유 성분과 주의 조합이 하나라도 있는지 여부", example = "true")

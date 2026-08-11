@@ -363,14 +363,12 @@ class NotificationDeliveryServiceTest {
                             name,
                             brand,
                             description,
-                            purchase_url,
                             mfds_certified,
                             deleted_at,
                             created_at,
                             updated_at
                         )
-                        VALUES (?, ?, '테스트브랜드', '테스트 설명', 'https://example.com/products',
-                                true, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        VALUES (?, ?, '테스트브랜드', '테스트 설명', true, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                         """,
                 id,
                 name,
