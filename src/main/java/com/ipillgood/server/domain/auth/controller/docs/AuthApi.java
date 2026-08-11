@@ -196,7 +196,8 @@ public interface AuthApi {
                                               "code": "COMMON400_1",
                                               "message": "잘못된 요청입니다.",
                                               "result": {
-                                                "username": "2~10자 이내로 입력해주세요."
+                                                "username": "아이디를 입력해주세요.",
+                                                "password": "비밀번호를 입력해주세요."
                                               }
                                             }
                                             """
@@ -350,7 +351,7 @@ public interface AuthApi {
                                               "code": "COMMON400_1",
                                               "message": "잘못된 요청입니다.",
                                               "result": {
-                                                "checkUsername.username": "2~10자 이내로 입력해주세요."
+                                                "checkUsername.username": "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요."
                                               }
                                             }
                                             """
@@ -378,7 +379,7 @@ public interface AuthApi {
     @SecurityRequirements
     ApiResponse<Void> checkUsername(
             @Parameter(description = "중복 확인할 아이디입니다. 영문·숫자 2~10자.", example = "demouser")
-            @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "2~10자 이내로 입력해주세요.")
+            @Pattern(regexp = "^[a-zA-Z0-9]{2,10}$", message = "공백을 제외하고 2~10자의 영문, 숫자를 조합해 주세요.")
             String username);
 
     @Operation(
