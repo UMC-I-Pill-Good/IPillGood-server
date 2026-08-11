@@ -18,7 +18,9 @@ public interface ProductApi {
             summary = "상품 상세 조회",
             description = "상품 상세 화면에 필요한 기본 정보, 대표 이미지, 후기 요약(평점·개수), "
                     + "과대광고 위험 성분 여부 및 목록을 조회합니다. 대표 이미지는 성분이 1개인 경우 "
-                    + "해당 성분 이미지를, 2개 이상인 경우 기타 대표 이미지를 사용합니다."
+                    + "해당 성분 이미지를, 2개 이상인 경우 기타 대표 이미지를 사용합니다. "
+                    + "isOwned는 로그인 회원의 캐비닛에 해당 상품이 담겨 있는지 여부로, 캐비닛에서 삭제한 "
+                    + "상품은 false로 반환됩니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -43,6 +45,7 @@ public interface ProductApi {
                                                 "mfdsCertified": true,
                                                 "ratingAverage": 4.5,
                                                 "reviewCount": 128,
+                                                "isOwned": true,
                                                 "adClaimRisk": true,
                                                 "adClaimRiskIngredients": ["비타민C"]
                                               }
@@ -70,6 +73,8 @@ public interface ProductApi {
             )
     })
     ApiResponse<ProductResponse.ProductInfo> getProductInfo(
+            @Parameter(hidden = true)
+            Long memberId,
             @Parameter(
                     description = "조회할 상품 ID",
                     schema = @Schema(type = "integer", format = "int64", example = "1")

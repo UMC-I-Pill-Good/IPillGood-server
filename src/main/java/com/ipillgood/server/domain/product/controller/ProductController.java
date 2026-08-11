@@ -24,9 +24,10 @@ public class ProductController implements ProductApi {
     @Override
     @GetMapping("/{productId}")
     public ApiResponse<ProductResponse.ProductInfo> getProductInfo(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long productId
     ){
-        ProductResponse.ProductInfo resDto = productService.getProductInfo(productId);
+        ProductResponse.ProductInfo resDto = productService.getProductInfo(memberId, productId);
         return ApiResponse.onSuccess(ProductSuccessCode.PRODUCT_VIEW_SUCCESS, resDto);
     }
 
