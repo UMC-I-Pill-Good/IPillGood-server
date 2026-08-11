@@ -26,9 +26,6 @@ public class Product extends BaseSoftDeleteEntity {
     @Column(columnDefinition = "TEXT", name = "description", nullable = false)
     private String description;
 
-    @Column(name = "purchase_url", nullable = false, columnDefinition = "TEXT")
-    private String purchaseUrl;
-
     @Column(name = "mfds_certified", nullable = false)
     private boolean mfdsCertified;
 }
