@@ -51,14 +51,24 @@ public interface SocialOAuthRedirectApi {
             description = """
                     카카오가 인가 코드와 함께 호출합니다. 프론트가 직접 호출하지 않습니다.
                     항상 302로 응답하며 네 갈래로 나뉩니다.
-
+                    
                     ① 로그인 성공(기존 연동 회원): refreshToken을 httpOnly 쿠키로 심고 프론트 콜백 URL로 리다이렉트합니다(쿼리 없음). accessToken은 이 응답에 없으므로 프론트가 도착 즉시 POST /auth/reissue를 호출해 받습니다.
-
+                    
                     ② 계정 연동 필요(같은 이메일의 기존 회원 존재): 콜백 URL에 accountLinkToken과 provider 쿼리를 붙여 리다이렉트합니다.
-
+                    
                     ③ 회원가입 필요(완전 신규): 콜백 URL에 socialSignupToken과 provider 쿼리를 붙여 리다이렉트합니다. 이 시점엔 계정을 생성하지 않습니다.
-
+                    
                     ④ 실패: 콜백 URL에 error 쿼리로 에러 코드를 붙여 리다이렉트합니다.
+                    
+                    AUTH400_14: 사용자가 동의 화면에서 취소한 경우
+                    
+                    AUTH400_13: state가 일치하지 않는 경우
+                    
+                    AUTH400_8: 카카오 인증에 실패한 경우(토큰 교환·프로필 조회 실패, 인가 코드 누락)
+                    
+                    AUTH400_10: 소셜 계정 이메일을 확인할 수 없는 경우(이메일 제공 미동의·미인증)
+                    
+                    AUTH400_12: 소셜 계정 닉네임을 확인할 수 없는 경우(프로필 제공 미동의)
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -83,14 +93,24 @@ public interface SocialOAuthRedirectApi {
             description = """
                     네이버가 인가 코드와 함께 호출합니다. 프론트가 직접 호출하지 않습니다.
                     항상 302로 응답하며 네 갈래로 나뉩니다.
-
+                    
                     ① 로그인 성공(기존 연동 회원): refreshToken을 httpOnly 쿠키로 심고 프론트 콜백 URL로 리다이렉트합니다(쿼리 없음). accessToken은 이 응답에 없으므로 프론트가 도착 즉시 POST /auth/reissue를 호출해 받습니다.
-
+                    
                     ② 계정 연동 필요(같은 이메일의 기존 회원 존재): 콜백 URL에 accountLinkToken과 provider 쿼리를 붙여 리다이렉트합니다.
-
+                    
                     ③ 회원가입 필요(완전 신규): 콜백 URL에 socialSignupToken과 provider 쿼리를 붙여 리다이렉트합니다. 이 시점엔 계정을 생성하지 않습니다.
-
+                    
                     ④ 실패: 콜백 URL에 error 쿼리로 에러 코드를 붙여 리다이렉트합니다.
+                    
+                    AUTH400_14: 사용자가 동의 화면에서 취소한 경우
+                    
+                    AUTH400_13: state가 일치하지 않는 경우
+                    
+                    AUTH400_8: 네이버 인증에 실패한 경우(토큰 교환·프로필 조회 실패, 인가 코드 누락)
+                    
+                    AUTH400_10: 소셜 계정 이메일을 확인할 수 없는 경우(이메일 제공 미동의·미인증)
+                    
+                    AUTH400_12: 소셜 계정 닉네임을 확인할 수 없는 경우(프로필 제공 미동의)
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
