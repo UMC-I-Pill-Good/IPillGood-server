@@ -158,11 +158,13 @@ public interface IntakeApi {
             @Parameter(hidden = true)
             Long memberId,
             @Parameter(
+                    required = true,
                     description = "조회할 연도입니다.",
                     schema = @Schema(type = "integer", example = "2026")
             )
             String year,
             @Parameter(
+                    required = true,
                     description = "조회할 월이며 1부터 12까지 입력합니다.",
                     schema = @Schema(type = "integer", example = "7")
             )
