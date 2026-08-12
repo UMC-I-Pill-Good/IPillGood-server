@@ -334,19 +334,33 @@ public interface NotificationApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "개별 알림 설정 요청 오류",
+                    description = "개별 알림 대상 ID 또는 설정 요청 오류",
                     content = @Content(
                             mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isSuccess": false,
-                                              "code": "NOTIFICATION400_6",
-                                              "message": "개별 알림 설정 변경 요청이 올바르지 않습니다.",
-                                              "result": null
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "개별 알림 대상 ID 오류",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "NOTIFICATION400_5",
+                                                      "message": "개별 알림 대상 ID가 올바르지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "개별 알림 설정 요청 오류",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "NOTIFICATION400_6",
+                                                      "message": "개별 알림 설정 변경 요청이 올바르지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
