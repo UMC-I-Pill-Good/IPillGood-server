@@ -519,6 +519,23 @@ public interface IntakeApi {
                                             """
                             )
                     )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     ApiResponse<IntakeResponse.ActiveProducts> getActiveProducts(
@@ -586,6 +603,23 @@ public interface IntakeApi {
                                               "isSuccess": false,
                                               "code": "INTAKE400_2",
                                               "message": "등록/병용 확인 요청이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
                                               "result": null
                                             }
                                             """
@@ -703,15 +737,46 @@ public interface IntakeApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "설정 변경 요청 오류",
+                    description = "활성 섭취 상품 ID 또는 설정 변경 요청 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "활성 섭취 상품 ID 오류",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "INTAKE400_1",
+                                                      "message": "활성 섭취 상품 ID가 올바르지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "설정 변경 요청 오류",
+                                            value = """
+                                                    {
+                                                      "isSuccess": false,
+                                                      "code": "INTAKE400_3",
+                                                      "message": "섭취 중 영양제 설정 변경 요청이 올바르지 않습니다.",
+                                                      "result": null
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = """
                                             {
                                               "isSuccess": false,
-                                              "code": "INTAKE400_3",
-                                              "message": "섭취 중 영양제 설정 변경 요청이 올바르지 않습니다.",
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
                                               "result": null
                                             }
                                             """
@@ -771,6 +836,40 @@ public interface IntakeApi {
                                                 "productName": "뉴트리코어 유기농 비타민D 1000IU",
                                                 "stoppedOn": "2026-07-21"
                                               }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "활성 섭취 상품 ID 오류",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE400_1",
+                                              "message": "활성 섭취 상품 ID가 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
+                                              "result": null
                                             }
                                             """
                             )
@@ -850,6 +949,23 @@ public interface IntakeApi {
                                               "isSuccess": false,
                                               "code": "INTAKE400_2",
                                               "message": "등록/병용 확인 요청이 올바르지 않습니다.",
+                                              "result": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "초기 설문 미완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "INTAKE403_1",
+                                              "message": "초기 설문을 완료해야 이용할 수 있습니다.",
                                               "result": null
                                             }
                                             """
