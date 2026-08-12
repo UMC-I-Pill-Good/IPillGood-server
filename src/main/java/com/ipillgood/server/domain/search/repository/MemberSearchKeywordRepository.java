@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface MemberSearchKeywordRepository extends JpaRepository<MemberSearchKeyword, Long> {
 
-    List<MemberSearchKeyword> findTop10ByMemberIdOrderBySearchedAtDesc(Long memberId);
+    List<MemberSearchKeyword> findTop5ByMemberIdOrderBySearchedAtDesc(Long memberId);
 
     Optional<MemberSearchKeyword> findByMemberIdAndKeyword(Long memberId, String keyword);
 

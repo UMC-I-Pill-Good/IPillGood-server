@@ -64,7 +64,7 @@ public class ProductSearchResponse {
     @Schema(description = "최근 검색어 조회 응답")
     @Builder
     public record RecentSearchKeywords(
-            @Schema(description = "최근 검색어 목록 (최신순, 최대 10개)")
+            @Schema(description = "최근 검색어 목록 (최신순, 최대 5개)")
             List<RecentSearchKeyword> keywords
     ) {}
 
@@ -94,7 +94,7 @@ public class ProductSearchResponse {
     @Schema(description = "최근 검색어 전체 삭제 응답")
     @Builder
     public record DeletedKeywords(
-            @Schema(description = "삭제된 최근 검색어 수", example = "10")
+            @Schema(description = "삭제된 최근 검색어 수", example = "5")
             Integer deletedCount
     ) {}
 }

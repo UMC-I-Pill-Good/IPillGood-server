@@ -79,7 +79,7 @@ public class ProductSearchService {
 
     public ProductSearchResponse.RecentSearchKeywords getRecentSearchKeywords(Long memberId) {
         List<MemberSearchKeyword> keywords = memberSearchKeywordRepository
-                .findTop10ByMemberIdOrderBySearchedAtDesc(memberId);
+                .findTop5ByMemberIdOrderBySearchedAtDesc(memberId);
 
         return ProductSearchConverter.toRecentSearchKeywords(keywords);
     }

@@ -4,9 +4,9 @@ import com.ipillgood.server.domain.healthconcern.entity.enums.MajorCategory;
 import com.ipillgood.server.domain.search.dto.ProductSearchRequest;
 import com.ipillgood.server.domain.search.dto.ProductSearchResponse;
 import com.ipillgood.server.domain.search.entity.enums.ProductSearchSort;
+import com.ipillgood.server.global.apiPayload.ApiResponse;
 import com.ipillgood.server.global.enums.AgeGroup;
 import com.ipillgood.server.global.enums.Gender;
-import com.ipillgood.server.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -148,7 +148,7 @@ public interface ProductSearchApi {
 
     @Operation(
             summary = "최근 검색어 조회",
-            description = "로그인한 회원의 최근 검색어를 최신순으로 최대 10개 조회합니다."
+            description = "로그인한 회원의 최근 검색어를 최신순으로 최대 5개 조회합니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -322,7 +322,7 @@ public interface ProductSearchApi {
                                               "code": "SEARCH200_4",
                                               "message": "최근 검색어 전체 삭제에 성공했습니다.",
                                               "result": {
-                                                "deletedCount": 10
+                                                "deletedCount": 5
                                               }
                                             }
                                             """
