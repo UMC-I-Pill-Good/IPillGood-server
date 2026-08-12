@@ -55,7 +55,7 @@ public class RecommendationPromptBuilder {
         });
 
         prompt.append("\n[출력 규칙]\n")
-                .append("- healthSummary에는 사용자의 현재 건강 상태를 3~5줄로 요약해 주세요.\n")
+                .append("- healthSummary에는 사용자의 현재 건강 상태를 2~3줄, 약 100자 이내로 간결하게 요약해 주세요.\n")
                 .append("- recommendations는 위 후보 목록에 있는 ingredientId만 사용해 최대 3개까지 반환해 주세요.\n")
                 .append("- 각 추천 항목에는 반드시 구체적인 aiReason(추천 이유)을 채워야 합니다. 이유가 없는 성분은 추천하지 마세요.\n");
 
