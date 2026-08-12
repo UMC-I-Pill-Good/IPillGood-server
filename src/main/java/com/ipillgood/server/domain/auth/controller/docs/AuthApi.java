@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -32,6 +34,30 @@ public interface AuthApi {
                     policyAgreements에는 활성 상태인 필수 약관이 모두 agreed=true로 포함되어야 합니다.
                     이 API는 가입만 처리하고 로그인 토큰을 발급하지 않으므로, 가입 후 로그인 API를 따로 호출해야 합니다.
                     """
+    )
+    @RequestBody(
+            required = true,
+            description = "회원 정보와 약관 동의 목록을 전달합니다. 필수 약관 3건은 모두 agreed=true여야 합니다.",
+            content = @Content(
+                    schema = @Schema(implementation = AuthRequest.SignUp.class),
+                    examples = @ExampleObject(
+                            value = """
+                                    {
+                                      "nickname": "아필굿",
+                                      "username": "demouser",
+                                      "email": "demo@ipillgood.com",
+                                      "password": "ipillgood1!",
+                                      "passwordConfirm": "ipillgood1!",
+                                      "policyAgreements": [
+                                        { "policyDocumentId": 1, "agreed": true },
+                                        { "policyDocumentId": 2, "agreed": true },
+                                        { "policyDocumentId": 3, "agreed": true },
+                                        { "policyDocumentId": 4, "agreed": false }
+                                      ]
+                                    }
+                                    """
+                    )
+            )
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -473,6 +499,26 @@ public interface AuthApi {
                     socialSignupToken은 발급 후 5분간 유효한 1회용 토큰입니다.
                     """
     )
+    @RequestBody(
+            required = true,
+            description = "콜백이 발급한 socialSignupToken과 약관 동의 목록을 전달합니다. 필수 약관 3건은 모두 agreed=true여야 합니다.",
+            content = @Content(
+                    schema = @Schema(implementation = AuthRequest.SocialSignUp.class),
+                    examples = @ExampleObject(
+                            value = """
+                                    {
+                                      "socialSignupToken": "3f2b1c9a-7d4e-4b58-9c31-8a2f6e0d5b74",
+                                      "policyAgreements": [
+                                        { "policyDocumentId": 1, "agreed": true },
+                                        { "policyDocumentId": 2, "agreed": true },
+                                        { "policyDocumentId": 3, "agreed": true },
+                                        { "policyDocumentId": 4, "agreed": false }
+                                      ]
+                                    }
+                                    """
+                    )
+            )
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
@@ -583,6 +629,26 @@ public interface AuthApi {
                     가입과 동시에 로그인 처리됩니다. (accessToken은 Body, refreshToken은 httpOnly 쿠키)
                     socialSignupToken은 발급 후 5분간 유효한 1회용 토큰입니다.
                     """
+    )
+    @RequestBody(
+            required = true,
+            description = "콜백이 발급한 socialSignupToken과 약관 동의 목록을 전달합니다. 필수 약관 3건은 모두 agreed=true여야 합니다.",
+            content = @Content(
+                    schema = @Schema(implementation = AuthRequest.SocialSignUp.class),
+                    examples = @ExampleObject(
+                            value = """
+                                    {
+                                      "socialSignupToken": "6b419d83-2e50-4c7a-a1f6-95d38b0c4e17",
+                                      "policyAgreements": [
+                                        { "policyDocumentId": 1, "agreed": true },
+                                        { "policyDocumentId": 2, "agreed": true },
+                                        { "policyDocumentId": 3, "agreed": true },
+                                        { "policyDocumentId": 4, "agreed": false }
+                                      ]
+                                    }
+                                    """
+                    )
+            )
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
