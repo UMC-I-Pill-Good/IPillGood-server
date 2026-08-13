@@ -1,0 +1,399 @@
+package com.ipillgood.server.domain.intake.dto;
+
+import com.ipillgood.server.domain.ingredient.entity.enums.CombinationType;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeMascotStage;
+import com.ipillgood.server.domain.intake.entity.enums.IntakeStreakStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class IntakeResponse {
+
+    @Schema(description = "섭취 중 영양제 목록 조회 응답")
+    @Builder
+    public record ActiveProducts(
+            @Schema(description = "현재 섭취 중인 영양제 수", example = "2")
+            Integer totalCount,
+
+            @Schema(description = "현재 섭취 중인 영양제 목록")
+            List<ActiveProductSummary> activeProducts
+    ) {
+    }
+
+    @Schema(description = "섭취 중 영양제 카드 항목")
+    @Builder
+    public record ActiveProductSummary(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl
+    ) {
+    }
+
+    @Schema(description = "복용 캘린더 조회 응답")
+    @Builder
+    public record Calendar(
+            @Schema(description = "조회 연도", example = "2026")
+            Integer year,
+
+            @Schema(description = "조회 월", example = "7")
+            Integer month,
+
+            @Schema(description = "조회 월의 날짜별 복용 상태 목록")
+            List<CalendarDay> days
+    ) {
+    }
+
+    @Schema(description = "복용 캘린더 날짜별 상태")
+    @Builder
+    public record CalendarDay(
+            @Schema(description = "날짜", example = "2026-07-21")
+            LocalDate date,
+
+            @Schema(description = "월 기준 일자", example = "21")
+            Integer dayOfMonth,
+
+            @Schema(description = "실제 섭취 완료 기록 존재 여부", example = "true")
+            Boolean hasTakenRecords,
+
+            @Schema(description = "해당 날짜의 복용 예정 영양제를 모두 완료했는지 여부", example = "true")
+            Boolean allCompleted,
+
+            @Schema(description = "연속 섭취일 계산에서 해당 날짜를 어떻게 판단하는지 나타내는 상태")
+            IntakeStreakStatus streakStatus,
+
+            @Schema(description = "해당 날짜가 연속 섭취일에 포함되는지 여부", example = "true")
+            Boolean streakIncluded,
+
+            @Schema(description = "날짜별 섭취 완료 목록 팝업을 열 수 있는지 여부", example = "true")
+            Boolean selectable,
+
+            @Schema(description = "실제 섭취 완료한 영양제 수", example = "2")
+            Integer takenCount,
+
+            @Schema(description = "전체 완료 일시", example = "2026-07-21T21:05:00")
+            LocalDateTime completedAt
+    ) {
+    }
+
+    @Schema(description = "날짜별 섭취 완료 목록 조회 응답")
+    @Builder
+    public record DailyTakenProducts(
+            @Schema(description = "조회 날짜", example = "2026-07-21")
+            LocalDate date,
+
+            @Schema(description = "실제 섭취 완료한 영양제 수", example = "2")
+            Integer takenCount,
+
+            @Schema(description = "실제 섭취 완료한 영양제 목록")
+            List<DailyTakenProduct> products
+    ) {
+    }
+
+    @Schema(description = "날짜별 섭취 완료 영양제 항목")
+    @Builder
+    public record DailyTakenProduct(
+            @Schema(description = "섭취 완료 당시 연결된 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
+    ) {
+    }
+
+    @Schema(description = "연속 섭취일 조회 응답")
+    @Builder
+    public record IntakeStreak(
+            @Schema(description = "서비스 기준 현재 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "서비스 기준 현재 날짜의 연속 섭취 판단 상태")
+            IntakeStreakStatus currentDateStreakStatus,
+
+            @Schema(description = "연속 섭취일", example = "15")
+            Integer streakDays,
+
+            @Schema(description = "마스코트 성장 단계 enum")
+            IntakeMascotStage mascotStage,
+
+            @Schema(description = "화면에 표시할 성장 단계명", example = "꽃")
+            String mascotStageLabel,
+
+            @Schema(description = "현재 활성 섭취 중 영양제 수", example = "2")
+            Integer activeProductCount,
+
+            @Schema(description = "연속 섭취일에 마지막으로 포함된 날짜", example = "2026-07-21")
+            LocalDate lastRoutineDate,
+
+            @Schema(description = "다음 성장 단계까지 필요한 기준 연속 섭취일", example = "30")
+            Integer nextStageThresholdDays
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 상태 조회 응답")
+    @Builder
+    public record TodayIntakeStatus(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 복용 예정 영양제 수", example = "2")
+            Integer scheduledCount,
+
+            @Schema(description = "오늘 실제 섭취 완료한 영양제 수", example = "1")
+            Integer takenCount,
+
+            @Schema(description = "오늘 복용 예정 영양제를 모두 완료했는지 여부", example = "false")
+            Boolean allCompleted,
+
+            @Schema(description = "홈 미섭취 안내 박스 노출 여부", example = "true")
+            Boolean missedNoticeVisible,
+
+            @Schema(description = "오늘 자동 팝업 노출 기록 존재 여부", example = "false")
+            Boolean autoPopupShown,
+
+            @Schema(description = "홈 첫 진입 시 자동 팝업을 노출해야 하는지 여부", example = "true")
+            Boolean autoPopupRequired,
+
+            @Schema(description = "오늘 복용 예정 영양제 목록")
+            List<TodayScheduledProduct> scheduledProducts
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 예정 영양제 항목")
+    @Builder
+    public record TodayScheduledProduct(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "오늘 섭취 완료 여부", example = "true")
+            Boolean taken,
+
+            @Schema(description = "오늘 섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 팝업 노출 기록 응답")
+    @Builder
+    public record TodayPopupShown(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 자동 팝업 노출 기록 존재 여부", example = "true")
+            Boolean autoPopupShown,
+
+            @Schema(description = "자동 팝업 노출 기록 일시", example = "2026-07-21T09:00:00")
+            LocalDateTime autoPopupShownAt
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 체크 저장 응답")
+    @Builder
+    public record SaveTodayIntakeRecords(
+            @Schema(description = "서비스 기준 오늘 날짜", example = "2026-07-21")
+            LocalDate currentDate,
+
+            @Schema(description = "오늘 복용 예정 영양제 수", example = "2")
+            Integer scheduledCount,
+
+            @Schema(description = "오늘 실제 섭취 완료한 영양제 수", example = "1")
+            Integer takenCount,
+
+            @Schema(description = "오늘 복용 예정 영양제를 모두 완료했는지 여부", example = "false")
+            Boolean allCompleted,
+
+            @Schema(description = "전체 완료 일시", example = "2026-07-21T21:05:00")
+            LocalDateTime completedAt,
+
+            @Schema(description = "홈 미섭취 안내 박스 노출 여부", example = "true")
+            Boolean missedNoticeVisible,
+
+            @Schema(description = "오늘 복용 예정 영양제별 저장 결과")
+            List<TodayIntakeRecord> records
+    ) {
+    }
+
+    @Schema(description = "오늘 복용 체크 저장 항목")
+    @Builder
+    public record TodayIntakeRecord(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "오늘 복용 예정 여부", example = "true")
+            Boolean scheduled,
+
+            @Schema(description = "오늘 섭취 완료 여부", example = "true")
+            Boolean taken,
+
+            @Schema(description = "오늘 섭취 완료 일시", example = "2026-07-21T08:45:00")
+            LocalDateTime takenAt
+    ) {
+    }
+
+    @Schema(description = "섭취 중 영양제 등록 응답")
+    @Builder
+    public record RegisterActiveProduct(
+            @Schema(description = "생성된 활성 섭취 중 상품 ID", example = "8")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "16")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "124")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "헬로바이오 맥스 비타민C 3000")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl,
+
+            @Schema(description = "개별 복용 알림 ON/OFF 여부", example = "true")
+            Boolean notificationEnabled,
+
+            @Schema(description = "복용 시간", example = "08:30")
+            String intakeTime,
+
+            @Schema(description = "복용 주기 enum", example = "EVERY_DAY")
+            String frequency,
+
+            @Schema(description = "화면에 표시할 복용 주기명", example = "매일")
+            String frequencyLabel
+    ) {
+    }
+
+    @Schema(description = "섭취 중 영양제 설정 변경 응답")
+    @Builder
+    public record UpdateActiveProductSettings(
+            @Schema(description = "활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "브랜드명", example = "뉴트리코어")
+            String brand,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "카드에 표시할 썸네일 이미지 URL")
+            String thumbnailImageUrl,
+
+            @Schema(description = "섭취 중으로 추가한 날짜", example = "2026-07-01")
+            LocalDate startedOn,
+
+            @Schema(description = "N일째 섭취 중 배지에 사용할 섭취 일수", example = "21")
+            Integer intakeDayCount,
+
+            @Schema(description = "개별 복용 알림 ON/OFF 여부", example = "false")
+            Boolean notificationEnabled,
+
+            @Schema(description = "복용 시간", example = "21:00")
+            String intakeTime,
+
+            @Schema(description = "복용 주기 enum", example = "EVERY_2_DAYS")
+            String frequency,
+
+            @Schema(description = "화면에 표시할 복용 주기명", example = "2일에 한 번")
+            String frequencyLabel,
+
+            @Schema(description = "복용 주기 간격 일수", example = "2")
+            Integer frequencyIntervalDays,
+
+            @Schema(description = "복용 예정일 계산 기준일", example = "2026-07-21")
+            LocalDate scheduleAnchorOn
+    ) {
+    }
+
+    @Schema(description = "섭취 중 영양제 제거 응답")
+    @Builder
+    public record RemoveActiveProduct(
+            @Schema(description = "중단 처리된 활성 섭취 중 상품 ID", example = "7")
+            Long activeProductId,
+
+            @Schema(description = "회원 캐비닛 상품 ID", example = "15")
+            Long memberProductId,
+
+            @Schema(description = "영양제 상품 ID", example = "112")
+            Long productId,
+
+            @Schema(description = "영양제 상품명", example = "뉴트리코어 유기농 비타민D 1000IU")
+            String productName,
+
+            @Schema(description = "섭취 중단일", example = "2026-07-21")
+            LocalDate stoppedOn
+    ) {
+    }
+
+    @Schema(description = "섭취 중 등록 전 병용 금기 확인 응답")
+    @Builder
+    public record CompatibilityCheck(
+            @Schema(description = "병용 금기 또는 주의 조합 존재 여부", example = "true")
+            Boolean hasConflicts,
+
+            @Schema(description = "감지된 병용 금기 또는 주의 조합 목록")
+            List<CompatibilityConflict> conflicts
+    ) {
+    }
+
+    @Schema(description = "병용 금기 또는 주의 조합 항목")
+    @Builder
+    public record CompatibilityConflict(
+            @Schema(description = "조합 유형", example = "CAUTION")
+            CombinationType combinationType,
+
+            @Schema(description = "현재 섭취 중 영양제의 매칭 성분 ID", example = "10")
+            Long currentIngredientId,
+
+            @Schema(description = "현재 섭취 중 영양제의 매칭 성분명", example = "칼슘")
+            String currentIngredientName,
+
+            @Schema(description = "새로 등록하려는 영양제의 매칭 성분 ID", example = "18")
+            Long targetIngredientId,
+
+            @Schema(description = "새로 등록하려는 영양제의 매칭 성분명", example = "철")
+            String targetIngredientName,
+
+            @Schema(description = "함께 복용할 때 권장되지 않거나 주의가 필요한 이유")
+            String reason
+    ) {
+    }
+}

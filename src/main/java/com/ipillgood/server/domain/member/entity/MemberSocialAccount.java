@@ -1,0 +1,88 @@
+package com.ipillgood.server.domain.member.entity;
+
+import com.ipillgood.server.domain.member.entity.enums.SocialProvider;
+import com.ipillgood.server.global.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import java.time.LocalDateTime;
+
+// 소셜 로그인 계정
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+        name = "member_social_account",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_member_social_account_provider_user",
+                        columnNames = {"provider", "provider_user_id"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_member_social_account_member_provider",
+                        columnNames = {"member_id", "provider"}
+                )
+        }
+)
+public class MemberSocialAccount extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Member member;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false)
+    private SocialProvider provider;
+
+    @Column(name = "provider_user_id", nullable = false)
+    private String providerUserId;
+
+    @Column(name = "provider_email")
+    private String providerEmail;
+
+    @Column(name = "linked_at", nullable = false)
+    private LocalDateTime linkedAt;
+
+    @Builder(access = AccessLevel.PRIVATE)
+    private MemberSocialAccount(Member member, SocialProvider provider, String providerUserId,
+                                String providerEmail, LocalDateTime linkedAt) {
+        this.member = member;
+        this.provider = provider;
+        this.providerUserId = providerUserId;
+        this.providerEmail = providerEmail;
+        this.linkedAt = linkedAt;
+    }
+
+    // 소셜 회원가입 / 계정 연동 시 실행
+    public static MemberSocialAccount of(Member member, SocialProvider provider,
+                                         String providerUserId, String providerEmail) {
+        return MemberSocialAccount.builder()
+                .member(member)
+                .provider(provider)
+                .providerUserId(providerUserId)
+                .providerEmail(providerEmail)
+                .linkedAt(LocalDateTime.now())  // 연동 일시 = 생성 시점
+                .build();
+    }
+}

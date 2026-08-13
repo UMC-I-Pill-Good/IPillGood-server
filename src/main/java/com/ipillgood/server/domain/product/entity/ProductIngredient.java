@@ -1,0 +1,34 @@
+package com.ipillgood.server.domain.product.entity;
+
+import com.ipillgood.server.domain.ingredient.entity.Ingredient;
+import com.ipillgood.server.global.entity.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+// 상품 포함 성분
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(
+        name = "product_ingredient",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_product_ingredient",
+                columnNames = {"product_id", "ingredient_id"}
+        )
+)
+public class ProductIngredient extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ingredient_id", nullable = false)
+    private Ingredient ingredient;
+}
