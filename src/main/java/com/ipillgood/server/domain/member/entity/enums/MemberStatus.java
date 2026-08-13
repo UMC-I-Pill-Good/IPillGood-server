@@ -6,8 +6,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum MemberStatus {
-    ACTIVE("활성"),
-    BANNED("정지");
+    ACTIVE("활성");
 
     private final String label;
 }
