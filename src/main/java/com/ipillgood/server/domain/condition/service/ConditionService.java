@@ -23,7 +23,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ConditionService {
 
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
+    // TODO(시연 임시): 원래 컨디션 체크는 일요일에만 가능하다. 시연일(토요일) 대응을 위해 토요일을 임시로 허용한다.
+    //  시연 종료 후 EnumSet.of(DayOfWeek.SUNDAY) 로 되돌릴 것.
+    private static final Set<DayOfWeek> CONDITION_CHECK_DAYS = EnumSet.of(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY);
     private static final int WEEK_DAYS = 7;
     private static final int MAX_SCORE = 5;
     private static final int AVERAGE_SCALE = 1;
@@ -50,22 +55,23 @@ public class ConditionService {
         LocalDate today = currentDate();
         LocalDate weekStartOn = weekStartOn(today);
         LocalDate weekEndOn = weekStartOn.plusDays(WEEK_DAYS - 1);
-        boolean isSunday = today.getDayOfWeek() == DayOfWeek.SUNDAY;
+        boolean checkDay = isConditionCheckDay(today);
 
         ConditionWeeklyRecord record = conditionWeeklyRecordRepository
                 .findByMember_IdAndWeekStartOn(memberId, weekStartOn)
                 .orElse(null);
         boolean checked = record != null;
-        boolean checkAvailable = isSunday && !checked;
+        boolean checkAvailable = checkDay && !checked;
 
         ConditionPopupLog popupLog = conditionPopupLogRepository
                 .findByMember_IdAndWeekStartOn(memberId, weekStartOn)
                 .orElse(null);
-        boolean autoPopupAvailable = isSunday && !checked && (popupLog == null || popupLog.getAutoShownAt() == null);
-        boolean sundayIntakeWarningRequired = isSunday && !checked && intakeService.hasIncompleteTodayIntake(memberId);
+        boolean autoPopupAvailable = checkDay && !checked && (popupLog == null || popupLog.getAutoShownAt() == null);
+        boolean sundayIntakeWarningRequired = checkDay && !checked && intakeService.hasIncompleteTodayIntake(memberId);
 
+        // isSunday 응답 필드는 클라이언트 호환을 위해 이름을 유지하되, 시연 기간에는 "체크 가능 요일 여부"를 담는다.
         return ConditionConverter.toCurrentWeek(
-                today, weekStartOn, weekEndOn, isSunday, checkAvailable,
+                today, weekStartOn, weekEndOn, checkDay, checkAvailable,
                 record, popupLog, autoPopupAvailable, sundayIntakeWarningRequired);
     }
 
@@ -76,7 +82,7 @@ public class ConditionService {
         validateSaveWeeklyRecordRequest(request);
 
         LocalDate today = currentDate();
-        if (today.getDayOfWeek() != DayOfWeek.SUNDAY) {
+        if (!isConditionCheckDay(today)) {
             throw new ConditionException(ConditionErrorCode.NOT_SUNDAY);
         }
 
@@ -87,8 +93,10 @@ public class ConditionService {
         }
 
         short sleepScore = calculateSleepScore(request.sleepHours());
+        // 토요일 체크 시 아직 오지 않은 일요일이 미섭취로 집계되지 않도록 집계 구간을 오늘까지로 제한한다.
+        LocalDate completionEndOn = weekEndOn.isAfter(today) ? today : weekEndOn;
         IntakeWeeklyCompletionSummary completionSummary =
-                intakeService.getWeeklyCompletionSummary(memberId, weekStartOn, weekEndOn);
+                intakeService.getWeeklyCompletionSummary(memberId, weekStartOn, completionEndOn);
         short intakeDaysCount = (short) completionSummary.completedDays();
         short intakeScore = (short) Math.min(WEEK_DAYS - completionSummary.missedDays(), MAX_SCORE);
         BigDecimal conditionScore = calculateConditionScore(request.vitalityScore(), sleepScore, intakeScore);
@@ -169,10 +177,10 @@ public class ConditionService {
         return ConditionConverter.toPopupDismissed(popupLog);
     }
 
-    // 컨디션 체크 팝업은 일요일에, 아직 이번 주 체크를 완료하지 않았을 때만 노출된다
+    // 컨디션 체크 팝업은 체크 가능 요일에, 아직 이번 주 체크를 완료하지 않았을 때만 노출된다
     private LocalDate validatePopupTarget(Long memberId) {
         LocalDate today = currentDate();
-        if (today.getDayOfWeek() != DayOfWeek.SUNDAY) {
+        if (!isConditionCheckDay(today)) {
             throw new ConditionException(ConditionErrorCode.POPUP_NOT_SUNDAY);
         }
 
@@ -292,6 +300,10 @@ public class ConditionService {
         } catch (NumberFormatException e) {
             throw new GeneralException(GeneralErrorCode.VALID_FAIL);
         }
+    }
+
+    private boolean isConditionCheckDay(LocalDate date) {
+        return CONDITION_CHECK_DAYS.contains(date.getDayOfWeek());
     }
 
     private LocalDate weekStartOn(LocalDate date) {
