@@ -74,7 +74,7 @@ public interface ConditionControllerApi {
 
     @Operation(
             summary = "컨디션 팝업 자동 노출 기록",
-            description = "컨디션 체크 가능 요일 컨디션 페이지 첫 접속 시 자동 노출된 팝업을 기록합니다. "
+            description = "일요일 컨디션 페이지 첫 접속 시 자동 노출된 팝업을 기록합니다. "
                     + "같은 주에 이미 기록이 있으면 최초 노출 시각을 그대로 반환합니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
@@ -103,16 +103,16 @@ public interface ConditionControllerApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "주말(토·일)에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                    description = "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "체크 가능 요일이 아닌 요청",
+                                    name = "일요일이 아닌 요청",
                                     value = """
                                             {
                                               "isSuccess": false,
                                               "code": "CONDITION400_2",
-                                              "message": "주말(토·일)에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                                              "message": "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
                                               "result": null
                                             }
                                             """
@@ -189,16 +189,16 @@ public interface ConditionControllerApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "주말(토·일)에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                    description = "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "체크 가능 요일이 아닌 요청",
+                                    name = "일요일이 아닌 요청",
                                     value = """
                                             {
                                               "isSuccess": false,
                                               "code": "CONDITION400_2",
-                                              "message": "주말(토·일)에만 컨디션 체크 팝업을 기록할 수 있습니다.",
+                                              "message": "일요일에만 컨디션 체크 팝업을 기록할 수 있습니다.",
                                               "result": null
                                             }
                                             """
@@ -246,7 +246,7 @@ public interface ConditionControllerApi {
 
     @Operation(
             summary = "주간 컨디션 체크 저장",
-            description = "주간 컨디션 체크 입력값과 계산 점수를 저장합니다."
+            description = "일요일 주간 컨디션 체크 입력값과 계산 점수를 저장합니다."
     )
     @SecurityRequirement(name = "JWT TOKEN")
     @ApiResponses({
@@ -282,7 +282,7 @@ public interface ConditionControllerApi {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "요청값 검증에 실패했거나 체크 가능 요일이 아닙니다.",
+                    description = "요청값 검증에 실패했거나 일요일이 아닙니다.",
                     content = @Content(
                             mediaType = "application/json",
                             examples = {
@@ -298,12 +298,12 @@ public interface ConditionControllerApi {
                                                     """
                                     ),
                                     @ExampleObject(
-                                            name = "체크 가능 요일이 아닌 요청",
+                                            name = "일요일이 아닌 요청",
                                             value = """
                                                     {
                                                       "isSuccess": false,
                                                       "code": "CONDITION400_1",
-                                                      "message": "주말(토·일)에만 컨디션 체크를 저장할 수 있습니다.",
+                                                      "message": "일요일에만 컨디션 체크를 저장할 수 있습니다.",
                                                       "result": null
                                                     }
                                                     """

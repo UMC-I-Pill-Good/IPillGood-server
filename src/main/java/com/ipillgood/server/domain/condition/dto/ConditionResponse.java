@@ -21,7 +21,7 @@ public class ConditionResponse {
             @Schema(description = "이번 주 종료일", example = "2026-07-26")
             LocalDate weekEndOn,
 
-            @Schema(description = "오늘이 컨디션 체크 가능 요일인지 여부 (시연 기간 한정: 토/일 모두 true)", example = "true")
+            @Schema(description = "오늘이 일요일인지 여부", example = "true")
             Boolean isSunday,
 
             @Schema(description = "체크 가능 여부", example = "true")
@@ -42,7 +42,7 @@ public class ConditionResponse {
             @Schema(description = "팝업 닫힘 일시", example = "null")
             LocalDateTime dismissedAt,
 
-            @Schema(description = "컨디션 체크 당일 영양제 미섭취 확인 팝업 필요 여부", example = "true")
+            @Schema(description = "일요일 영양제 미섭취 확인 팝업 필요 여부", example = "true")
             Boolean sundayIntakeWarningRequired
     ) {
     }
